@@ -102,7 +102,8 @@ async function scrapeHDMozi(meta) {
         const videaMatch = embedUrl.match(/videa\.hu\/player\?v=([A-Za-z0-9]{16})/);
         if (videaMatch) {
           const vcode = videaMatch[1];
-          const vStreams = await extractVideaStreams(vcode);
+          const vData = await extractVideaStreams(vcode);
+          const vStreams = vData?.sources || [];
           for (const vs of vStreams) {
             const qualLabel = vs.height >= 1080 ? '1080p FHD' : vs.height >= 720 ? '720p HD' : `${vs.height}p`;
             streams.push({

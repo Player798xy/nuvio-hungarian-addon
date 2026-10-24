@@ -1,6 +1,7 @@
 /**
  * Videa.hu Scraper & Direct Stream Extractor
  * Extracts 1080p, 720p, etc. direct MP4 streams using native RC4 XML decryption.
+ * Features strict duration, category, and title matching so only real, full movies/episodes are returned.
  */
 
 const STATIC_SECRET = 'xHb0ZvME5q8CBcoQi6AngerDu3FGO9fkUlwPmLVY_RTzj2hJIS4NasXWKy1td7p';
@@ -32,6 +33,9 @@ function rc4Decrypt(cipherBuf, keyStr) {
   return out.toString('utf-8');
 }
 
+/**
+ * Extracts streams and metadata (including duration in seconds) from a Videa video code.
+ */
 async function extractVideaStreams(vcode) {
   try {
     const playerUrl = `https://videa.hu/player?v=${vcode}`;
@@ -41,11 +45,11 @@ async function extractVideaStreams(vcode) {
       },
       signal: AbortSignal.timeout(6000)
     });
-    if (!resp.ok) return [];
+    if (!resp.ok) return null;
 
     const html = await resp.text();
     const nonceMatch = html.match(/_xt\s*=\s*"([^"]+)"/);
-    if (!nonceMatch) return [];
+    if (!nonceMatch) return null;
 
     const nonce = nonceMatch[1];
     const l = nonce.slice(0, 32);
@@ -53,7 +57,7 @@ async function extractVideaStreams(vcode) {
     let result = '';
     for (let i = 0; i < 32; i++) {
       const idx = STATIC_SECRET.indexOf(l[i]);
-      if (idx === -1) return [];
+      if (idx === -1) return null;
       result += s[i - (idx - 31)];
     }
 
@@ -81,11 +85,13 @@ async function extractVideaStreams(vcode) {
     }
 
     if (xmlStr.includes('<error') || !xmlStr.includes('<video_source')) {
-      return [];
+      return null;
     }
 
     const titleMatch = xmlStr.match(/<title>([^<]+)<\/title>/);
+    const durationMatch = xmlStr.match(/<duration>(\d+)<\/duration>/);
     const videoTitle = titleMatch ? titleMatch[1].trim() : 'Videa Stream';
+    const duration = durationMatch ? parseInt(durationMatch[1], 10) : 0;
 
     const sources = [];
     const sourceRegex = /<video_source\s+([^>]+)>([^<]+)<\/video_source>/g;
@@ -117,26 +123,56 @@ async function extractVideaStreams(vcode) {
         width,
         height: hNum,
         url,
-        videoTitle
+        videoTitle,
+        duration
       });
     }
 
-    return sources;
+    return { videoTitle, duration, sources };
   } catch (err) {
-    return [];
+    return null;
   }
 }
 
+// Terms indicating music, clips, or trailers that should not be treated as a full feature
+const JUNK_TITLE_REGEX = /\b(filmzene|zene|soundtrack|ost|paródia|parodia|főcímdal|focimdal|trailer|előzetes|elozetes|párbaj|parbaj|interjú|interju|dán állami)\b/i;
+
+function isTitleMatch(targetTitle, candidateTitle) {
+  if (!targetTitle || !candidateTitle) return false;
+  const norm = (s) => s.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents for robust comparison
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const normTarget = norm(targetTitle);
+  const normCand = norm(candidateTitle);
+
+  const stopWords = ['egy', 'nem', 'mint', 'hogy', 'the', 'and'];
+  const targetWords = normTarget.split(' ').filter(w => w.length >= 3 && !stopWords.includes(w));
+  if (targetWords.length === 0) return true;
+
+  const matched = targetWords.filter(w => normCand.includes(w));
+  if (targetWords.length <= 2) {
+    return matched.length === targetWords.length;
+  }
+  const ratio = matched.length / targetWords.length;
+  return ratio >= 0.6;
+}
+
 /**
- * Searches Videa.hu for a query and returns streaming links.
+ * Searches Videa.hu for a movie/episode and returns validated full-length streaming links.
  */
 async function scrapeVidea(meta) {
   const streams = [];
-  const searchTerms = [];
-
   const hu = meta.hungarianTitle || meta.englishTitle;
   if (!hu) return streams;
 
+  const isMovie = meta.type === 'movie' || !meta.season;
+  // Minimum required duration: 40 minutes for movies, 10 minutes for series episodes
+  const minDuration = isMovie ? 2400 : 600;
+
+  const searchTerms = [];
   if (meta.season && meta.episode) {
     const s = meta.season;
     const e = meta.episode;
@@ -146,18 +182,17 @@ async function scrapeVidea(meta) {
     searchTerms.push(`${hu} ${s}x${e}`);
     searchTerms.push(`${hu} ${s}. evad ${e}. resz`);
     searchTerms.push(`${hu} ${e}. resz`);
-    searchTerms.push(`${hu}`);
   } else {
-    searchTerms.push(hu);
+    // Movies: Prioritize full movie queries
+    searchTerms.push(`${hu} teljes film`);
     if (meta.year) searchTerms.push(`${hu} ${meta.year}`);
-    if (meta.englishTitle && meta.englishTitle !== hu) {
-      searchTerms.push(meta.englishTitle);
-    }
+    searchTerms.push(`${hu} teljes film magyarul`);
+    searchTerms.push(hu);
   }
 
   const seenVideoIds = new Set();
 
-  for (const term of searchTerms.slice(0, 3)) {
+  for (const term of searchTerms) {
     try {
       const searchUrl = `https://videa.hu/kereses/${encodeURIComponent(term)}`;
       const res = await fetch(searchUrl, {
@@ -167,18 +202,49 @@ async function scrapeVidea(meta) {
       if (!res.ok) continue;
 
       const html = await res.text();
-      const videoIds = [...html.matchAll(/\/videok\/[^"'#\s]+-([A-Za-z0-9]{16})/g)].map(m => m[1]);
 
-      for (const vid of videoIds.slice(0, 5)) {
+      // Extract all video items with their link path: /videok/<category>/<slug>-<vcode>
+      const linkRegex = /href=["'](https?:\/\/videa\.hu)?\/videok\/([^/"'\s]+)\/[^"'#\s]+-([A-Za-z0-9]{16})["']/g;
+      const matches = [...html.matchAll(linkRegex)];
+
+      for (const m of matches) {
+        const category = m[2];
+        const vid = m[3];
+
+        // Skip non-movie categories (e.g. zene, hirek, emberek-vlogok)
+        if (category === 'zene' || category === 'emberek-vlogok' || category === 'hirek-politika' || category === 'vicces') {
+          continue;
+        }
+
         if (seenVideoIds.has(vid)) continue;
         seenVideoIds.add(vid);
 
-        const videoStreams = await extractVideaStreams(vid);
-        for (const vs of videoStreams) {
+        const videoData = await extractVideaStreams(vid);
+        if (!videoData || !videoData.sources || videoData.sources.length === 0) continue;
+
+        // Strict Duration Filter:
+        // Must be >= minDuration (e.g. at least 40 min for movie, 10 min for episode)
+        if (videoData.duration < minDuration) {
+          continue;
+        }
+
+        // Title filter: ignore music / parody / clips
+        if (JUNK_TITLE_REGEX.test(videoData.videoTitle)) {
+          continue;
+        }
+
+        // Title relevance match: must match searched title
+        if (!isTitleMatch(hu, videoData.videoTitle) && !isTitleMatch(meta.englishTitle, videoData.videoTitle)) {
+          continue;
+        }
+
+        const durationMins = Math.round(videoData.duration / 60);
+
+        for (const vs of videoData.sources) {
           const qualLabel = vs.height >= 1080 ? '1080p FHD' : vs.height >= 720 ? '720p HD' : `${vs.height}p`;
           streams.push({
             name: `[HU] Videa ${qualLabel}`,
-            title: `${vs.videoTitle}\n🇭🇺 Videa.hu • ${qualLabel} • Direct Stream`,
+            title: `${videoData.videoTitle}\n🇭🇺 Videa.hu • ${qualLabel} • ${durationMins} perc • Teljes film`,
             url: vs.url,
             quality: vs.height >= 1080 ? '1080p' : vs.height >= 720 ? '720p' : '480p',
             height: vs.height,
@@ -188,6 +254,9 @@ async function scrapeVidea(meta) {
             }
           });
         }
+
+        // Stop if we found enough high-quality full streams
+        if (streams.length >= 6) break;
       }
 
       if (streams.length >= 4) break;
