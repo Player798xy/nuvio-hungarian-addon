@@ -260,22 +260,17 @@ async function scrapeOnlineFilmek(meta) {
           continue;
         }
 
-        // 3. Other third-party hosts (VOE, etc.) -> MUST check if alive and not 404!
-        const alive = await isEmbedAlive(embedUrl);
-        if (!alive) {
-          console.log(`[OnlineFilmek] Filtered dead/404 embed: ${embedUrl}`);
-          continue;
+        // 3. Direct video file (.mp4, .m3u8)
+        if (embedUrl.includes('.mp4') || embedUrl.includes('.m3u8')) {
+          streams.push({
+            name: `[HU] OnlineFilmek 720p`,
+            title: `${postTitle || hu}\n🇭🇺 OnlineFilmekIngyen • 720p HD • Szinkron`,
+            url: embedUrl,
+            quality: '720p',
+            height: 720,
+            source: 'onlinefilmek'
+          });
         }
-
-        // If alive, add as stream
-        streams.push({
-          name: `[HU] OnlineFilmek 720p`,
-          title: `${postTitle || hu}\n🇭🇺 OnlineFilmekIngyen • 720p • Szinkron`,
-          url: embedUrl,
-          quality: '720p',
-          height: 720,
-          source: 'onlinefilmek'
-        });
       }
 
       if (streams.length > 0) break;

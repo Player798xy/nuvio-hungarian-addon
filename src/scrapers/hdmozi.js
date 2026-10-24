@@ -191,21 +191,17 @@ async function scrapeHDMozi(meta) {
           continue;
         }
 
-        // 3. Other hosts -> check if alive
-        const alive = await isEmbedAlive(embedUrl);
-        if (!alive) {
-          console.log(`[HDMozi] Filtered dead/404 embed: ${embedUrl}`);
-          continue;
+        // 3. Direct video file (.mp4, .m3u8)
+        if (embedUrl.includes('.mp4') || embedUrl.includes('.m3u8')) {
+          streams.push({
+            name: `[HU] HDMozi 1080p`,
+            title: `${postTitle || hu}\n🇭🇺 HDMozi.hu • 1080p FHD • Magyar Szinkron`,
+            url: embedUrl,
+            quality: '1080p',
+            height: 1080,
+            source: 'hdmozi'
+          });
         }
-
-        streams.push({
-          name: `[HU] HDMozi 720p`,
-          title: `${postTitle || hu}\n🇭🇺 HDMozi.hu • 720p • Magyar Szinkron`,
-          url: embedUrl,
-          quality: '720p',
-          height: 720,
-          source: 'hdmozi'
-        });
       }
 
       if (streams.length > 0) break;

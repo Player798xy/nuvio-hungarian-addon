@@ -1,10 +1,12 @@
 /**
  * Nuvio & Stremio Addon Engine
- * Aggregates Hungarian streams from Videa, Filmezek, OnlineFilmek, and HDMozi.
+ * Aggregates Hungarian direct streams from Videa, Indavideo, JobbMintATV, Filmezek, OnlineFilmek, and HDMozi.
  */
 
 const { getMediaMeta } = require('./utils/meta');
 const { scrapeVidea } = require('./scrapers/videa');
+const { scrapeIndavideo } = require('./scrapers/indavideo');
+const { scrapeJobbMintATV } = require('./scrapers/jobbmintatv');
 const { scrapeFilmezek } = require('./scrapers/filmezek');
 const { scrapeOnlineFilmek } = require('./scrapers/onlinefilmek');
 const { scrapeHDMozi } = require('./scrapers/hdmozi');
@@ -12,9 +14,9 @@ const { scrapeHDMozi } = require('./scrapers/hdmozi');
 function getManifest() {
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.2.0',
+    version: '1.3.0',
     name: 'Hungarian Streams (Magyar Források)',
-    description: 'Magyar szinkronos és feliratos filmek és sorozatok 1080p & 720p minőségben (Videa, Filmezek, OnlineFilmek, HDMozi)',
+    description: 'Magyar szinkronos filmek és sorozatok 1080p & 720p minőségben (Videa, Indavideo, JobbMintATV, Filmezek, OnlineFilmek, HDMozi) azonnali közvetlen indítással',
     resources: ['stream'],
     types: ['movie', 'series'],
     idPrefixes: ['tt'],
@@ -34,16 +36,18 @@ async function getStreams(type, id) {
   const meta = await getMediaMeta(type, id);
   console.log(`[Addon] Resolved: "${meta.englishTitle}" / "${meta.hungarianTitle}" (${meta.year || 'N/A'}) S:${meta.season} E:${meta.episode}`);
 
-  // Run all 4 scrapers in parallel with error handling
+  // Run all scrapers in parallel with error handling
   const results = await Promise.allSettled([
     scrapeVidea(meta),
+    scrapeIndavideo(meta),
+    scrapeJobbMintATV(meta),
     scrapeFilmezek(meta),
     scrapeOnlineFilmek(meta),
     scrapeHDMozi(meta)
   ]);
 
   const allStreams = [];
-  const sourceNames = ['Videa', 'Filmezek', 'OnlineFilmek', 'HDMozi'];
+  const sourceNames = ['Videa', 'Indavideo', 'JobbMintATV', 'Filmezek', 'OnlineFilmek', 'HDMozi'];
 
   results.forEach((res, idx) => {
     if (res.status === 'fulfilled' && Array.isArray(res.value)) {
@@ -65,15 +69,17 @@ async function getStreams(type, id) {
 
   // Priority sorting:
   // 1. Height / Quality: 1080p (>=1080) -> 720p (>=720) -> others
-  // 2. Direct MP4s (Videa) first for fastest playback
+  // 2. Direct MP4s (Videa, Indavideo, OK.ru) for instantaneous playback
   uniqueStreams.sort((a, b) => {
     const heightA = a.height || 0;
     const heightB = b.height || 0;
     if (heightB !== heightA) {
       return heightB - heightA;
     }
-    if (a.source === 'videa' && b.source !== 'videa') return -1;
-    if (b.source === 'videa' && a.source !== 'videa') return 1;
+    const isDirectA = a.source === 'videa' || a.source === 'indavideo' || a.source === 'jobbmintatv' || (a.url && a.url.includes('.mp4'));
+    const isDirectB = b.source === 'videa' || b.source === 'indavideo' || b.source === 'jobbmintatv' || (b.url && b.url.includes('.mp4'));
+    if (isDirectA && !isDirectB) return -1;
+    if (isDirectB && !isDirectA) return 1;
     return 0;
   });
 
