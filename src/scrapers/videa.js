@@ -169,8 +169,23 @@ async function scrapeVidea(meta) {
   if (!hu) return streams;
 
   const isMovie = meta.type === 'movie' || !meta.season;
-  // Minimum required duration: 40 minutes for movies, 10 minutes for series episodes
-  const minDuration = isMovie ? 2400 : 600;
+  
+  // Calculate acceptable runtime window based on official IMDb/TMDB runtime
+  let minDuration = isMovie ? 2400 : 600;
+  let maxDuration = isMovie ? 18000 : 7200;
+
+  if (meta.runtimeMinutes && meta.runtimeMinutes > 0) {
+    const targetSec = meta.runtimeMinutes * 60;
+    if (isMovie) {
+      // For movies: allow -30% to +35% (covers PAL 25fps speedup and extended/director cuts)
+      minDuration = Math.max(2100, Math.round(targetSec * 0.70));
+      maxDuration = Math.round(targetSec * 1.35);
+    } else {
+      // For series episodes: allow -40% to +50%
+      minDuration = Math.max(600, Math.round(targetSec * 0.60));
+      maxDuration = Math.round(targetSec * 1.50);
+    }
+  }
 
   const searchTerms = [];
   if (meta.season && meta.episode) {
@@ -222,9 +237,8 @@ async function scrapeVidea(meta) {
         const videoData = await extractVideaStreams(vid);
         if (!videoData || !videoData.sources || videoData.sources.length === 0) continue;
 
-        // Strict Duration Filter:
-        // Must be >= minDuration (e.g. at least 40 min for movie, 10 min for episode)
-        if (videoData.duration < minDuration) {
+        // Strict Duration Filter against IMDb/TMDB official runtime:
+        if (videoData.duration < minDuration || videoData.duration > maxDuration) {
           continue;
         }
 
