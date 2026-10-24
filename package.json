@@ -1,0 +1,31 @@
+{
+  "name": "nuvio-hungarian-addon",
+  "version": "1.0.0",
+  "description": "Nuvio & Stremio addon for Hungarian streaming sources (Videa, Filmezek, OnlineFilmekIngyen, HDMozi) with 1080p & 720p support",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "nuvio",
+    "stremio",
+    "addon",
+    "hungarian",
+    "magyar",
+    "videa",
+    "filmezek",
+    "onlinefilmek",
+    "hdmozi",
+    "streaming"
+  ],
+  "author": "Community",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

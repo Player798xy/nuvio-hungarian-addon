@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hungarian Streams - Nuvio & Stremio Addon</title>
+  <link rel="icon" href="https://videa.hu/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #131b2e;
+      --card-border: #1f2c47;
+      --accent: #e50914;
+      --accent-gradient: linear-gradient(135deg, #e50914 0%, #ff5252 100%);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --badge-fhd: #10b981;
+      --badge-hd: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge-hu {
+      display: inline-block;
+      background: rgba(229, 9, 20, 0.15);
+      color: #ff5252;
+      border: 1px solid rgba(229, 9, 20, 0.3);
+      padding: 0.3rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      padding: 1.8rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .sources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .source-pill {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      padding: 0.8rem 1rem;
+      border-radius: 0.75rem;
+      text-align: center;
+    }
+
+    .source-name {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #e2e8f0;
+    }
+
+    .source-status {
+      font-size: 0.8rem;
+      color: var(--badge-fhd);
+      margin-top: 0.2rem;
+    }
+
+    .url-box {
+      display: flex;
+      gap: 0.5rem;
+      margin: 1.2rem 0;
+      background: #0a0f1d;
+      border: 1px solid #233354;
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      align-items: center;
+    }
+
+    .url-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .btn {
+      cursor: pointer;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      border: none;
+      transition: all 0.2s ease;
+      font-size: 0.95rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+    }
+
+    .btn-secondary:hover {
+      background: #334155;
+      color: white;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .steps-list {
+      list-style: none;
+      counter-reset: step-counter;
+      margin-top: 1rem;
+    }
+
+    .steps-list li {
+      position: relative;
+      padding-left: 2.5rem;
+      margin-bottom: 1rem;
+      color: #cbd5e1;
+    }
+
+    .steps-list li::before {
+      content: counter(step-counter);
+      counter-increment: step-counter;
+      position: absolute;
+      left: 0;
+      top: -0.1rem;
+      width: 1.8rem;
+      height: 1.8rem;
+      background: #1e293b;
+      border: 1px solid #3b82f6;
+      color: #60a5fa;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .tester-controls {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .input-field {
+      flex: 1;
+      background: #0a0f1d;
+      border: 1px solid #233354;
+      border-radius: 0.5rem;
+      padding: 0.65rem 1rem;
+      color: white;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .input-field:focus {
+      border-color: #3b82f6;
+    }
+
+    .streams-preview {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .stream-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 0.5rem;
+      padding: 0.8rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge-quality {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.5rem;
+    }
+
+    .badge-1080 {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid #059669;
+    }
+
+    .badge-720 {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid #2563eb;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge-hu">🇭🇺 MAGYAR STREAMING FORRÁSOK</div>
+      <h1>Hungarian Streams</h1>
+      <p class="subtitle">1080p FHD & 720p HD filmek és sorozatok magyar szinkronnal Nuvio & Stremio alkalmazásokhoz</p>
+    </header>
+
+    <!-- Source Status -->
+    <div class="card">
+      <h2>Támogatott források (1080p / 720p)</h2>
+      <div class="sources-grid">
+        <div class="source-pill">
+          <div class="source-name">Videa.hu</div>
+          <div class="source-status">● 1080p & 720p Közvetlen MP4</div>
+        </div>
+        <div class="source-pill">
+          <div class="source-name">Filmezek.com</div>
+          <div class="source-status">● Videa & OK.ru Stream</div>
+        </div>
+        <div class="source-pill">
+          <div class="source-name">OnlineFilmekIngyen</div>
+          <div class="source-status">● HD Források & Voe</div>
+        </div>
+        <div class="source-pill">
+          <div class="source-name">HDMozi.hu</div>
+          <div class="source-status">● HD Filmek & Sorozatok</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Installation Box -->
+    <div class="card">
+      <h2>Addon Telepítése Nuvio-ba</h2>
+      <p style="color: var(--text-muted); margin-top: 0.3rem;">Másold ki az alábbi Manifest linket, és illeszd be a Nuvio vagy Stremio alkalmazásodba:</p>
+      
+      <div class="url-box">
+        <input type="text" id="manifestUrl" class="url-input" readonly>
+        <button class="btn btn-primary" onclick="copyManifest()">Másolás</button>
+      </div>
+
+      <div class="actions">
+        <a id="stremioInstallBtn" href="#" class="btn btn-primary">Telepítés Stremio-ba</a>
+        <button class="btn btn-secondary" onclick="copyManifest()">Manifest URL Másolása</button>
+      </div>
+    </div>
+
+    <!-- How to add in Nuvio -->
+    <div class="card">
+      <h2>Hogyan add hozzá a Nuvio alkalmazásban?</h2>
+      <ol class="steps-list">
+        <li>Másold ki a fenti <strong>Manifest URL</strong> linket a <em>"Másolás"</em> gombra kattintva.</li>
+        <li>Nyisd meg a <strong>Nuvio</strong> alkalmazást (Android TV, Google TV, mobil vagy asztali gép).</li>
+        <li>Menj a <strong>Settings (Beállítások)</strong> ➔ <strong>Add-ons / Plugins (Kiegészítők)</strong> menüpontba.</li>
+        <li>Kattints az <strong>"Add Addon" (Kiegészítő hozzáadása)</strong> vagy URL beviteli mezőre.</li>
+        <li>Illeszd be a kimásolt URL-t, és nyomj a <strong>Telepítés / Hozzáadás</strong> gombra.</li>
+        <li>Kész! Mostantól bármelyik filmet vagy sorozatot megnyitod, meg fognak jelenni a magyar szinkronos 1080p és 720p források!</li>
+      </ol>
+    </div>
+
+    <!-- Live Stream Tester -->
+    <div class="card">
+      <h2>Élő Forrás Kereső & Tesztelő</h2>
+      <p style="color: var(--text-muted);">Teszteld a forrásokat közvetlenül a böngésződben bármilyen IMDb azonosítóval:</p>
+      
+      <div class="tester-controls">
+        <input type="text" id="testId" class="input-field" placeholder="Pl. tt8111088:1:1 (The Mandalorian) vagy tt0848228 (Bosszúállók)" value="tt8111088:1:1">
+        <button class="btn btn-primary" id="testBtn" onclick="runStreamTest()">Keresés</button>
+      </div>
+
+      <div id="loadingIndicator" style="display: none; margin-top: 1rem; color: #38bdf8;">
+        ⏳ Források keresése (Videa, Filmezek, OnlineFilmek, HDMozi)...
+      </div>
+
+      <div id="streamsList" class="streams-preview"></div>
+    </div>
+
+    <footer>
+      <p>Nuvio & Stremio Hungarian Streams Addon • Nyílt forráskódú közösségi projekt</p>
+    </footer>
+  </div>
+
+  <script>
+    // Set dynamic manifest URL based on current host
+    const origin = window.location.origin;
+    const manifestUrl = origin + '/manifest.json';
+    document.getElementById('manifestUrl').value = manifestUrl;
+    
+    // Stremio scheme
+    const stremioScheme = manifestUrl.replace(/^https?:\/\//, 'stremio://');
+    document.getElementById('stremioInstallBtn').href = stremioScheme;
+
+    function copyManifest() {
+      const input = document.getElementById('manifestUrl');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert('Manifest URL kimásolva a vágólapra! Most illeszd be a Nuvio-ba.');
+    }
+
+    async function runStreamTest() {
+      const id = document.getElementById('testId').value.trim();
+      const list = document.getElementById('streamsList');
+      const loader = document.getElementById('loadingIndicator');
+
+      list.innerHTML = '';
+      loader.style.display = 'block';
+
+      try {
+        const res = await fetch(`/api/test?id=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        loader.style.display = 'none';
+
+        if (!data.streams || data.streams.length === 0) {
+          list.innerHTML = '<div style="color: #f87171; padding: 1rem; text-align: center;">Nem található stream ehhez a címhez. Próbálj másik IMDb ID-t.</div>';
+          return;
+        }
+
+        data.streams.forEach(s => {
+          const card = document.createElement('div');
+          card.className = 'stream-card';
+          
+          const is1080 = (s.height >= 1080) || (s.name && s.name.includes('1080'));
+          const badgeClass = is1080 ? 'badge-quality badge-1080' : 'badge-quality badge-720';
+          const badgeText = is1080 ? '1080p FHD' : '720p HD';
+
+          card.innerHTML = `
+            <div>
+              <div>
+                <span class="${badgeClass}">${badgeText}</span>
+                <strong>${s.name}</strong>
+              </div>
+              <div style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.3rem; white-space: pre-line;">${s.title}</div>
+            </div>
+            <a href="${s.url}" target="_blank" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">Lejátszás</a>
+          `;
+          list.appendChild(card);
+        });
+      } catch (err) {
+        loader.style.display = 'none';
+        list.innerHTML = `<div style="color: #f87171;">Hiba történt: ${err.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
