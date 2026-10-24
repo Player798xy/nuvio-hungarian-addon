@@ -137,7 +137,7 @@ async function extractVideaStreams(vcode) {
 // Terms indicating music, clips, or trailers that should not be treated as a full feature
 const JUNK_TITLE_REGEX = /\b(filmzene|zene|soundtrack|ost|paródia|parodia|főcímdal|focimdal|trailer|előzetes|elozetes|párbaj|parbaj|interjú|interju|dán állami)\b/i;
 
-function isTitleMatch(targetTitle, candidateTitle) {
+function isTitleMatch(targetTitle, candidateTitle, targetYear) {
   if (!targetTitle || !candidateTitle) return false;
   const norm = (s) => s.toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents for robust comparison
@@ -148,7 +148,26 @@ function isTitleMatch(targetTitle, candidateTitle) {
   const normTarget = norm(targetTitle);
   const normCand = norm(candidateTitle);
 
-  const stopWords = ['egy', 'nem', 'mint', 'hogy', 'the', 'and'];
+  // If candidate contains a sequel number (e.g. "2", "3", "4", "5") but target doesn't, reject
+  const targetHasNumber = /\b([2-9]|ii|iii|iv|v|vi)\b/i.test(normTarget);
+  const candHasNumber = /\b([2-9]|ii|iii|iv|v|vi)\b/i.test(normCand);
+  if (!targetHasNumber && candHasNumber) {
+    return false;
+  }
+
+  // If candidate has a 4-digit year, compare with targetYear if available
+  if (targetYear) {
+    const candYearMatch = normCand.match(/\b(19\d\d|20\d\d)\b/);
+    if (candYearMatch) {
+      const candYear = parseInt(candYearMatch[1], 10);
+      const tYear = parseInt(targetYear, 10);
+      if (Math.abs(candYear - tYear) > 2) {
+        return false;
+      }
+    }
+  }
+
+  const stopWords = ['egy', 'nem', 'mint', 'hogy', 'the', 'and', 'film', 'teljes', 'magyarul'];
   const targetWords = normTarget.split(' ').filter(w => w.length >= 3 && !stopWords.includes(w));
   if (targetWords.length === 0) return true;
 
@@ -247,8 +266,8 @@ async function scrapeVidea(meta) {
           continue;
         }
 
-        // Title relevance match: must match searched title
-        if (!isTitleMatch(hu, videoData.videoTitle) && !isTitleMatch(meta.englishTitle, videoData.videoTitle)) {
+        // Title relevance match: must match searched title and year
+        if (!isTitleMatch(hu, videoData.videoTitle, meta.year) && !isTitleMatch(meta.englishTitle, videoData.videoTitle, meta.year)) {
           continue;
         }
 

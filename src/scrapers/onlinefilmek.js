@@ -4,6 +4,111 @@
  */
 
 const { extractVideaStreams } = require('./videa');
+const { extractOkRuStreams } = require('./filmezek');
+
+function normalize(str) {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function findBestDooPlayItem(results, meta) {
+  if (!results || typeof results !== 'object') return null;
+  const targetHu = normalize(meta.hungarianTitle);
+  const targetEn = normalize(meta.englishTitle);
+  const targetYear = meta.year ? parseInt(meta.year, 10) : null;
+  const isSeries = !!meta.season;
+
+  let bestItem = null;
+  let bestScore = -1;
+
+  for (const key of Object.keys(results)) {
+    const item = results[key];
+    if (!item || !item.url) continue;
+
+    const isTvShow = item.url.includes('/tvshows/');
+
+    // Check media type
+    if (isSeries && !isTvShow) continue;
+    if (!isSeries && isTvShow) continue;
+
+    const itemTitle = normalize(item.title);
+    const itemYear = item.extra?.date ? parseInt(item.extra.date, 10) : null;
+
+    let score = 0;
+
+    // Check title match
+    if (itemTitle === targetHu || (targetEn && itemTitle === targetEn)) {
+      score += 100;
+    } else if (itemTitle.startsWith(targetHu) || targetHu.startsWith(itemTitle)) {
+      score += 60;
+    } else {
+      const targetWords = new Set(targetHu.split(' ').filter(w => w.length > 2));
+      const itemWords = new Set(itemTitle.split(' ').filter(w => w.length > 2));
+      let overlap = 0;
+      for (const w of targetWords) {
+        if (itemWords.has(w)) overlap++;
+      }
+      if (overlap === 0) continue; // Completely unrelated title
+      score += (overlap / Math.max(targetWords.size, 1)) * 40;
+    }
+
+    // Check year match
+    if (targetYear && itemYear) {
+      if (itemYear === targetYear) {
+        score += 50;
+      } else if (Math.abs(itemYear - targetYear) <= 1) {
+        score += 20;
+      } else {
+        score -= 70; // Penalty for wrong sequel or unrelated movie
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestItem = item;
+    }
+  }
+
+  return bestScore >= 40 ? bestItem : null;
+}
+
+async function isEmbedAlive(embedUrl) {
+  if (!embedUrl || !embedUrl.startsWith('http')) return false;
+  try {
+    const res = await fetch(embedUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok || res.status === 404 || res.status === 410 || res.status === 500) {
+      return false;
+    }
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('html')) {
+      const text = await res.text();
+      if (
+        text.includes('404 - Not found') ||
+        text.includes('404 Not Found') ||
+        text.includes('File was deleted') ||
+        text.includes('The file you were looking for could not be found') ||
+        text.includes('File Not Found') ||
+        text.includes('Resource Not Found')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
 async function resolveDooPlayPlayer(post, nume, type, referer) {
   try {
@@ -48,10 +153,10 @@ async function scrapeOnlineFilmek(meta) {
 
   for (const term of searchTerms) {
     try {
-      // DooPlay search API
       let itemUrl = null;
       let postTitle = '';
 
+      // 1. DooPlay search API with title & year verification
       const apiUrl = `https://www.onlinefilmekingyen1.com/wp-json/dooplay/search/?keyword=${encodeURIComponent(term)}&nonce=7b089995bb`;
       try {
         const apiRes = await fetch(apiUrl, {
@@ -63,35 +168,17 @@ async function scrapeOnlineFilmek(meta) {
         });
         if (apiRes.ok) {
           const results = await apiRes.json();
-          if (results && typeof results === 'object') {
-            const keys = Object.keys(results);
-            if (keys.length > 0) {
-              // If series, look for tvshow
-              if (meta.season) {
-                const tvKey = keys.find(k => results[k]?.url?.includes('/tvshows/'));
-                if (tvKey) {
-                  itemUrl = results[tvKey].url;
-                  postTitle = results[tvKey].title;
-                }
-              } else {
-                const movKey = keys.find(k => results[k]?.url?.includes('/movies/'));
-                if (movKey) {
-                  itemUrl = results[movKey].url;
-                  postTitle = results[movKey].title;
-                }
-              }
-              if (!itemUrl && keys[0]) {
-                itemUrl = results[keys[0]].url;
-                postTitle = results[keys[0]].title;
-              }
-            }
+          const matched = findBestDooPlayItem(results, meta);
+          if (matched) {
+            itemUrl = matched.url;
+            postTitle = matched.title;
           }
         }
       } catch (e) {
         // Fallback to standard WP search
       }
 
-      // Fallback search via HTML if API failed
+      // 2. Fallback search via HTML if API failed
       if (!itemUrl) {
         const wpSearchUrl = `https://www.onlinefilmekingyen1.com/?s=${encodeURIComponent(term)}`;
         const wpRes = await fetch(wpSearchUrl, {
@@ -100,10 +187,17 @@ async function scrapeOnlineFilmek(meta) {
         });
         if (wpRes.ok) {
           const wpHtml = await wpRes.text();
-          const match = wpHtml.match(/<div class="title"><a href="([^"]+)">([^<]+)<\/a>/);
-          if (match) {
-            itemUrl = match[1];
-            postTitle = match[2];
+          const matches = [...wpHtml.matchAll(/<div class="title"><a href="([^"]+)">([^<]+)<\/a>/g)];
+          for (const m of matches) {
+            const mUrl = m[1];
+            const mTitle = m[2];
+            const normMTitle = normalize(mTitle);
+            const normHu = normalize(hu);
+            if (normMTitle.includes(normHu) || normHu.includes(normMTitle)) {
+              itemUrl = mUrl;
+              postTitle = mTitle;
+              break;
+            }
           }
         }
       }
@@ -131,7 +225,7 @@ async function scrapeOnlineFilmek(meta) {
       // Find player options: data-type='...' data-post='...' data-nume='...'
       const optionMatches = [...pageHtml.matchAll(/data-type=['"]([^'"]+)['"]\s+data-post=['"]([^'"]+)['"]\s+data-nume=['"]([^'"]+)['"]/g)];
 
-      for (const m of optionMatches.slice(0, 3)) {
+      for (const m of optionMatches.slice(0, 4)) {
         const dtype = m[1];
         const post = m[2];
         const nume = m[3];
@@ -139,7 +233,7 @@ async function scrapeOnlineFilmek(meta) {
         const embedUrl = await resolveDooPlayPlayer(post, nume, dtype, targetUrl);
         if (!embedUrl) continue;
 
-        // Check if Videa embed
+        // 1. Check if Videa embed -> decode to direct MP4
         const videaMatch = embedUrl.match(/videa\.hu\/player\?v=([A-Za-z0-9]{16})/);
         if (videaMatch) {
           const vcode = videaMatch[1];
@@ -156,17 +250,32 @@ async function scrapeOnlineFilmek(meta) {
               source: 'onlinefilmek'
             });
           }
-        } else if (embedUrl.includes('http')) {
-          // Direct / HLS embed
-          streams.push({
-            name: `[HU] OnlineFilmek 720p`,
-            title: `${postTitle || hu}\n🇭🇺 OnlineFilmekIngyen • 720p HD • Szinkron`,
-            url: embedUrl,
-            quality: '720p',
-            height: 720,
-            source: 'onlinefilmek'
-          });
+          continue;
         }
+
+        // 2. Check if OK.ru embed -> decode to direct MP4/HLS
+        if (embedUrl.includes('ok.ru/videoembed/')) {
+          const okStreams = await extractOkRuStreams(embedUrl, 'OnlineFilmek');
+          streams.push(...okStreams);
+          continue;
+        }
+
+        // 3. Other third-party hosts (VOE, etc.) -> MUST check if alive and not 404!
+        const alive = await isEmbedAlive(embedUrl);
+        if (!alive) {
+          console.log(`[OnlineFilmek] Filtered dead/404 embed: ${embedUrl}`);
+          continue;
+        }
+
+        // If alive, add as stream
+        streams.push({
+          name: `[HU] OnlineFilmek 720p`,
+          title: `${postTitle || hu}\n🇭🇺 OnlineFilmekIngyen • 720p • Szinkron`,
+          url: embedUrl,
+          quality: '720p',
+          height: 720,
+          source: 'onlinefilmek'
+        });
       }
 
       if (streams.length > 0) break;

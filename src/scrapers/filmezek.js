@@ -5,7 +5,7 @@
 
 const { extractVideaStreams } = require('./videa');
 
-async function extractOkRuStreams(embedUrl) {
+async function extractOkRuStreams(embedUrl, srcName = 'Filmezek') {
   try {
     const res = await fetch(embedUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
@@ -45,24 +45,24 @@ async function extractOkRuStreams(embedUrl) {
         }
 
         streams.push({
-          name: `[HU] Filmezek (OK.ru) ${qLabel}`,
-          title: `Filmezek.com • OK.ru ${qLabel} • Magyar Szinkron`,
+          name: `[HU] ${srcName} (OK.ru) ${qLabel}`,
+          title: `${srcName} • OK.ru ${qLabel} • Magyar Szinkron`,
           url: v.url,
           quality: height >= 1080 ? '1080p' : height >= 720 ? '720p' : '480p',
           height,
-          source: 'filmezek'
+          source: srcName.toLowerCase()
         });
       }
     }
 
     if (meta.hlsManifestUrl) {
       streams.push({
-        name: `[HU] Filmezek (OK.ru) Auto HLS`,
-        title: `Filmezek.com • OK.ru Multi-Quality HLS • Magyar Szinkron`,
+        name: `[HU] ${srcName} (OK.ru) Auto HLS`,
+        title: `${srcName} • OK.ru Multi-Quality HLS • Magyar Szinkron`,
         url: meta.hlsManifestUrl,
         quality: '720p',
         height: 720,
-        source: 'filmezek'
+        source: srcName.toLowerCase()
       });
     }
 
@@ -165,5 +165,6 @@ async function scrapeFilmezek(meta) {
 }
 
 module.exports = {
-  scrapeFilmezek
+  scrapeFilmezek,
+  extractOkRuStreams
 };

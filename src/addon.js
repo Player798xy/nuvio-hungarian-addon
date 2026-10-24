@@ -12,7 +12,7 @@ const { scrapeHDMozi } = require('./scrapers/hdmozi');
 function getManifest() {
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.1.0',
+    version: '1.2.0',
     name: 'Hungarian Streams (Magyar Források)',
     description: 'Magyar szinkronos és feliratos filmek és sorozatok 1080p & 720p minőségben (Videa, Filmezek, OnlineFilmek, HDMozi)',
     resources: ['stream'],

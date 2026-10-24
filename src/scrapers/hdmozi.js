@@ -4,6 +4,50 @@
  */
 
 const { extractVideaStreams } = require('./videa');
+const { extractOkRuStreams } = require('./filmezek');
+
+function normalize(str) {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function isEmbedAlive(embedUrl) {
+  if (!embedUrl || !embedUrl.startsWith('http')) return false;
+  try {
+    const res = await fetch(embedUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok || res.status === 404 || res.status === 410 || res.status === 500) {
+      return false;
+    }
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('html')) {
+      const text = await res.text();
+      if (
+        text.includes('404 - Not found') ||
+        text.includes('404 Not Found') ||
+        text.includes('File was deleted') ||
+        text.includes('The file you were looking for could not be found') ||
+        text.includes('File Not Found') ||
+        text.includes('Resource Not Found')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
 async function resolveHDMoziPlayer(post, nume, type, referer) {
   try {
@@ -67,13 +111,35 @@ async function scrapeHDMozi(meta) {
 
       if (results.length === 0) continue;
 
-      let targetUrl = results[0].url;
-      let postTitle = results[0].title;
+      // Select best matching result
+      const targetHu = normalize(hu);
+      let bestResult = null;
+      let bestScore = -1;
+
+      for (const r of results) {
+        const normTitle = normalize(r.title);
+        let score = 0;
+        if (normTitle === targetHu) {
+          score += 100;
+        } else if (normTitle.startsWith(targetHu) || targetHu.startsWith(normTitle)) {
+          score += 60;
+        } else if (normTitle.includes(targetHu) || targetHu.includes(normTitle)) {
+          score += 40;
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          bestResult = r;
+        }
+      }
+
+      if (!bestResult || bestScore < 40) continue;
+
+      let targetUrl = bestResult.url;
+      let postTitle = bestResult.title;
 
       // If series, handle episode URL
       if (meta.season && meta.episode) {
-        // Look for show url
-        const showResult = results.find(r => r.url.includes('/tvshows/')) || results[0];
+        const showResult = results.find(r => r.url.includes('/tvshows/')) || bestResult;
         const slugMatch = showResult.url.match(/\/tvshows\/([^/]+)\//);
         if (slugMatch) {
           const rawSlug = slugMatch[1].replace(/1-3-evad|1-evad|2-evad|3-evad/g, '').replace(/-+$/, '');
@@ -98,7 +164,7 @@ async function scrapeHDMozi(meta) {
         const embedUrl = await resolveHDMoziPlayer(post, nume, dtype, targetUrl);
         if (!embedUrl) continue;
 
-        // If Videa embed
+        // 1. If Videa embed
         const videaMatch = embedUrl.match(/videa\.hu\/player\?v=([A-Za-z0-9]{16})/);
         if (videaMatch) {
           const vcode = videaMatch[1];
@@ -115,16 +181,31 @@ async function scrapeHDMozi(meta) {
               source: 'hdmozi'
             });
           }
-        } else if (embedUrl.includes('http')) {
-          streams.push({
-            name: `[HU] HDMozi 1080p`,
-            title: `${postTitle || hu}\n🇭🇺 HDMozi.hu • 1080p FHD • Magyar Szinkron`,
-            url: embedUrl,
-            quality: '1080p',
-            height: 1080,
-            source: 'hdmozi'
-          });
+          continue;
         }
+
+        // 2. If OK.ru embed
+        if (embedUrl.includes('ok.ru/videoembed/')) {
+          const okStreams = await extractOkRuStreams(embedUrl, 'HDMozi');
+          streams.push(...okStreams);
+          continue;
+        }
+
+        // 3. Other hosts -> check if alive
+        const alive = await isEmbedAlive(embedUrl);
+        if (!alive) {
+          console.log(`[HDMozi] Filtered dead/404 embed: ${embedUrl}`);
+          continue;
+        }
+
+        streams.push({
+          name: `[HU] HDMozi 720p`,
+          title: `${postTitle || hu}\n🇭🇺 HDMozi.hu • 720p • Magyar Szinkron`,
+          url: embedUrl,
+          quality: '720p',
+          height: 720,
+          source: 'hdmozi'
+        });
       }
 
       if (streams.length > 0) break;
