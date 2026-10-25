@@ -3,6 +3,10 @@
  */
 
 const metaCache = new Map();
+let magyarNepmesekData = null;
+try {
+  magyarNepmesekData = require('../data/magyar_nepmesek_episodes.json');
+} catch (e) {}
 
 async function resolveHungarianTitle(englishTitle, imdbId) {
   if (!englishTitle) return '';
@@ -104,6 +108,15 @@ async function getMediaMeta(type, id) {
   // 2. Resolve Hungarian title
   const huTitle = await resolveHungarianTitle(englishTitle, imdbId);
 
+  let episodeTitle = '';
+  if (imdbId === 'tt0861751' && season && episode && magyarNepmesekData) {
+    const sEpisodes = magyarNepmesekData[season] || [];
+    const matched = sEpisodes.find(item => item.ep === episode);
+    if (matched && matched.title) {
+      episodeTitle = matched.title;
+    }
+  }
+
   const result = {
     imdbId,
     type,
@@ -112,7 +125,8 @@ async function getMediaMeta(type, id) {
     year,
     runtimeMinutes,
     season,
-    episode
+    episode,
+    episodeTitle
   };
 
   metaCache.set(cacheKey, result);
@@ -135,6 +149,11 @@ function generateSearchQueries(meta) {
     const ePad = String(e).padStart(2, '0');
 
     if (hu) {
+      if (meta.episodeTitle) {
+        queries.add(`${hu} ${meta.episodeTitle}`);
+        queries.add(`${meta.episodeTitle}`);
+        queries.add(`${hu} - ${meta.episodeTitle}`);
+      }
       queries.add(`${hu} S${sPad}E${ePad}`);
       queries.add(`${hu} ${s}x${e}`);
       queries.add(`${hu} ${s}x${ePad}`);
@@ -205,9 +224,19 @@ async function getSeriesEpisodes(imdbId) {
       });
     }
 
-    // Sort episodes within each season
+    // Sort episodes within each season & enrich with Magyar népmesék canonical titles
     for (const sNum of Object.keys(seasonsMap)) {
       seasonsMap[sNum].sort((a, b) => a.episode - b.episode);
+
+      if (cleanId === 'tt0861751' && magyarNepmesekData && magyarNepmesekData[sNum]) {
+        const sEpisodes = magyarNepmesekData[sNum] || [];
+        seasonsMap[sNum].forEach(ep => {
+          const matched = sEpisodes.find(item => item.ep === ep.episode);
+          if (matched && matched.title) {
+            ep.name = matched.title;
+          }
+        });
+      }
     }
 
     const result = {

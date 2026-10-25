@@ -722,6 +722,98 @@
       overflow: hidden;
     }
 
+    /* Series Dropdown & Quick Selector Bar */
+    .episode-picker-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .episode-picker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .episode-picker-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .episode-picker-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+
+    .series-select-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .series-select-label {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .series-select {
+      background: #0a0f1d;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      padding: 0.6rem 0.9rem;
+      border-radius: 0.5rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      min-width: 140px;
+      max-width: 100%;
+    }
+
+    .series-select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .series-select option {
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+
+    .series-filter-input {
+      background: #0a0f1d;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      padding: 0.6rem 0.9rem;
+      border-radius: 0.5rem;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+      width: 100%;
+    }
+
+    .series-filter-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
     .season-tabs {
       display: flex;
       flex-wrap: wrap;
@@ -1563,17 +1655,34 @@
 
         const seasonNums = Object.keys(data.seasons).filter(s => s !== '0' || Object.keys(data.seasons).length === 1);
         const initialSeason = seasonNums[0] || '1';
-        currentActiveSeason = initialSeason;
+        let targetSeason = initialSeason;
+        let targetEpisode = data.seasons[initialSeason]?.[0];
 
-        renderSeriesHeaderAndSeasons(data, seasonNums, initialSeason);
-        renderEpisodes(initialSeason);
+        // If the user's search query mentions an episode title (e.g. "A só", "Kacor király"), auto-select it!
+        const rawInput = (document.getElementById('testId').value || '').trim().toLowerCase();
+        if (rawInput) {
+          for (const sNum of seasonNums) {
+            const match = (data.seasons[sNum] || []).find(e => {
+              const epClean = (e.name || '').toLowerCase();
+              return epClean.length > 2 && (rawInput.includes(epClean) || epClean.includes(rawInput));
+            });
+            if (match) {
+              targetSeason = sNum;
+              targetEpisode = match;
+              break;
+            }
+          }
+        }
 
-        // Auto-load streams for Episode 1 of this season
-        const firstEp = data.seasons[initialSeason]?.[0];
-        if (firstEp) {
-          currentActiveEpisodeId = firstEp.id;
-          highlightActiveEpisode(firstEp.id);
-          await loadStreamsForId(firstEp.id, `${data.name} - ${initialSeason}. Évad ${firstEp.episode}. Rész`);
+        currentActiveSeason = targetSeason;
+        currentActiveEpisodeId = targetEpisode ? targetEpisode.id : null;
+
+        renderSeriesHeaderAndSeasons(data, seasonNums, targetSeason);
+        renderEpisodes(targetSeason);
+
+        if (targetEpisode) {
+          highlightActiveEpisode(targetEpisode.id);
+          await loadStreamsForId(targetEpisode.id, `${data.name} - ${targetSeason}. Évad ${targetEpisode.episode}. Rész (${targetEpisode.name})`);
         }
       } catch (err) {
         if (loader) loader.style.display = 'none';
@@ -1585,13 +1694,54 @@
       const seriesView = document.getElementById('seriesView');
       seriesView.innerHTML = `
         <div class="series-header">
-          <img class="series-header-poster" src="${meta.poster || ''}" onerror="this.src='https://videa.hu/favicon.ico'">
+          <div class="poster-container" style="width: 80px; height: 120px; border-radius: 0.4rem; flex-shrink: 0;">
+            <img class="series-header-poster" src="${meta.poster || NO_POSTER_SVG}" alt="" onerror="this.onerror=null; this.src='${NO_POSTER_SVG}';">
+          </div>
           <div class="series-header-details">
             <div class="series-header-title">${meta.name} (${meta.year || ''})</div>
             <div style="font-size: 0.8rem; color: #38bdf8; margin-top: 0.2rem;">${(meta.genres || []).join(' • ')}</div>
-            <div class="series-header-desc">${meta.description || 'Válassz évadot és részt a szinkronos streamek azonnali indításához!'}</div>
+            <div class="series-header-desc">${meta.description || 'Válassz évadot és részt a lenyíló menüből, vagy keress rá a mese/epizód címére!'}</div>
           </div>
         </div>
+
+        <!-- 🎯 Dropdown Episode & Season Selector -->
+        <div class="episode-picker-box">
+          <div class="episode-picker-header">
+            <div class="episode-picker-title">
+              <span>🎯 Pontos Részválasztó (Lenyíló menü & Kereső):</span>
+            </div>
+            <div style="font-size: 0.78rem; color: #94a3b8;" id="pickerSummaryText">
+              ${activeSeason}. Évad (${(meta.seasons[activeSeason]?.length || 0)} rész)
+            </div>
+          </div>
+          <div class="episode-picker-controls">
+            <div class="series-select-group">
+              <span class="series-select-label">Évad:</span>
+              <select id="seriesSeasonSelect" class="series-select" onchange="onSeasonDropdownChange(this.value)">
+                ${seasonNums.map(s => `<option value="${s}" ${s === activeSeason ? 'selected' : ''}>${s === '0' ? 'Különkiadás' : s + '. Évad (' + (meta.seasons[s]?.length || 0) + ' rész)'}</option>`).join('')}
+              </select>
+            </div>
+
+            <div class="series-select-group" style="flex: 2; min-width: 220px;">
+              <span class="series-select-label">Epizód / Rész kiválasztása:</span>
+              <select id="seriesEpisodeSelect" class="series-select" onchange="onEpisodeDropdownChange(this.value)" style="width: 100%;">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="series-select-group" style="flex: 1.5; min-width: 180px;">
+              <span class="series-select-label">Gyors keresés epizódra:</span>
+              <input type="text" id="seriesEpisodeFilterInput" class="series-filter-input" placeholder="🔍 Pl. A só, Kacor, 5..." oninput="onEpisodeFilterInput(this.value)">
+            </div>
+
+            <div class="series-select-group" style="align-self: flex-end;">
+              <button class="btn btn-primary" onclick="playSelectedDropdownEpisode()" style="padding: 0.6rem 1.1rem; font-size: 0.88rem; white-space: nowrap;">
+                ▶️ Indítás
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="season-tabs" id="seasonTabsContainer">
           ${seasonNums.map(s => `
             <button class="season-tab-btn ${s === activeSeason ? 'active' : ''}" onclick="selectSeason('${s}')">
@@ -1601,28 +1751,111 @@
         </div>
         <div class="episodes-grid" id="episodesGrid"></div>
       `;
+
+      populateEpisodeDropdown(activeSeason);
+    }
+
+    function populateEpisodeDropdown(seasonNum, filterText = '') {
+      const select = document.getElementById('seriesEpisodeSelect');
+      if (!select || !currentSeriesMeta) return;
+
+      const eps = currentSeriesMeta.seasons[seasonNum] || [];
+      const cleanFilter = (filterText || '').toLowerCase().trim();
+
+      const filtered = cleanFilter
+        ? eps.filter(e => (e.name || '').toLowerCase().includes(cleanFilter) || String(e.episode).includes(cleanFilter))
+        : eps;
+
+      if (filtered.length === 0) {
+        select.innerHTML = '<option value="">Nincs találat...</option>';
+        return;
+      }
+
+      select.innerHTML = filtered.map(e => `
+        <option value="${e.id}" ${e.id === currentActiveEpisodeId ? 'selected' : ''}>
+          ${e.episode}. rész - ${e.name}
+        </option>
+      `).join('');
+
+      if (!filtered.some(e => e.id === currentActiveEpisodeId)) {
+        select.value = filtered[0].id;
+      }
+    }
+
+    function onSeasonDropdownChange(seasonNum) {
+      selectSeason(seasonNum);
+    }
+
+    function onEpisodeDropdownChange(epId) {
+      if (!epId || !currentSeriesMeta) return;
+      const eps = currentSeriesMeta.seasons[currentActiveSeason] || [];
+      const ep = eps.find(e => e.id === epId);
+      if (ep) {
+        selectEpisode(ep.id, `${currentSeriesMeta.name} - ${currentActiveSeason}. Évad ${ep.episode}. Rész (${ep.name})`);
+      }
+    }
+
+    function onEpisodeFilterInput(text) {
+      populateEpisodeDropdown(currentActiveSeason, text);
+      renderEpisodes(currentActiveSeason, text);
+    }
+
+    function playSelectedDropdownEpisode() {
+      const select = document.getElementById('seriesEpisodeSelect');
+      if (select && select.value) {
+        onEpisodeDropdownChange(select.value);
+      }
     }
 
     function selectSeason(seasonNum) {
       currentActiveSeason = seasonNum;
+      
+      const seasonSelect = document.getElementById('seriesSeasonSelect');
+      if (seasonSelect) seasonSelect.value = seasonNum;
+
+      const summary = document.getElementById('pickerSummaryText');
+      if (summary && currentSeriesMeta) {
+        summary.textContent = `${seasonNum}. Évad (${currentSeriesMeta.seasons[seasonNum]?.length || 0} rész)`;
+      }
+
       document.querySelectorAll('.season-tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.textContent.trim().startsWith(seasonNum + '.') || (seasonNum === '0' && btn.textContent.includes('Különkiadás')));
       });
-      renderEpisodes(seasonNum);
+
+      const filterInput = document.getElementById('seriesEpisodeFilterInput');
+      const filterVal = filterInput ? filterInput.value : '';
+
+      populateEpisodeDropdown(seasonNum, filterVal);
+      renderEpisodes(seasonNum, filterVal);
 
       // Load first episode of selected season
       const firstEp = currentSeriesMeta.seasons[seasonNum]?.[0];
       if (firstEp) {
-        selectEpisode(firstEp.id, `${currentSeriesMeta.name} - ${seasonNum}. Évad ${firstEp.episode}. Rész`);
+        selectEpisode(firstEp.id, `${currentSeriesMeta.name} - ${seasonNum}. Évad ${firstEp.episode}. Rész (${firstEp.name})`);
       }
     }
 
-    function renderEpisodes(seasonNum) {
+    function renderEpisodes(seasonNum, filterText = '') {
       const grid = document.getElementById('episodesGrid');
       grid.innerHTML = '';
 
       const eps = currentSeriesMeta.seasons[seasonNum] || [];
-      eps.forEach(ep => {
+      const cleanFilter = (filterText || '').toLowerCase().trim();
+
+      const filtered = cleanFilter
+        ? eps.filter(e => (e.name || '').toLowerCase().includes(cleanFilter) || String(e.episode).includes(cleanFilter))
+        : eps;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 1rem; color: #94a3b8; font-size: 0.88rem; text-align: center;">
+            Nem található "${filterText}" nevű epizód a(z) ${seasonNum}. évadban.
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(ep => {
         const card = document.createElement('div');
         card.className = 'episode-card' + (ep.id === currentActiveEpisodeId ? ' active' : '');
         card.id = `ep_card_${ep.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -1631,7 +1864,7 @@
           <div class="episode-title" title="${ep.name}">${ep.name}</div>
         `;
         card.onclick = () => {
-          selectEpisode(ep.id, `${currentSeriesMeta.name} - ${seasonNum}. Évad ${ep.episode}. Rész`);
+          selectEpisode(ep.id, `${currentSeriesMeta.name} - ${seasonNum}. Évad ${ep.episode}. Rész (${ep.name})`);
         };
         grid.appendChild(card);
       });
@@ -1641,6 +1874,11 @@
       document.querySelectorAll('.episode-card').forEach(c => c.classList.remove('active'));
       const activeCard = document.getElementById(`ep_card_${id.replace(/[^a-zA-Z0-9]/g, '_')}`);
       if (activeCard) activeCard.classList.add('active');
+
+      const select = document.getElementById('seriesEpisodeSelect');
+      if (select && select.value !== id) {
+        select.value = id;
+      }
     }
 
     function selectEpisode(episodeId, label) {

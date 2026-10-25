@@ -374,6 +374,10 @@ async function scrapeVidea(meta) {
     const s = meta.season;
     const e = meta.episode;
     const ePad = String(e).padStart(2, '0');
+    if (meta.episodeTitle) {
+      searchTerms.push(`${hu} ${meta.episodeTitle}`);
+      searchTerms.push(`${meta.episodeTitle}`);
+    }
     searchTerms.push(`${hu} S${String(s).padStart(2, '0')}E${ePad}`);
     searchTerms.push(`${hu} ${s}x${ePad}`);
     searchTerms.push(`${hu} ${s}x${e}`);
