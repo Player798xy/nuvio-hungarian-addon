@@ -165,7 +165,73 @@ function generateSearchQueries(meta) {
   return Array.from(queries);
 }
 
+const seriesEpisodesCache = new Map();
+
+async function getSeriesEpisodes(imdbId) {
+  if (!imdbId) return null;
+  const cleanId = imdbId.split(':')[0];
+  if (seriesEpisodesCache.has(cleanId)) {
+    return seriesEpisodesCache.get(cleanId);
+  }
+
+  try {
+    const cinemetaUrl = `https://v3-cinemeta.strem.io/meta/series/${cleanId}.json`;
+    const res = await fetch(cinemetaUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data || !data.meta) return null;
+
+    const huTitle = await resolveHungarianTitle(data.meta.name, cleanId);
+
+    // Group videos by season
+    const videos = data.meta.videos || [];
+    const seasonsMap = {};
+    for (const v of videos) {
+      const sNum = v.season != null ? v.season : 1;
+      if (!seasonsMap[sNum]) {
+        seasonsMap[sNum] = [];
+      }
+      seasonsMap[sNum].push({
+        id: v.id || `${cleanId}:${sNum}:${v.episode || v.number}`,
+        season: sNum,
+        episode: v.episode != null ? v.episode : v.number,
+        name: v.name || `${v.episode || v.number}. rész`,
+        overview: v.overview || v.description || '',
+        thumbnail: v.thumbnail || ''
+      });
+    }
+
+    // Sort episodes within each season
+    for (const sNum of Object.keys(seasonsMap)) {
+      seasonsMap[sNum].sort((a, b) => a.episode - b.episode);
+    }
+
+    const result = {
+      id: cleanId,
+      name: huTitle || data.meta.name,
+      englishName: data.meta.name,
+      year: data.meta.year,
+      poster: data.meta.poster,
+      background: data.meta.background,
+      description: data.meta.description,
+      genres: data.meta.genres || [],
+      seasons: seasonsMap
+    };
+
+    seriesEpisodesCache.set(cleanId, result);
+    return result;
+  } catch (err) {
+    console.warn(`[Meta] getSeriesEpisodes failed for ${cleanId}:`, err.message);
+    return null;
+  }
+}
+
 module.exports = {
   getMediaMeta,
-  generateSearchQueries
+  generateSearchQueries,
+  getSeriesEpisodes
 };

@@ -118,27 +118,33 @@ async function scrapeIndavideo(meta) {
       const html = await res.text();
       const videoLinks = [...html.matchAll(/href="https?:\/\/indavideo\.hu\/video\/([^"#\s]+)"/g)].map(m => m[1]);
 
-      for (const slug of videoLinks.slice(0, 5)) {
-        if (seenVideoSlugs.has(slug)) continue;
-        seenVideoSlugs.add(slug);
+      const slugsToProcess = [];
+      for (const slug of videoLinks) {
+        if (!seenVideoSlugs.has(slug)) {
+          seenVideoSlugs.add(slug);
+          slugsToProcess.push(slug);
+          if (slugsToProcess.length >= 3) break;
+        }
+      }
 
+      await Promise.all(slugsToProcess.map(async (slug) => {
         try {
           const pageRes = await fetch(`https://indavideo.hu/video/${slug}`, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-            signal: AbortSignal.timeout(4000)
+            signal: AbortSignal.timeout(3500)
           });
-          if (!pageRes.ok) continue;
+          if (!pageRes.ok) return;
 
           const pHtml = await pageRes.text();
           const hashMatch = pHtml.match(/id=['"]emb_hash['"][^>]+value=['"]([^'"]+)['"]/i) ||
                             pHtml.match(/value=['"]([^'"]+)['"][^>]+id=['"]emb_hash['"]/i) ||
                             pHtml.match(/embed\.indavideo\.hu\/player\/video\/([a-zA-Z0-9]+)/);
 
-          if (!hashMatch) continue;
+          if (!hashMatch) return;
           const embHash = hashMatch[1];
 
           const vData = await extractIndavideoStreams(embHash);
-          if (!vData || !vData.streams || vData.streams.length === 0) continue;
+          if (!vData || !vData.streams || vData.streams.length === 0) return;
 
           // Check title match
           const normCand = normalize(vData.title);
@@ -148,7 +154,7 @@ async function scrapeIndavideo(meta) {
             const words = normHu.split(' ').filter(w => w.length > 2);
             const matches = words.filter(w => normCand.includes(w));
             if (matches.length < Math.max(1, Math.ceil(words.length * 0.6))) {
-              continue;
+              return;
             }
           }
 
@@ -156,7 +162,7 @@ async function scrapeIndavideo(meta) {
           if (!meta.season) {
             const targetHasNum = /\b([2-9]|ii|iii|iv|v|vi)\b/i.test(normHu);
             const candHasNum = /\b([2-9]|ii|iii|iv|v|vi)\b/i.test(normCand);
-            if (!targetHasNum && candHasNum) continue;
+            if (!targetHasNum && candHasNum) return;
           }
 
           for (const s of vData.streams) {
@@ -171,9 +177,9 @@ async function scrapeIndavideo(meta) {
             });
           }
         } catch (e) {
-          // Continue to next slug
+          // ignore
         }
-      }
+      }));
 
       if (streams.length > 0) break;
     } catch (err) {

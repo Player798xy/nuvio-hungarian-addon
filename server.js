@@ -5,7 +5,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { getManifest, getStreams, searchCatalog, getMeta } = require('./src/addon');
+const { getManifest, getStreams, searchCatalog, getMeta, ALL_SCRAPERS } = require('./src/addon');
+const { getSeriesEpisodes } = require('./src/utils/meta');
 
 const app = express();
 const PORT = process.env.PORT || 7000;
@@ -13,19 +14,81 @@ const PORT = process.env.PORT || 7000;
 app.use(cors());
 app.use(express.json());
 
+// Helper to parse configuration string or query params
+function parseConfig(configStr, query = {}) {
+  const config = {
+    sources: [],
+    onlyHD: false
+  };
+
+  if (query.sources) {
+    config.sources = query.sources.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+  if (query.onlyHD === 'true' || query.onlyHD === '1') {
+    config.onlyHD = true;
+  }
+
+  if (!configStr) return config;
+
+  // 1. Check if base64 encoded JSON
+  try {
+    const decoded = Buffer.from(configStr, 'base64').toString('utf-8');
+    if (decoded.startsWith('{') && decoded.endsWith('}')) {
+      const obj = JSON.parse(decoded);
+      if (Array.isArray(obj.sources)) config.sources = obj.sources;
+      if (obj.onlyHD) config.onlyHD = true;
+      return config;
+    }
+  } catch (e) {}
+
+  // 2. Parse key=value or key:value format separated by | or & or ;
+  const parts = decodeURIComponent(configStr).split(/[|&;]/);
+  for (const part of parts) {
+    const [rawKey, rawVal] = part.split(/[=:]/);
+    if (!rawKey || !rawVal) continue;
+    const key = rawKey.trim().toLowerCase();
+    const val = rawVal.trim();
+    if (key === 'sources') {
+      config.sources = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else if (key === 'onlyhd' || key === 'hd') {
+      config.onlyHD = val === 'true' || val === '1';
+    }
+  }
+
+  // 3. Fallback: comma-separated list of valid scraper IDs directly
+  if (config.sources.length === 0 && configStr.includes(',')) {
+    const valid = ALL_SCRAPERS.map(s => s.id);
+    const candidateList = configStr.split(',').map(s => s.trim().toLowerCase());
+    const matched = candidateList.filter(id => valid.includes(id));
+    if (matched.length > 0) {
+      config.sources = matched;
+    }
+  }
+
+  return config;
+}
+
 // Serve static UI assets
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Stremio / Nuvio Manifest
-app.get('/manifest.json', (req, res) => {
+// Stremio / Nuvio Manifest Endpoint (supports /manifest.json and /:config/manifest.json)
+app.get(['/manifest.json', '/:config/manifest.json'], (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Content-Type', 'application/json');
-  res.json(getManifest());
+  res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+
+  const config = parseConfig(req.params.config, req.query);
+  res.json(getManifest(config));
 });
 
 // Stremio / Nuvio Catalog Endpoint
-app.get(['/catalog/:type/:id.json', '/catalog/:type/:id/:extra.json'], async (req, res) => {
+app.get([
+  '/catalog/:type/:id.json',
+  '/catalog/:type/:id/:extra.json',
+  '/:config/catalog/:type/:id.json',
+  '/:config/catalog/:type/:id/:extra.json'
+], async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Content-Type', 'application/json');
@@ -49,7 +112,7 @@ app.get(['/catalog/:type/:id.json', '/catalog/:type/:id/:extra.json'], async (re
 
   try {
     const metas = await searchCatalog(type, search);
-    res.setHeader('Cache-Control', 'max-age=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
     res.json({ metas: metas || [] });
   } catch (err) {
     console.error(`[Server] Error processing catalog for ${type}/${id}:`, err);
@@ -58,7 +121,7 @@ app.get(['/catalog/:type/:id.json', '/catalog/:type/:id/:extra.json'], async (re
 });
 
 // Stremio / Nuvio Meta Endpoint
-app.get('/meta/:type/:id.json', async (req, res) => {
+app.get(['/meta/:type/:id.json', '/:config/meta/:type/:id.json'], async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Content-Type', 'application/json');
@@ -67,7 +130,7 @@ app.get('/meta/:type/:id.json', async (req, res) => {
   try {
     const metaData = await getMeta(type, id);
     if (metaData) {
-      res.setHeader('Cache-Control', 'max-age=86400, stale-while-revalidate=604800');
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
       return res.json(metaData);
     }
     res.json({ meta: null });
@@ -78,14 +141,17 @@ app.get('/meta/:type/:id.json', async (req, res) => {
 });
 
 // Stremio / Nuvio Streams Endpoint
-app.get('/stream/:type/:id.json', async (req, res) => {
+app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Content-Type', 'application/json');
 
   const { type, id } = req.params;
+  const config = parseConfig(req.params.config, req.query);
+
   try {
-    const result = await getStreams(type, id);
+    const result = await getStreams(type, id, config);
+    res.setHeader('Cache-Control', 'public, max-age=7200, stale-while-revalidate=86400');
     res.json(result);
   } catch (err) {
     console.error(`[Server] Error processing stream request for ${type}/${id}:`, err);
@@ -93,7 +159,24 @@ app.get('/stream/:type/:id.json', async (req, res) => {
   }
 });
 
-// Search API for web landing page (supports Hungarian titles, filters, and movies/series)
+// Episodes API for Nuvio-like Season/Episode selector
+app.get('/api/episodes', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const id = req.query.id;
+  if (!id) return res.status(400).json({ error: 'Missing id param' });
+  try {
+    const data = await getSeriesEpisodes(id);
+    if (data) {
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      return res.json(data);
+    }
+    res.json({ meta: null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Search API for web landing page
 app.get('/api/search', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const query = req.query.q || '';
@@ -126,13 +209,14 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// Diagnostic API for the web landing page: accepts IMDb ID (tt...) OR Hungarian title
+// Diagnostic & Live Test API for the web landing page
 app.get('/api/test', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   let id = req.query.id || 'tt8111088:1:1';
   id = id.trim();
+  const config = parseConfig(null, req.query);
 
-  // If user passed a title instead of tt..., resolve it first!
+  const startMs = Date.now();
   let matchedItem = null;
   if (!id.startsWith('tt')) {
     try {
@@ -157,11 +241,17 @@ app.get('/api/test', async (req, res) => {
 
   const type = id.includes(':') ? 'series' : 'movie';
   try {
-    const result = await getStreams(type, id);
-    res.json({ ...result, queryId: id, matchedItem });
+    const result = await getStreams(type, id, config);
+    const durationMs = Date.now() - startMs;
+    res.json({ ...result, queryId: id, matchedItem, durationMs });
   } catch (err) {
     res.status(500).json({ error: err.message, streams: [] });
   }
+});
+
+// Configure Route & Index Page
+app.get(['/configure', '/:config/configure'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Catch-all route to serve index.html for root
@@ -175,6 +265,7 @@ if (require.main === module) {
     console.log(`🚀 Nuvio & Stremio Hungarian Addon is running!`);
     console.log(`📡 Local Port: http://localhost:${PORT}`);
     console.log(`📋 Manifest URL: http://localhost:${PORT}/manifest.json`);
+    console.log(`⚙️ Configurator: http://localhost:${PORT}/configure`);
     console.log(`======================================================\n`);
   });
 }

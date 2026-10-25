@@ -7,7 +7,7 @@
   <link rel="icon" href="https://videa.hu/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0b0f19;
@@ -15,6 +15,7 @@
       --card-border: #1f2c47;
       --accent: #e50914;
       --accent-gradient: linear-gradient(135deg, #e50914 0%, #ff5252 100%);
+      --fast-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
       --text: #f1f5f9;
       --text-muted: #94a3b8;
       --badge-fhd: #10b981;
@@ -36,7 +37,7 @@
     }
 
     .container {
-      max-width: 960px;
+      max-width: 980px;
       margin: 0 auto;
     }
 
@@ -50,16 +51,16 @@
       background: rgba(229, 9, 20, 0.15);
       color: #ff5252;
       border: 1px solid rgba(229, 9, 20, 0.3);
-      padding: 0.3rem 0.8rem;
+      padding: 0.35rem 0.9rem;
       border-radius: 9999px;
       font-size: 0.85rem;
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 1rem;
       letter-spacing: 0.05em;
     }
 
     h1 {
-      font-size: 2.5rem;
+      font-size: 2.6rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
       background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
@@ -69,7 +70,9 @@
 
     .subtitle {
       color: var(--text-muted);
-      font-size: 1.1rem;
+      font-size: 1.15rem;
+      max-width: 720px;
+      margin: 0 auto;
     }
 
     .card {
@@ -81,33 +84,141 @@
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
     }
 
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    /* Preset Buttons */
+    .presets-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .preset-btn {
+      background: #0f172a;
+      border: 1px solid #2a3a5c;
+      color: #cbd5e1;
+      padding: 0.45rem 0.9rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .preset-btn:hover {
+      background: #1e293b;
+      color: white;
+      border-color: #3b82f6;
+    }
+
+    .preset-btn.active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+      color: #60a5fa;
+    }
+
+    /* Source Checkboxes Grid */
     .sources-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 0.8rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
       margin-top: 1rem;
     }
 
-    .source-pill {
-      background: #0f172a;
+    .source-item {
+      background: #0a0f1d;
       border: 1px solid #1e293b;
-      padding: 0.8rem 1rem;
-      border-radius: 0.75rem;
-      text-align: center;
+      padding: 0.75rem 0.9rem;
+      border-radius: 0.65rem;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .source-item:hover {
+      border-color: #334155;
+      background: #0f172a;
+    }
+
+    .source-item.selected {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    .source-checkbox {
+      width: 1.15rem;
+      height: 1.15rem;
+      accent-color: #3b82f6;
+      cursor: pointer;
+      margin-top: 0.15rem;
+    }
+
+    .source-details {
+      flex: 1;
     }
 
     .source-name {
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
 
-    .source-status {
-      font-size: 0.78rem;
-      color: var(--badge-fhd);
-      margin-top: 0.2rem;
+    .source-tag {
+      font-size: 0.68rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.25rem;
+      font-weight: 700;
     }
 
+    .tag-fast {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+    }
+
+    .tag-rich {
+      background: rgba(148, 163, 184, 0.2);
+      color: #94a3b8;
+    }
+
+    .source-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .speed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* URL Box */
     .url-box {
       display: flex;
       gap: 0.5rem;
@@ -125,7 +236,7 @@
       border: none;
       color: #38bdf8;
       font-family: monospace;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       outline: none;
     }
 
@@ -142,6 +253,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.4rem;
+      white-space: nowrap;
     }
 
     .btn-primary {
@@ -165,6 +277,11 @@
       color: white;
     }
 
+    .btn-success {
+      background: var(--fast-gradient);
+      color: white;
+    }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -172,6 +289,7 @@
       margin-top: 1rem;
     }
 
+    /* Steps */
     .steps-list {
       list-style: none;
       counter-reset: step-counter;
@@ -181,7 +299,7 @@
     .steps-list li {
       position: relative;
       padding-left: 2.5rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.85rem;
       color: #cbd5e1;
     }
 
@@ -204,6 +322,7 @@
       font-size: 0.85rem;
     }
 
+    /* Tester / Search */
     .tester-controls {
       display: flex;
       gap: 0.75rem;
@@ -273,6 +392,7 @@
       border-color: #38bdf8;
     }
 
+    /* Catalog Cards */
     .catalog-results {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -295,7 +415,12 @@
     .catalog-card:hover {
       transform: translateY(-3px);
       border-color: #3b82f6;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+    }
+
+    .catalog-card.active {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px #3b82f6;
     }
 
     .catalog-poster {
@@ -350,6 +475,123 @@
       margin-top: 0.25rem;
     }
 
+    /* Series View (Nuvio-like Season & Episode Picker) */
+    .series-view {
+      margin-top: 1.5rem;
+      background: #0a0f1d;
+      border: 1px solid #233354;
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .series-header {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .series-header-poster {
+      width: 80px;
+      height: 120px;
+      border-radius: 0.4rem;
+      object-fit: cover;
+      background: #1e293b;
+    }
+
+    .series-header-details {
+      flex: 1;
+    }
+
+    .series-header-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .series-header-desc {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin-top: 0.3rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .season-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 0.75rem;
+    }
+
+    .season-tab-btn {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      color: #cbd5e1;
+      padding: 0.35rem 0.8rem;
+      border-radius: 0.4rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .season-tab-btn.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: white;
+    }
+
+    .episodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.65rem;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 0.3rem;
+    }
+
+    .episode-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 0.5rem;
+      padding: 0.6rem 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .episode-card:hover {
+      border-color: #38bdf8;
+      background: #1e293b;
+    }
+
+    .episode-card.active {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    .episode-num {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .episode-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 0.15rem;
+    }
+
+    /* Streams Preview */
     .streams-preview {
       margin-top: 1.5rem;
       display: flex;
@@ -407,58 +649,56 @@
 
   <div class="container">
     <header>
-      <div class="badge-hu">🇭🇺 MAGYAR STREAMING FORRÁSOK</div>
+      <div class="badge-hu">🇭🇺 MAGYAR STREAMING FORRÁSOK v1.5.0</div>
       <h1>Hungarian Streams</h1>
-      <p class="subtitle">1080p FHD & 720p HD filmek, sorozatok és rajzfilmek magyar szinkronnal Nuvio & Stremio alkalmazásokhoz</p>
+      <p class="subtitle">Magyar szinkronos filmek és sorozatok villámgyors közvetlen indítással, testreszabható forrásokkal Nuvio & Stremio alkalmazásokhoz</p>
     </header>
 
-    <!-- Source Status -->
-    <div class="card">
-      <h2>Támogatott források (1080p / 720p)</h2>
-      <div class="sources-grid">
-        <div class="source-pill">
-          <div class="source-name">Videa.hu</div>
-          <div class="source-status">● 1080p/720p Direct MP4 + Noembed</div>
-        </div>
-        <div class="source-pill">
-          <div class="source-name">Indavideo.hu</div>
-          <div class="source-status">● Közvetlen MP4 CDN</div>
-        </div>
-        <div class="source-pill">
-          <div class="source-name">JobbMintATV</div>
-          <div class="source-status">● Videa & OK.ru 1080p</div>
-        </div>
-        <div class="source-pill">
-          <div class="source-name">Filmvilág2</div>
-          <div class="source-status">● Videa 1080p / 720p</div>
-        </div>
-        <div class="source-pill">
-          <div class="source-name">DMDAMedia</div>
-          <div class="source-status">● HD Filmek & Sorozatok</div>
-        </div>
-        <div class="source-pill">
-          <div class="source-name">MeseFilm / Kincstár</div>
-          <div class="source-status">● Magyar Népmesék & Rajzfilmek</div>
-        </div>
-        <div class="source-pill">
-          <div class="source-name">Filmezek.com</div>
-          <div class="source-status">● Videa & OK.ru Stream</div>
-        </div>
-        <div class="source-pill">
-          <div class="source-name">OnlineFilmekIngyen</div>
-          <div class="source-status">● HD Források</div>
-        </div>
-        <div class="source-pill">
-          <div class="source-name">HDMozi.hu</div>
-          <div class="source-status">● HD Filmek & Sorozatok</div>
-        </div>
+    <!-- Source Configuration Card -->
+    <div class="card" id="configCard">
+      <div class="card-title">
+        <span>⚙️ Források Testreszabása & Sebesség</span>
+        <span class="speed-badge" id="speedBadge">⚡ Szupergyors mód (~600ms)</span>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Válaszd ki, melyik forrásokat szeretnéd használni. Minél kevesebb, gyorsabb forrást választasz ki, annál hamarabb indul a lejátszás mint a Pengu vagy a Torrentio esetében!
+      </p>
+
+      <!-- Presets -->
+      <div class="presets-row">
+        <button class="preset-btn active" id="btnPresetFast" onclick="applyPreset('fast')">
+          ⚡ Villámgyors (Ajánlott: 4 forrás)
+        </button>
+        <button class="preset-btn" id="btnPresetAll" onclick="applyPreset('all')">
+          🎬 Mind a 9 forrás (Maximális találat)
+        </button>
+        <button class="preset-btn" id="btnPresetKids" onclick="applyPreset('kids')">
+          👶 Mese & Gyerek mód
+        </button>
+      </div>
+
+      <!-- Sources Checklist -->
+      <div class="sources-grid" id="sourcesGrid">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Additional Options -->
+      <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.6rem; user-select: none;">
+        <input type="checkbox" id="onlyHDCheckbox" class="source-checkbox" onchange="updateManifestUrl()">
+        <label for="onlyHDCheckbox" style="font-size: 0.9rem; font-weight: 600; cursor: pointer; color: #e2e8f0;">
+          ✨ Csak HD minőség (Kizárólag 1080p FHD és 720p HD stream-ek megjelenítése, SD szűrése)
+        </label>
       </div>
     </div>
 
     <!-- Installation Box -->
     <div class="card">
-      <h2>Addon Telepítése Nuvio-ba</h2>
-      <p style="color: var(--text-muted); margin-top: 0.3rem;">Másold ki az alábbi Manifest linket, és illeszd be a Nuvio vagy Stremio alkalmazásodba:</p>
+      <div class="card-title">
+        <span>🚀 Testreszabott Addon Telepítése</span>
+      </div>
+      <p style="color: var(--text-muted); margin-top: 0.2rem; font-size: 0.9rem;">
+        Az alábbi egyedi Manifest link azonnal tartalmazza a fenti beállításaidat. Másold ki a Nuvio-hoz, vagy telepítsd egy kattintással Stremio-ba:
+      </p>
       
       <div class="url-box">
         <input type="text" id="manifestUrl" class="url-input" readonly>
@@ -466,28 +706,38 @@
       </div>
 
       <div class="actions">
-        <a id="stremioInstallBtn" href="#" class="btn btn-primary">Telepítés Stremio-ba</a>
-        <button class="btn btn-secondary" onclick="copyManifest()">Manifest URL Másolása</button>
+        <a id="stremioInstallBtn" href="#" class="btn btn-primary">
+          ▶️ Telepítés Stremio-ba
+        </a>
+        <button class="btn btn-secondary" onclick="copyManifest()">
+          📋 Nuvio Manifest Másolása
+        </button>
       </div>
     </div>
 
     <!-- How to add in Nuvio -->
     <div class="card">
-      <h2>Hogyan add hozzá a Nuvio alkalmazásban?</h2>
+      <div class="card-title">
+        <span>📖 Hogyan add hozzá a Nuvio alkalmazásban?</span>
+      </div>
       <ol class="steps-list">
-        <li>Másold ki a fenti <strong>Manifest URL</strong> linket a <em>"Másolás"</em> gombra kattintva.</li>
-        <li>Nyisd meg a <strong>Nuvio</strong> alkalmazást (Android TV, Google TV, mobil vagy asztali gép).</li>
-        <li>Menj a <strong>Settings (Beállítások)</strong> ➔ <strong>Add-ons / Plugins (Kiegészítők)</strong> menüpontba.</li>
-        <li>Kattints az <strong>"Add Addon" (Kiegészítő hozzáadása)</strong> vagy URL beviteli mezőre.</li>
-        <li>Illeszd be a kimásolt URL-t, és nyomj a <strong>Telepítés / Hozzáadás</strong> gombra.</li>
-        <li>Kész! Mostantól mind a filmek, mind a sorozatok és mesék közvetlenül magyar szinkronos forrásokkal fognak elindulni!</li>
+        <li>Kattints a fenti <strong>"Nuvio Manifest Másolása"</strong> gombra.</li>
+        <li>Nyisd meg a <strong>Nuvio</strong> alkalmazást (Android TV, Google TV, mobil vagy PC).</li>
+        <li>Navigálj a <strong>Settings (Beállítások)</strong> ➔ <strong>Add-ons / Plugins (Kiegészítők)</strong> menüpontba.</li>
+        <li>Kattints az <strong>"Add Addon" (Kiegészítő hozzáadása)</strong> gombra.</li>
+        <li>Illeszd be a kimásolt URL-t, és nyomj a <strong>Hozzáadás / Telepítés</strong> gombra.</li>
+        <li>Kész! A filmek és a sorozatok epizódjai azonnal a kiválasztott szinkronos forrásokkal fognak indulni.</li>
       </ol>
     </div>
 
-    <!-- Live Search & Stream Tester -->
+    <!-- Live Search & Stream Tester (Nuvio-style) -->
     <div class="card">
-      <h2>Magyar Cím Kereső & Élő Lejátszó</h2>
-      <p style="color: var(--text-muted);">Keress rá közvetlenül <strong>magyar filmekre, sorozatokra vagy mesékre</strong>:</p>
+      <div class="card-title">
+        <span>🔍 Nuvio-Stílusú Kereső & Lejátszó</span>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Keress bármilyen magyar címre. Sorozatoknál választhatsz évadot és részt pontosan úgy, mint a Nuvio-ban!
+      </p>
       
       <div class="filter-tabs">
         <button class="filter-btn active" id="tabAll" onclick="setFilter('all')">Mind</button>
@@ -496,18 +746,18 @@
       </div>
 
       <div class="tester-controls">
-        <input type="text" id="testId" class="input-field" placeholder="Pl. Jégkorszak, Bosszúállók, Magyar népmesék, A Mandalóri, Mézga család..." value="Jégkorszak" onkeydown="if(event.key==='Enter') runSearch()">
+        <input type="text" id="testId" class="input-field" placeholder="Pl. Jégkorszak, Magyar népmesék, Bosszúállók, A Mandalóri, Mézga család..." value="Magyar népmesék" onkeydown="if(event.key==='Enter') runSearch()">
         <button class="btn btn-primary" id="testBtn" onclick="runSearch()">Keresés</button>
       </div>
 
       <div class="chips-container">
         <span style="font-size: 0.8rem; color: #64748b; align-self: center;">Gyors keresés:</span>
-        <span class="chip" onclick="quickSearch('Jégkorszak')">🎬 Jégkorszak</span>
-        <span class="chip" onclick="quickSearch('Bosszúállók')">🎬 Bosszúállók</span>
-        <span class="chip" onclick="quickSearch('A Jó a Rossz és a Csúf')">🎬 A Jó a Rossz és a Csúf</span>
         <span class="chip" onclick="quickSearch('Magyar népmesék')">📺 Magyar népmesék</span>
         <span class="chip" onclick="quickSearch('A Mandalóri')">📺 A Mandalóri</span>
         <span class="chip" onclick="quickSearch('Mézga család')">📺 Mézga család</span>
+        <span class="chip" onclick="quickSearch('Jégkorszak')">🎬 Jégkorszak</span>
+        <span class="chip" onclick="quickSearch('Bosszúállók')">🎬 Bosszúállók</span>
+        <span class="chip" onclick="quickSearch('A Jó a Rossz és a Csúf')">🎬 A Jó a Rossz és a Csúf</span>
       </div>
 
       <div id="loadingIndicator" style="display: none; margin-top: 1.2rem; color: #38bdf8;">
@@ -516,6 +766,9 @@
 
       <!-- Catalog Cards Grid -->
       <div id="catalogList" class="catalog-results" style="display: none;"></div>
+
+      <!-- Series Episode Selector View (Nuvio-style) -->
+      <div id="seriesView" class="series-view" style="display: none;"></div>
 
       <!-- Streams List -->
       <div id="streamsList" class="streams-preview"></div>
@@ -527,22 +780,140 @@
   </div>
 
   <script>
-    let activeFilter = 'all';
+    // Supported sources catalog
+    const AVAILABLE_SOURCES = [
+      { id: 'videa', name: 'Videa.hu', desc: '1080p / 720p Direct MP4 (FCode Noembed bypass)', fast: true },
+      { id: 'indavideo', name: 'Indavideo.hu', desc: 'Közvetlen MP4 CDN tokenekkel', fast: true },
+      { id: 'jobbmintatv', name: 'JobbMintATV', desc: 'Videa & OK.ru 1080p streamek', fast: true },
+      { id: 'filmvilag2', name: 'Filmvilág2', desc: 'Videa 1080p / 720p források', fast: true },
+      { id: 'dmdamedia', name: 'DMDAMedia', desc: 'HD Filmek & Sorozatok', fast: false },
+      { id: 'mesefilm', name: 'MeseFilm / Kincstár', desc: 'Magyar Népmesék & Rajzfilmek', fast: true, kids: true },
+      { id: 'filmezek', name: 'Filmezek.com', desc: 'Videa & OK.ru lejátszók', fast: false },
+      { id: 'onlinefilmek', name: 'OnlineFilmekIngyen', desc: 'HD szinkronos filmek', fast: false },
+      { id: 'hdmozi', name: 'HDMozi.hu', desc: 'HD Filmek & Sorozatok', fast: false }
+    ];
 
-    // Set dynamic manifest URL based on current host
-    const origin = window.location.origin;
-    const manifestUrl = origin + '/manifest.json';
-    document.getElementById('manifestUrl').value = manifestUrl;
-    
-    // Stremio scheme
-    const stremioScheme = manifestUrl.replace(/^https?:\/\//, 'stremio://');
-    document.getElementById('stremioInstallBtn').href = stremioScheme;
+    // State
+    let selectedSources = ['videa', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+    let activeFilter = 'all';
+    let currentSeriesMeta = null;
+    let currentActiveSeason = null;
+    let currentActiveEpisodeId = null;
+
+    // Initialize Sources Grid
+    function renderSourcesGrid() {
+      const grid = document.getElementById('sourcesGrid');
+      grid.innerHTML = '';
+
+      AVAILABLE_SOURCES.forEach(source => {
+        const isChecked = selectedSources.includes(source.id);
+        const item = document.createElement('div');
+        item.className = 'source-item' + (isChecked ? ' selected' : '');
+        item.onclick = (e) => {
+          if (e.target.tagName !== 'INPUT') {
+            toggleSource(source.id);
+          }
+        };
+
+        const tagHtml = source.fast 
+          ? `<span class="source-tag tag-fast">⚡ Gyors</span>`
+          : `<span class="source-tag tag-rich">Bővített</span>`;
+
+        item.innerHTML = `
+          <input type="checkbox" id="src_${source.id}" class="source-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSource('${source.id}')">
+          <div class="source-details">
+            <div class="source-name">
+              ${source.name}
+              ${tagHtml}
+            </div>
+            <div class="source-desc">${source.desc}</div>
+          </div>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    function toggleSource(id) {
+      if (selectedSources.includes(id)) {
+        if (selectedSources.length === 1) {
+          alert('Legalább egy forrást bekapcsolva kell hagyni!');
+          return;
+        }
+        selectedSources = selectedSources.filter(s => s !== id);
+      } else {
+        selectedSources.push(id);
+      }
+      renderSourcesGrid();
+      updateManifestUrl();
+      highlightActivePreset();
+    }
+
+    function applyPreset(preset) {
+      if (preset === 'fast') {
+        selectedSources = ['videa', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+      } else if (preset === 'all') {
+        selectedSources = AVAILABLE_SOURCES.map(s => s.id);
+      } else if (preset === 'kids') {
+        selectedSources = ['mesefilm', 'videa', 'indavideo', 'jobbmintatv'];
+      }
+      renderSourcesGrid();
+      updateManifestUrl();
+      highlightActivePreset();
+    }
+
+    function highlightActivePreset() {
+      const isFast = selectedSources.length === 4 && ['videa', 'indavideo', 'jobbmintatv', 'filmvilag2'].every(s => selectedSources.includes(s));
+      const isAll = selectedSources.length === AVAILABLE_SOURCES.length;
+      const isKids = selectedSources.length === 4 && ['mesefilm', 'videa', 'indavideo', 'jobbmintatv'].every(s => selectedSources.includes(s));
+
+      document.getElementById('btnPresetFast').className = 'preset-btn' + (isFast ? ' active' : '');
+      document.getElementById('btnPresetAll').className = 'preset-btn' + (isAll ? ' active' : '');
+      document.getElementById('btnPresetKids').className = 'preset-btn' + (isKids ? ' active' : '');
+
+      const speedBadge = document.getElementById('speedBadge');
+      if (selectedSources.length <= 4) {
+        speedBadge.textContent = '⚡ Szupergyors mód (~500ms - 1s)';
+        speedBadge.style.color = '#34d399';
+        speedBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        speedBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+      } else {
+        speedBadge.textContent = '⏱️ Bővített forrásmód (~2.5s)';
+        speedBadge.style.color = '#fbbf24';
+        speedBadge.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+        speedBadge.style.background = 'rgba(251, 191, 36, 0.15)';
+      }
+    }
+
+    function updateManifestUrl() {
+      const origin = window.location.origin;
+      const onlyHD = document.getElementById('onlyHDCheckbox').checked;
+
+      let configPath = '';
+      const isAll = selectedSources.length === AVAILABLE_SOURCES.length;
+
+      if (!isAll || onlyHD) {
+        const parts = [];
+        if (!isAll) {
+          parts.push(`sources=${selectedSources.join(',')}`);
+        }
+        if (onlyHD) {
+          parts.push('onlyHD=1');
+        }
+        configPath = '/' + parts.join('|');
+      }
+
+      const manifestUrl = `${origin}${configPath}/manifest.json`;
+      document.getElementById('manifestUrl').value = manifestUrl;
+
+      const stremioScheme = manifestUrl.replace(/^https?:\/\//, 'stremio://');
+      document.getElementById('stremioInstallBtn').href = stremioScheme;
+    }
 
     function copyManifest() {
       const input = document.getElementById('manifestUrl');
       input.select();
       navigator.clipboard.writeText(input.value);
-      alert('Manifest URL kimásolva a vágólapra! Most illeszd be a Nuvio-ba.');
+      alert('✅ Testreszabott Manifest URL kimásolva a vágólapra!\nMost illeszd be a Nuvio Addon hozzáadás mezőjébe.');
     }
 
     function setFilter(type) {
@@ -563,32 +934,35 @@
       if (!rawInput) return;
 
       const catalogList = document.getElementById('catalogList');
+      const seriesView = document.getElementById('seriesView');
       const streamsList = document.getElementById('streamsList');
       const loader = document.getElementById('loadingIndicator');
 
       catalogList.innerHTML = '';
       catalogList.style.display = 'none';
+      seriesView.innerHTML = '';
+      seriesView.style.display = 'none';
       streamsList.innerHTML = '';
       loader.style.display = 'block';
 
-      // If user provided a direct IMDb ID (tt...)
       if (rawInput.startsWith('tt')) {
         await loadStreamsForId(rawInput);
         return;
       }
 
-      // Query /api/search for matching titles with filter
       try {
         const filterParam = activeFilter !== 'all' ? `&type=${activeFilter}` : '';
         const res = await fetch(`/api/search?q=${encodeURIComponent(rawInput)}${filterParam}`);
         const data = await res.json();
         const results = data.results || [];
 
+        loader.style.display = 'none';
+
         if (results.length > 0) {
           catalogList.style.display = 'grid';
-          results.slice(0, 8).forEach((item) => {
+          results.slice(0, 10).forEach((item, idx) => {
             const card = document.createElement('div');
-            card.className = 'catalog-card';
+            card.className = 'catalog-card' + (idx === 0 ? ' active' : '');
             const isSeries = item.type === 'series';
             const badgeText = isSeries ? '📺 Sorozat' : '🎬 Film';
             const badgeClass = isSeries ? 'catalog-badge badge-sorozat' : 'catalog-badge badge-film';
@@ -602,42 +976,186 @@
               </div>
             `;
             card.onclick = () => {
-              const streamId = isSeries ? `${item.id}:1:1` : item.id;
-              loadStreamsForId(streamId, item.name);
+              document.querySelectorAll('.catalog-card').forEach(c => c.classList.remove('active'));
+              card.classList.add('active');
+              onCatalogItemClick(item);
             };
             catalogList.appendChild(card);
           });
 
-          // Automatically load streams for the first matched result
-          const first = results[0];
-          const firstId = first.type === 'series' ? `${first.id}:1:1` : first.id;
-          await loadStreamsForId(firstId, first.name);
+          // Automatically handle first result
+          onCatalogItemClick(results[0]);
         } else {
           await loadStreamsForId(rawInput);
         }
       } catch (err) {
+        loader.style.display = 'none';
         await loadStreamsForId(rawInput);
       }
     }
 
+    // Handles user clicking a catalog card (Movie vs Series)
+    async function onCatalogItemClick(item) {
+      const seriesView = document.getElementById('seriesView');
+      const streamsList = document.getElementById('streamsList');
+
+      if (item.type === 'series') {
+        // Load Series View with Seasons and Episodes
+        streamsList.innerHTML = '';
+        await loadSeriesEpisodes(item.id, item.name);
+      } else {
+        // Movie: immediately fetch and display streams
+        seriesView.innerHTML = '';
+        seriesView.style.display = 'none';
+        await loadStreamsForId(item.id, item.name);
+      }
+    }
+
+    // Nuvio-like Series View: fetches seasons and episodes list
+    async function loadSeriesEpisodes(seriesId, titleHint) {
+      const seriesView = document.getElementById('seriesView');
+      const loader = document.getElementById('loadingIndicator');
+      loader.style.display = 'block';
+
+      try {
+        const res = await fetch(`/api/episodes?id=${encodeURIComponent(seriesId)}`);
+        const data = await res.json();
+        loader.style.display = 'none';
+
+        if (!data || !data.seasons || Object.keys(data.seasons).length === 0) {
+          // Fallback if episodes not found
+          await loadStreamsForId(`${seriesId}:1:1`, titleHint);
+          return;
+        }
+
+        currentSeriesMeta = data;
+        seriesView.style.display = 'block';
+
+        const seasonNums = Object.keys(data.seasons).filter(s => s !== '0' || Object.keys(data.seasons).length === 1);
+        const initialSeason = seasonNums[0] || '1';
+        currentActiveSeason = initialSeason;
+
+        renderSeriesHeaderAndSeasons(data, seasonNums, initialSeason);
+        renderEpisodes(initialSeason);
+
+        // Auto-load streams for Episode 1 of this season
+        const firstEp = data.seasons[initialSeason]?.[0];
+        if (firstEp) {
+          currentActiveEpisodeId = firstEp.id;
+          highlightActiveEpisode(firstEp.id);
+          await loadStreamsForId(firstEp.id, `${data.name} - ${initialSeason}. Évad ${firstEp.episode}. Rész`);
+        }
+      } catch (err) {
+        loader.style.display = 'none';
+        await loadStreamsForId(`${seriesId}:1:1`, titleHint);
+      }
+    }
+
+    function renderSeriesHeaderAndSeasons(meta, seasonNums, activeSeason) {
+      const seriesView = document.getElementById('seriesView');
+      seriesView.innerHTML = `
+        <div class="series-header">
+          <img class="series-header-poster" src="${meta.poster || ''}" onerror="this.src='https://videa.hu/favicon.ico'">
+          <div class="series-header-details">
+            <div class="series-header-title">${meta.name} (${meta.year || ''})</div>
+            <div style="font-size: 0.8rem; color: #38bdf8; margin-top: 0.2rem;">${(meta.genres || []).join(' • ')}</div>
+            <div class="series-header-desc">${meta.description || 'Válassz évadot és részt a szinkronos streamek azonnali indításához!'}</div>
+          </div>
+        </div>
+        <div class="season-tabs" id="seasonTabsContainer">
+          ${seasonNums.map(s => `
+            <button class="season-tab-btn ${s === activeSeason ? 'active' : ''}" onclick="selectSeason('${s}')">
+              ${s === '0' ? 'Különkiadás' : s + '. Évad'}
+            </button>
+          `).join('')}
+        </div>
+        <div class="episodes-grid" id="episodesGrid"></div>
+      `;
+    }
+
+    function selectSeason(seasonNum) {
+      currentActiveSeason = seasonNum;
+      document.querySelectorAll('.season-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().startsWith(seasonNum + '.') || (seasonNum === '0' && btn.textContent.includes('Különkiadás')));
+      });
+      renderEpisodes(seasonNum);
+
+      // Load first episode of selected season
+      const firstEp = currentSeriesMeta.seasons[seasonNum]?.[0];
+      if (firstEp) {
+        selectEpisode(firstEp.id, `${currentSeriesMeta.name} - ${seasonNum}. Évad ${firstEp.episode}. Rész`);
+      }
+    }
+
+    function renderEpisodes(seasonNum) {
+      const grid = document.getElementById('episodesGrid');
+      grid.innerHTML = '';
+
+      const eps = currentSeriesMeta.seasons[seasonNum] || [];
+      eps.forEach(ep => {
+        const card = document.createElement('div');
+        card.className = 'episode-card' + (ep.id === currentActiveEpisodeId ? ' active' : '');
+        card.id = `ep_card_${ep.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        card.innerHTML = `
+          <div class="episode-num">${seasonNum}. Évad • ${ep.episode}. Rész</div>
+          <div class="episode-title" title="${ep.name}">${ep.name}</div>
+        `;
+        card.onclick = () => {
+          selectEpisode(ep.id, `${currentSeriesMeta.name} - ${seasonNum}. Évad ${ep.episode}. Rész`);
+        };
+        grid.appendChild(card);
+      });
+    }
+
+    function highlightActiveEpisode(id) {
+      document.querySelectorAll('.episode-card').forEach(c => c.classList.remove('active'));
+      const activeCard = document.getElementById(`ep_card_${id.replace(/[^a-zA-Z0-9]/g, '_')}`);
+      if (activeCard) activeCard.classList.add('active');
+    }
+
+    function selectEpisode(episodeId, label) {
+      currentActiveEpisodeId = episodeId;
+      highlightActiveEpisode(episodeId);
+      loadStreamsForId(episodeId, label);
+    }
+
+    // Fetches streams for a movie (tt...) or episode (tt...:s:e) using configured sources
     async function loadStreamsForId(id, titleLabel) {
       const streamsList = document.getElementById('streamsList');
       const loader = document.getElementById('loadingIndicator');
       loader.style.display = 'block';
 
+      const onlyHD = document.getElementById('onlyHDCheckbox').checked;
+      const sourcesQuery = selectedSources.join(',');
+
       try {
-        const res = await fetch(`/api/test?id=${encodeURIComponent(id)}`);
+        const res = await fetch(`/api/test?id=${encodeURIComponent(id)}&sources=${encodeURIComponent(sourcesQuery)}&onlyHD=${onlyHD ? '1' : '0'}`);
         const data = await res.json();
         loader.style.display = 'none';
 
         if (!data.streams || data.streams.length === 0) {
-          streamsList.innerHTML = `<div style="color: #f87171; padding: 1rem; text-align: center; background: #0f172a; border-radius: 0.5rem;">Nem található közvetlen stream a(z) <strong>${titleLabel || id}</strong> címhez. Próbálj másik keresőszót!</div>`;
+          streamsList.innerHTML = `
+            <div style="color: #f87171; padding: 1.2rem; text-align: center; background: #0f172a; border-radius: 0.6rem; border: 1px solid #7f1d1d;">
+              Nem található közvetlen stream a kiválasztott forrásokkal ehhez: <strong>${titleLabel || id}</strong>.<br>
+              <span style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.4rem; display: inline-block;">
+                Tipp: Kapcsolj be további forrásokat a fenti beállításoknál (pl. JobbMintATV, DMDAMedia, Filmvilág2, MeseFilm)!
+              </span>
+            </div>
+          `;
           return;
         }
 
+        const duration = data.durationMs ? `${data.durationMs}ms` : '< 1s';
+        const isSuperFast = data.durationMs && data.durationMs < 1200;
+
         streamsList.innerHTML = `
-          <div style="margin-bottom: 0.5rem; font-weight: 600; color: #38bdf8;">
-            ✅ Talált források (${data.streams.length} db) ehhez: ${titleLabel || data.queryId || id}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 1.05rem;">
+              ✅ Talált források (${data.streams.length} db): ${titleLabel || data.queryId || id}
+            </div>
+            <div class="speed-badge" style="background: ${isSuperFast ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)'}; color: ${isSuperFast ? '#34d399' : '#60a5fa'};">
+              ⚡ Válaszidő: ${duration}
+            </div>
           </div>
         `;
 
@@ -654,9 +1172,9 @@
             <div style="flex: 1; min-width: 0;">
               <div>
                 <span class="${badgeClass}">${badgeText}</span>
-                <strong>${s.name}</strong>
+                <strong style="color: #f1f5f9;">${s.name}</strong>
               </div>
-              <div style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.3rem; white-space: pre-line; word-break: break-word;">${s.title}</div>
+              <div style="color: #94a3b8; font-size: 0.82rem; margin-top: 0.3rem; white-space: pre-line; word-break: break-word;">${s.title}</div>
             </div>
             <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; white-space: nowrap;">
               ▶️ Lejátszás
@@ -669,6 +1187,12 @@
         streamsList.innerHTML = `<div style="color: #f87171; padding: 1rem;">Hiba történt: ${err.message}</div>`;
       }
     }
+
+    // Init on load
+    renderSourcesGrid();
+    updateManifestUrl();
+    highlightActivePreset();
+    runSearch();
   </script>
 </body>
 </html>

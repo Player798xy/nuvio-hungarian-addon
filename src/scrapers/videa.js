@@ -404,6 +404,7 @@ async function scrapeVidea(meta) {
       const linkRegex = /href=["'](https?:\/\/videa\.hu)?\/videok\/([^/"'\s]+)\/[^"'#\s]+-([A-Za-z0-9]{16})["']/g;
       const matches = [...html.matchAll(linkRegex)];
 
+      const candidateIds = [];
       for (const m of matches) {
         const category = m[2];
         const vid = m[3];
@@ -413,10 +414,19 @@ async function scrapeVidea(meta) {
           continue;
         }
 
-        if (seenVideoIds.has(vid)) continue;
-        seenVideoIds.add(vid);
+        if (!seenVideoIds.has(vid)) {
+          seenVideoIds.add(vid);
+          candidateIds.push(vid);
+          if (candidateIds.length >= 4) break;
+        }
+      }
 
-        const videoData = await extractVideaStreams(vid);
+      // Parallel stream extraction for candidates (cuts latency by 4x)
+      const videoDataList = await Promise.all(
+        candidateIds.map(vid => extractVideaStreams(vid).catch(() => null))
+      );
+
+      for (const videoData of videoDataList) {
         if (!videoData || !videoData.sources || videoData.sources.length === 0) continue;
 
         // Strict Duration Filter against IMDb/TMDB official runtime:

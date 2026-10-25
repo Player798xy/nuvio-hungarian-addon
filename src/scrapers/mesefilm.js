@@ -73,14 +73,14 @@ async function scrapeMeseFilm(meta) {
                 const ihashMatch = iframeSrc.match(/video\/([a-zA-Z0-9]+)/);
                 if (ihashMatch) {
                   const iData = await extractIndavideoStreams(ihashMatch[1]);
-                  const iStreams = iData?.sources || [];
+                  const iStreams = iData?.streams || [];
                   for (const is of iStreams) {
                     const qualLabel = is.height >= 1080 ? '1080p FHD' : is.height >= 720 ? '720p HD' : `${is.height}p`;
                     streams.push({
                       name: `[HU] MeseFilm ${qualLabel}`,
                       title: `${item.title}\n🇭🇺 MeseKincstár (Indavideo) • ${qualLabel} • Magyar Rajzfilm`,
                       url: is.url,
-                      quality: is.height >= 1080 ? '1080p' : vs.height >= 720 ? '720p' : '480p',
+                      quality: is.height >= 1080 ? '1080p' : is.height >= 720 ? '720p' : '480p',
                       height: is.height,
                       source: 'mesefilm'
                     });
