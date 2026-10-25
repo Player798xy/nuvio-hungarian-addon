@@ -18,7 +18,8 @@ app.use(express.json());
 function parseConfig(configStr, query = {}) {
   const config = {
     sources: [],
-    onlyHD: false
+    onlyHD: false,
+    resolutions: []
   };
 
   if (query.sources) {
@@ -27,11 +28,15 @@ function parseConfig(configStr, query = {}) {
   if (query.onlyHD === 'true' || query.onlyHD === '1') {
     config.onlyHD = true;
   }
+  if (query.resolutions) {
+    config.resolutions = query.resolutions.split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
+  }
   if (query.stage) {
     config.stage = query.stage.trim().toLowerCase();
   }
   if (query.timeout) {
-    config.timeoutMs = parseInt(query.timeout, 10);
+    const t = parseInt(query.timeout, 10);
+    config.timeoutMs = t <= 60 ? t * 1000 : t; // support both seconds and ms
   }
 
   if (!configStr) return config;
@@ -43,6 +48,11 @@ function parseConfig(configStr, query = {}) {
       const obj = JSON.parse(decoded);
       if (Array.isArray(obj.sources)) config.sources = obj.sources;
       if (obj.onlyHD) config.onlyHD = true;
+      if (Array.isArray(obj.resolutions)) config.resolutions = obj.resolutions;
+      if (obj.timeout) {
+        const t = parseInt(obj.timeout, 10);
+        config.timeoutMs = t <= 60 ? t * 1000 : t;
+      }
       return config;
     }
   } catch (e) {}
@@ -58,6 +68,11 @@ function parseConfig(configStr, query = {}) {
       config.sources = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     } else if (key === 'onlyhd' || key === 'hd') {
       config.onlyHD = val === 'true' || val === '1';
+    } else if (key === 'resolutions' || key === 'res') {
+      config.resolutions = val.split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
+    } else if (key === 'timeout') {
+      const t = parseInt(val, 10);
+      config.timeoutMs = t <= 60 ? t * 1000 : t;
     }
   }
 

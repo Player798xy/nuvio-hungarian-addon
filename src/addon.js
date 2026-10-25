@@ -103,7 +103,9 @@ async function getStreams(type, id, config = {}) {
 
   // 1. Check in-memory fast cache
   const configSourcesKey = config.sources ? [...config.sources].sort().join(',') : 'all';
-  const fullCacheKey = `${id}:${configSourcesKey}:${config.onlyHD ? 1 : 0}`;
+  const configResKey = config.resolutions ? [...config.resolutions].sort().join(',') : (config.onlyHD ? 'hd' : 'all');
+  const timeoutKey = config.timeoutMs || 9500;
+  const fullCacheKey = `${id}:${configSourcesKey}:${configResKey}:${timeoutKey}`;
   const stageCacheKey = config.stage ? `${fullCacheKey}:${config.stage}` : fullCacheKey;
 
   // If full cache is hit, return it even if fast stage was requested
@@ -128,15 +130,14 @@ async function getStreams(type, id, config = {}) {
 
   // 2. Filter active scrapers based on user configuration and stage
   let candidateScrapers = ALL_SCRAPERS;
-  let timeoutMs = config.timeoutMs || 9500; // Search up to 10 seconds for all sources and 1080p
+  let timeoutMs = config.timeoutMs || 9500; // Search up to user-selected duration
 
   if (config.stage === 'fast') {
     candidateScrapers = ALL_SCRAPERS.filter(s => FAST_SCRAPER_IDS.has(s.id));
-    timeoutMs = config.timeoutMs || 3500; // Fast initial response (~2-3s)
+    timeoutMs = Math.min(timeoutMs, 3500); // Fast initial response (~2-3s)
   } else {
-    // Both 'deep' and default 'all' run ALL scrapers up to 10 seconds!
+    // Both 'deep' and default 'all' run ALL scrapers up to configured timeout
     candidateScrapers = ALL_SCRAPERS;
-    timeoutMs = config.timeoutMs || 9500; // Full 10s search ensuring no source is missed
   }
 
   const activeScrapers = candidateScrapers.filter(s => {
@@ -177,6 +178,18 @@ async function getStreams(type, id, config = {}) {
     // Optional HD filter
     if (config.onlyHD && s.height && s.height < 720) {
       continue;
+    }
+
+    // Precise resolution filter (1080p, 720p, 480p, 360p)
+    if (config.resolutions && config.resolutions.length > 0) {
+      const resSet = new Set(config.resolutions.map(r => r.toLowerCase()));
+      const h = s.height || 0;
+      let matches = false;
+      if (resSet.has('1080p') && (h >= 1080 || (s.name && s.name.includes('1080')))) matches = true;
+      if (resSet.has('720p') && ((h >= 720 && h < 1080) || (s.name && s.name.includes('720')))) matches = true;
+      if (resSet.has('480p') && ((h >= 480 && h < 720) || (s.name && s.name.includes('480')))) matches = true;
+      if (resSet.has('360p') && (h < 480 || (s.name && (s.name.includes('360') || s.name.includes('240'))))) matches = true;
+      if (!matches) continue;
     }
 
     uniqueStreams.push(s);

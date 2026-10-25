@@ -218,6 +218,180 @@
       border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
+    /* Detailed Configuration Sections */
+    .config-section {
+      margin-top: 1.25rem;
+      padding-top: 1.15rem;
+      border-top: 1px solid #1e293b;
+    }
+
+    .config-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .config-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .config-subtitle {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+
+    /* Resolution Selector Tags */
+    .res-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+    }
+
+    .res-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.85rem;
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .res-item:hover {
+      border-color: #3b82f6;
+      background: #0f172a;
+    }
+
+    .res-item.selected {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.12);
+    }
+
+    .res-item .source-checkbox {
+      margin: 0;
+    }
+
+    /* Custom Range Slider */
+    .slider-box {
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      border-radius: 0.65rem;
+      padding: 0.85rem 1.1rem;
+      margin-top: 0.5rem;
+    }
+
+    .custom-slider {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #1e293b;
+      outline: none;
+      -webkit-appearance: none;
+      margin: 0.85rem 0 0.5rem 0;
+      cursor: pointer;
+    }
+
+    .custom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #38bdf8;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+      border: 2px solid #ffffff;
+      transition: transform 0.1s ease;
+    }
+
+    .custom-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .slider-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .mini-presets-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.65rem;
+    }
+
+    .mini-btn {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      padding: 0.3rem 0.65rem;
+      border-radius: 0.4rem;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mini-btn:hover {
+      border-color: #38bdf8;
+      color: #38bdf8;
+      background: #1e293b;
+    }
+
+    .mini-btn.active {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+    }
+
+    /* Stream Quality Filter Tabs */
+    .stream-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1rem 0 0.5rem 0;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .stream-filter-btn {
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .stream-filter-btn:hover {
+      border-color: #38bdf8;
+      color: #e2e8f0;
+    }
+
+    .stream-filter-btn.active {
+      background: #1e293b;
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
     /* URL Box */
     .url-box {
       display: flex;
@@ -406,10 +580,24 @@
       border-radius: 0.6rem;
       overflow: hidden;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
       display: flex;
       flex-direction: column;
       position: relative;
+      will-change: transform;
+      contain: layout paint;
+    }
+
+    /* Extended hit-area to eliminate edge hover flicker/jitter */
+    .catalog-card::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      left: 0;
+      right: 0;
+      pointer-events: auto;
+      z-index: 0;
     }
 
     .catalog-card:hover {
@@ -423,11 +611,25 @@
       box-shadow: 0 0 0 2px #3b82f6;
     }
 
-    .catalog-poster {
+    .poster-container {
       width: 100%;
       aspect-ratio: 2/3;
+      background: #0f172a;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .catalog-poster {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 2/3;
       object-fit: cover;
-      background: #1e293b;
+      display: block;
+      background: #0f172a;
+      pointer-events: none;
     }
 
     .catalog-badge {
@@ -439,6 +641,8 @@
       padding: 0.15rem 0.4rem;
       border-radius: 0.25rem;
       backdrop-filter: blur(4px);
+      pointer-events: none;
+      z-index: 2;
     }
 
     .badge-film {
@@ -790,12 +994,74 @@
         <!-- Rendered dynamically -->
       </div>
 
-      <!-- Additional Options -->
-      <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.6rem; user-select: none;">
-        <input type="checkbox" id="onlyHDCheckbox" class="source-checkbox" onchange="updateManifestUrl()">
-        <label for="onlyHDCheckbox" style="font-size: 0.9rem; font-weight: 600; cursor: pointer; color: #e2e8f0;">
-          ✨ Csak HD minőség (Kizárólag 1080p FHD és 720p HD stream-ek megjelenítése, SD szűrése)
-        </label>
+      <!-- 1. Pontos Felbontás Szűrő -->
+      <div class="config-section">
+        <div class="config-header-row">
+          <div class="config-title">
+            <span>🎯 Pontos Felbontás Kiválasztása</span>
+          </div>
+          <div class="config-subtitle" id="resolutionSummary">
+            1080p, 720p, 480p engedélyezve
+          </div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.6rem;">
+          Jelöld be pontosan, mely felbontásokat szeretnéd megkapni. Ha csak a legjobb minőség kell, válaszd a "Csak 1080p" gombot!
+        </p>
+        <div class="res-grid">
+          <div class="res-item selected" id="resItem1080" onclick="toggleResolution('1080p')">
+            <input type="checkbox" id="res1080" class="source-checkbox" checked onchange="event.stopPropagation(); onResolutionToggle();">
+            <span class="badge-quality badge-1080">1080p FHD</span>
+          </div>
+          <div class="res-item selected" id="resItem720" onclick="toggleResolution('720p')">
+            <input type="checkbox" id="res720" class="source-checkbox" checked onchange="event.stopPropagation(); onResolutionToggle();">
+            <span class="badge-quality badge-720">720p HD</span>
+          </div>
+          <div class="res-item selected" id="resItem480" onclick="toggleResolution('480p')">
+            <input type="checkbox" id="res480" class="source-checkbox" checked onchange="event.stopPropagation(); onResolutionToggle();">
+            <span class="badge-quality badge-480">480p SD</span>
+          </div>
+          <div class="res-item" id="resItem360" onclick="toggleResolution('360p')">
+            <input type="checkbox" id="res360" class="source-checkbox" onchange="event.stopPropagation(); onResolutionToggle();">
+            <span class="badge-quality" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid #475569;">360p / Egyéb</span>
+          </div>
+        </div>
+        <div class="mini-presets-row">
+          <button type="button" class="mini-btn" id="btnRes1080Only" onclick="setResolutionPreset('1080only')">🌟 Csak 1080p FHD</button>
+          <button type="button" class="mini-btn" id="btnResHD" onclick="setResolutionPreset('hd')">⚡ 1080p + 720p HD</button>
+          <button type="button" class="mini-btn" id="btnResAll" onclick="setResolutionPreset('all')">📦 Minden felbontás</button>
+        </div>
+      </div>
+
+      <!-- 2. Pontos Keresési Időkorlát (Másodperc) -->
+      <div class="config-section">
+        <div class="config-header-row">
+          <div class="config-title">
+            <span>⏱️ Keresési Időkorlát (Hány másodpercig keressen?)</span>
+          </div>
+          <div class="speed-badge" id="timeoutBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">
+            <strong id="timeoutValText">10</strong>&nbsp;másodperc
+          </div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;">
+          Állítsd be pontosan másodpercre a keresési időt. Minél több másodpercet adsz neki (pl. 10–15 mp), annál több lassabb szerverről gyűjt be 1080p forrásokat!
+        </p>
+        <div class="slider-box">
+          <input type="range" id="timeoutSlider" min="3" max="25" value="10" step="1" oninput="onTimeoutChange(this.value)" class="custom-slider">
+          <div class="slider-ticks">
+            <span>3 mp (Gyors)</span>
+            <span>5 mp</span>
+            <span>10 mp (Optimális)</span>
+            <span>15 mp</span>
+            <span>20 mp</span>
+            <span>25 mp (Mély)</span>
+          </div>
+        </div>
+        <div class="mini-presets-row">
+          <button type="button" class="mini-btn" id="btnTimeout5" onclick="setTimeoutPreset(5)">⚡ 5 mp (Gyors)</button>
+          <button type="button" class="mini-btn active" id="btnTimeout10" onclick="setTimeoutPreset(10)">🎯 10 mp (Alapértelmezett)</button>
+          <button type="button" class="mini-btn" id="btnTimeout15" onclick="setTimeoutPreset(15)">🔍 15 mp (Több 1080p)</button>
+          <button type="button" class="mini-btn" id="btnTimeout20" onclick="setTimeoutPreset(20)">🚀 20 mp (Mély pásztázás)</button>
+        </div>
       </div>
     </div>
 
@@ -898,6 +1164,9 @@
         </div>
       </div>
 
+      <!-- Stream Quality Filter Bar -->
+      <div id="streamFilterBar" class="stream-filter-bar" style="display: none;"></div>
+
       <!-- Streams List -->
       <div id="streamsList" class="streams-preview"></div>
     </div>
@@ -923,10 +1192,132 @@
 
     // State
     let selectedSources = ['videa', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+    let selectedResolutions = ['1080p', '720p', '480p'];
+    let selectedTimeoutSec = 10;
+    let currentStreamQualityFilter = 'all';
     let activeFilter = 'all';
     let currentSeriesMeta = null;
     let currentActiveSeason = null;
     let currentActiveEpisodeId = null;
+
+    // Inline SVG poster placeholder for missing / broken images (zero network call, zero jitter)
+    const NO_POSTER_SVG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450" fill="none">
+  <rect width="300" height="450" fill="#0f172a"/>
+  <rect x="4" y="4" width="292" height="442" rx="10" stroke="#1e293b" stroke-dasharray="6 6" stroke-width="2"/>
+  <circle cx="150" cy="180" r="38" fill="#1e293b"/>
+  <path d="M136 166h28v28h-28z" fill="#475569"/>
+  <circle cx="142" cy="172" r="3" fill="#0f172a"/>
+  <circle cx="158" cy="172" r="3" fill="#0f172a"/>
+  <circle cx="142" cy="188" r="3" fill="#0f172a"/>
+  <circle cx="158" cy="188" r="3" fill="#0f172a"/>
+  <text x="150" y="250" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="14" font-weight="700" fill="#64748b" text-anchor="middle">Nincs Poszter</text>
+  <text x="150" y="272" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="11" fill="#475569" text-anchor="middle">Hungarian Streams</text>
+</svg>
+`);
+
+    // Resolution Controls
+    function toggleResolution(res) {
+      if (selectedResolutions.includes(res)) {
+        if (selectedResolutions.length === 1) {
+          alert('Legalább egy felbontást engedélyezve kell hagyni!');
+          return;
+        }
+        selectedResolutions = selectedResolutions.filter(r => r !== res);
+      } else {
+        selectedResolutions.push(res);
+      }
+      updateResolutionUI();
+      updateManifestUrl();
+    }
+
+    function onResolutionToggle() {
+      const resList = [];
+      if (document.getElementById('res1080').checked) resList.push('1080p');
+      if (document.getElementById('res720').checked) resList.push('720p');
+      if (document.getElementById('res480').checked) resList.push('480p');
+      if (document.getElementById('res360').checked) resList.push('360p');
+
+      if (resList.length === 0) {
+        alert('Legalább egy felbontást engedélyezve kell hagyni!');
+        updateResolutionUI();
+        return;
+      }
+      selectedResolutions = resList;
+      updateResolutionUI();
+      updateManifestUrl();
+    }
+
+    function setResolutionPreset(preset) {
+      if (preset === '1080only') {
+        selectedResolutions = ['1080p'];
+      } else if (preset === 'hd') {
+        selectedResolutions = ['1080p', '720p'];
+      } else if (preset === 'all') {
+        selectedResolutions = ['1080p', '720p', '480p', '360p'];
+      }
+      updateResolutionUI();
+      updateManifestUrl();
+    }
+
+    function updateResolutionUI() {
+      ['1080p', '720p', '480p', '360p'].forEach(r => {
+        const key = r.replace('p', '');
+        const chk = document.getElementById(`res${key}`);
+        const item = document.getElementById(`resItem${key}`);
+        const isSel = selectedResolutions.includes(r);
+        if (chk) chk.checked = isSel;
+        if (item) item.className = 'res-item' + (isSel ? ' selected' : '');
+      });
+
+      const summary = document.getElementById('resolutionSummary');
+      if (summary) {
+        summary.textContent = `${selectedResolutions.join(', ')} engedélyezve`;
+      }
+
+      const is1080Only = selectedResolutions.length === 1 && selectedResolutions[0] === '1080p';
+      const isHD = selectedResolutions.length === 2 && selectedResolutions.includes('1080p') && selectedResolutions.includes('720p');
+      const isAll = selectedResolutions.length === 4;
+
+      document.getElementById('btnRes1080Only').className = 'mini-btn' + (is1080Only ? ' active' : '');
+      document.getElementById('btnResHD').className = 'mini-btn' + (isHD ? ' active' : '');
+      document.getElementById('btnResAll').className = 'mini-btn' + (isAll ? ' active' : '');
+    }
+
+    // Timeout (Seconds) Controls
+    function onTimeoutChange(val) {
+      selectedTimeoutSec = parseInt(val, 10);
+      document.getElementById('timeoutValText').textContent = selectedTimeoutSec;
+      
+      const badge = document.getElementById('timeoutBadge');
+      if (selectedTimeoutSec <= 5) {
+        badge.style.color = '#34d399';
+        badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+      } else if (selectedTimeoutSec <= 12) {
+        badge.style.color = '#38bdf8';
+        badge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+        badge.style.background = 'rgba(56, 189, 248, 0.15)';
+      } else {
+        badge.style.color = '#a78bfa';
+        badge.style.borderColor = 'rgba(167, 139, 250, 0.3)';
+        badge.style.background = 'rgba(167, 139, 250, 0.15)';
+      }
+
+      [5, 10, 15, 20].forEach(sec => {
+        const btn = document.getElementById(`btnTimeout${sec}`);
+        if (btn) btn.className = 'mini-btn' + (selectedTimeoutSec === sec ? ' active' : '');
+      });
+
+      updateManifestUrl();
+    }
+
+    function setTimeoutPreset(sec) {
+      selectedTimeoutSec = sec;
+      const slider = document.getElementById('timeoutSlider');
+      if (slider) slider.value = sec;
+      onTimeoutChange(sec);
+    }
 
     // Initialize Sources Grid
     function renderSourcesGrid() {
@@ -1014,18 +1405,21 @@
 
     function updateManifestUrl() {
       const origin = window.location.origin;
-      const onlyHD = document.getElementById('onlyHDCheckbox').checked;
+      const isAllSources = selectedSources.length === AVAILABLE_SOURCES.length;
+      const isDefaultRes = selectedResolutions.length === 3 && ['1080p', '720p', '480p'].every(r => selectedResolutions.includes(r));
+      const isDefaultTimeout = selectedTimeoutSec === 10;
 
       let configPath = '';
-      const isAll = selectedSources.length === AVAILABLE_SOURCES.length;
-
-      if (!isAll || onlyHD) {
+      if (!isAllSources || !isDefaultRes || !isDefaultTimeout) {
         const parts = [];
-        if (!isAll) {
+        if (!isAllSources) {
           parts.push(`sources=${selectedSources.join(',')}`);
         }
-        if (onlyHD) {
-          parts.push('onlyHD=1');
+        if (!isDefaultRes) {
+          parts.push(`res=${selectedResolutions.join(',')}`);
+        }
+        if (!isDefaultTimeout) {
+          parts.push(`timeout=${selectedTimeoutSec}`);
         }
         configPath = '/' + parts.join('|');
       }
@@ -1095,11 +1489,19 @@
             const badgeText = isSeries ? '📺 Sorozat' : '🎬 Film';
             const badgeClass = isSeries ? 'catalog-badge badge-sorozat' : 'catalog-badge badge-film';
 
+            const posterUrl = item.poster || (item.id ? `https://images.metahub.space/poster/medium/${item.id}/img` : NO_POSTER_SVG);
+
             card.innerHTML = `
               <span class="${badgeClass}">${badgeText}</span>
-              <img class="catalog-poster" src="${item.poster || 'https://images.metahub.space/poster/medium/' + item.id + '/img'}" alt="${item.name}" onerror="this.src='https://videa.hu/favicon.ico'">
+              <div class="poster-container">
+                <img class="catalog-poster" 
+                     src="${posterUrl}" 
+                     alt="" 
+                     loading="lazy" 
+                     onerror="this.onerror=null; this.src='${NO_POSTER_SVG}';">
+              </div>
               <div class="catalog-info">
-                <div class="catalog-title">${item.name}</div>
+                <div class="catalog-title" title="${item.name}">${item.name}</div>
                 <div class="catalog-year">${item.year || badgeText}</div>
               </div>
             `;
@@ -1247,10 +1649,17 @@
       loadStreamsForId(episodeId, label);
     }
 
+    function setStreamQualityFilter(filterKey) {
+      currentStreamQualityFilter = filterKey;
+      if (typeof window.reRenderStreams === 'function') {
+        window.reRenderStreams();
+      }
+    }
+
     let currentSearchToken = 0;
     let activeProgressInterval = null;
 
-    // Fetches streams progressively: quick initial results (~1-3s) + 10s deep search with live countdown
+    // Fetches streams progressively: quick initial results (~1-3s) + configured deep search with live countdown
     async function loadStreamsForId(id, titleLabel) {
       const searchToken = ++currentSearchToken;
       if (activeProgressInterval) {
@@ -1258,7 +1667,10 @@
         activeProgressInterval = null;
       }
 
+      currentStreamQualityFilter = 'all';
+
       const streamsList = document.getElementById('streamsList');
+      const filterBar = document.getElementById('streamFilterBar');
       const progressBox = document.getElementById('searchProgressBox');
       const progressTitle = document.getElementById('progressTitle');
       const progressBadge = document.getElementById('progressBadge');
@@ -1266,19 +1678,24 @@
       const progressTimerText = document.getElementById('progressTimerText');
       const progressSourcesRow = document.getElementById('progressSourcesRow');
 
-      const onlyHD = document.getElementById('onlyHDCheckbox').checked;
       const sourcesQuery = selectedSources.join(',');
+      const resQuery = selectedResolutions.join(',');
+      const TOTAL_SEARCH_MS = selectedTimeoutSec * 1000;
 
       // Reset & show Progress Box
       streamsList.innerHTML = '';
+      if (filterBar) {
+        filterBar.innerHTML = '';
+        filterBar.style.display = 'none';
+      }
       progressBox.style.display = 'block';
       progressBox.className = 'progress-box active';
       progressBarFill.style.width = '5%';
       progressTitle.innerHTML = `
         <span class="pulse-dot"></span>
-        <span style="color: #60a5fa;">Magyar források kutatása folyamatban (1080p vadászat)...</span>
+        <span style="color: #60a5fa;">Magyar források pásztázása (1080p vadászat: ${selectedTimeoutSec} mp)...</span>
       `;
-      progressBadge.textContent = '10 mp hátralévő';
+      progressBadge.textContent = `${selectedTimeoutSec} mp hátralévő`;
       progressBadge.style.background = 'rgba(59, 130, 246, 0.2)';
       progressBadge.style.color = '#60a5fa';
 
@@ -1289,9 +1706,8 @@
         return `<span class="source-scanning-pill" id="scan_pill_${sId}">${name}</span>`;
       }).join('');
 
-      // Start 10-second countdown interval
+      // Start custom countdown interval
       const startTime = Date.now();
-      const TOTAL_SEARCH_MS = 10000;
 
       activeProgressInterval = setInterval(() => {
         if (searchToken !== currentSearchToken) {
@@ -1304,7 +1720,7 @@
 
         progressBarFill.style.width = `${pct}%`;
         progressBadge.textContent = `${remainSec} mp hátralévő`;
-        progressTimerText.textContent = `⏳ Még kb. ${remainSec} másodperc mélykeresés...`;
+        progressTimerText.textContent = `⏳ Még kb. ${remainSec} másodperc mélykeresés (${selectedTimeoutSec} mp limit)...`;
       }, 250);
 
       let allKnownStreams = [];
@@ -1325,7 +1741,41 @@
           return 0;
         });
 
-        const has1080p = allKnownStreams.some(s => (s.height >= 1080) || (s.name && s.name.includes('1080')));
+        // Filter based on selected resolutions
+        const filteredStreams = allKnownStreams.filter(s => {
+          const h = s.height || 0;
+          if (selectedResolutions.includes('1080p') && (h >= 1080 || (s.name && s.name.includes('1080')))) return true;
+          if (selectedResolutions.includes('720p') && ((h >= 720 && h < 1080) || (s.name && s.name.includes('720')))) return true;
+          if (selectedResolutions.includes('480p') && ((h >= 480 && h < 720) || (s.name && s.name.includes('480')))) return true;
+          if (selectedResolutions.includes('360p') && (h < 480 || (s.name && (s.name.includes('360') || s.name.includes('240'))))) return true;
+          return selectedResolutions.length === 0;
+        });
+
+        const has1080p = filteredStreams.some(s => (s.height >= 1080) || (s.name && s.name.includes('1080')));
+
+        // Quality counts
+        const count1080 = filteredStreams.filter(s => (s.height >= 1080) || (s.name && s.name.includes('1080'))).length;
+        const count720 = filteredStreams.filter(s => (s.height >= 720 && s.height < 1080) || (s.name && s.name.includes('720'))).length;
+        const count480 = filteredStreams.filter(s => (s.height >= 480 && s.height < 720) || (s.name && s.name.includes('480'))).length;
+        const count360 = filteredStreams.filter(s => (s.height < 480) || (s.name && (s.name.includes('360') || s.name.includes('240')))).length;
+
+        // Render Stream Filter Bar
+        if (filterBar) {
+          if (filteredStreams.length > 0) {
+            filterBar.style.display = 'flex';
+            filterBar.innerHTML = `
+              <button class="stream-filter-btn ${currentStreamQualityFilter === 'all' ? 'active' : ''}" onclick="setStreamQualityFilter('all')">
+                Mind (${filteredStreams.length})
+              </button>
+              ${count1080 > 0 ? `<button class="stream-filter-btn ${currentStreamQualityFilter === '1080p' ? 'active' : ''}" onclick="setStreamQualityFilter('1080p')" style="color: #34d399;">💎 1080p FHD (${count1080})</button>` : ''}
+              ${count720 > 0 ? `<button class="stream-filter-btn ${currentStreamQualityFilter === '720p' ? 'active' : ''}" onclick="setStreamQualityFilter('720p')" style="color: #60a5fa;">📺 720p HD (${count720})</button>` : ''}
+              ${count480 > 0 ? `<button class="stream-filter-btn ${currentStreamQualityFilter === '480p' ? 'active' : ''}" onclick="setStreamQualityFilter('480p')">480p SD (${count480})</button>` : ''}
+              ${count360 > 0 ? `<button class="stream-filter-btn ${currentStreamQualityFilter === '360p' ? 'active' : ''}" onclick="setStreamQualityFilter('360p')">360p (${count360})</button>` : ''}
+            `;
+          } else {
+            filterBar.style.display = 'none';
+          }
+        }
 
         if (isFinal) {
           if (activeProgressInterval) {
@@ -1334,7 +1784,7 @@
           }
           progressBarFill.style.width = '100%';
 
-          if (allKnownStreams.length > 0) {
+          if (filteredStreams.length > 0) {
             progressBox.className = 'progress-box success';
             progressBarFill.style.background = '#10b981';
             progressBadge.textContent = 'Kész (100%)';
@@ -1349,10 +1799,10 @@
             } else {
               progressTitle.innerHTML = `
                 <span>✅</span>
-                <span style="color: #34d399;">Keresés befejezve! Összesen ${allKnownStreams.length} db lejátszható stream elérhető.</span>
+                <span style="color: #34d399;">Keresés befejezve! Összesen ${filteredStreams.length} db lejátszható stream elérhető.</span>
               `;
             }
-            progressTimerText.textContent = `✅ Teljes 10 másodperces mélykeresés befejezve.`;
+            progressTimerText.textContent = `✅ Teljes ${selectedTimeoutSec} másodperces mélykeresés befejezve (${count1080} db 1080p FHD).`;
           } else {
             progressBox.className = 'progress-box empty';
             progressBarFill.style.background = '#ef4444';
@@ -1361,14 +1811,14 @@
             progressBadge.style.color = '#f87171';
             progressTitle.innerHTML = `
               <span>❌</span>
-              <span style="color: #f87171;">Keresés befejezve: Nem található közvetlen stream ehhez a címhez.</span>
+              <span style="color: #f87171;">Keresés befejezve: Nem található közvetlen stream a kiválasztott felbontásokkal.</span>
             `;
-            progressTimerText.textContent = `Tipp: Ellenőrizd a cím elírását, vagy próbálj meg rákeresni a film címére évszám nélkül!`;
+            progressTimerText.textContent = `Tipp: Kapcsolj be további forrásokat vagy alacsonyabb felbontást a fenti beállításokban!`;
             streamsList.innerHTML = `
               <div style="color: #f87171; padding: 1.2rem; text-align: center; background: #0f172a; border-radius: 0.6rem; border: 1px solid #7f1d1d; margin-top: 1rem;">
-                Nem található közvetlen stream a kiválasztott forrásokkal ehhez: <strong>${titleLabel || id}</strong>.<br>
+                Nem található közvetlen stream a kiválasztott szűrőkkel ehhez: <strong>${titleLabel || id}</strong>.<br>
                 <span style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.4rem; display: inline-block;">
-                  Tipp: Ha sorozatot nézel, válassz másik részt vagy évadot, vagy kapcsold be az összes forrást!
+                  Tipp: Próbáld meg növelni a keresési másodpercet vagy engedélyezz további felbontásokat!
                 </span>
               </div>
             `;
@@ -1376,17 +1826,28 @@
           }
         } else {
           // Intermediate update (Stage 1 done)
-          if (allKnownStreams.length > 0) {
+          if (filteredStreams.length > 0) {
             progressTitle.innerHTML = `
               <span class="pulse-dot"></span>
-              <span style="color: #38bdf8;">⚡ Első ${allKnownStreams.length} db forrás beolvasva! Mélykeresés még folyamatban (1080p vadászat)...</span>
+              <span style="color: #38bdf8;">⚡ Első ${filteredStreams.length} db forrás beolvasva! Mélykeresés még folyamatban (1080p vadászat)...</span>
             `;
           }
         }
 
+        // Apply Tab Filter (all, 1080p, 720p, etc.)
+        const displayedStreams = filteredStreams.filter(s => {
+          if (currentStreamQualityFilter === 'all') return true;
+          const h = s.height || 0;
+          if (currentStreamQualityFilter === '1080p') return (h >= 1080 || (s.name && s.name.includes('1080')));
+          if (currentStreamQualityFilter === '720p') return ((h >= 720 && h < 1080) || (s.name && s.name.includes('720')));
+          if (currentStreamQualityFilter === '480p') return ((h >= 480 && h < 720) || (s.name && s.name.includes('480')));
+          if (currentStreamQualityFilter === '360p') return (h < 480 || (s.name && (s.name.includes('360') || s.name.includes('240'))));
+          return true;
+        });
+
         // Render Stream Cards
         let streamsCardsHtml = '';
-        allKnownStreams.forEach(s => {
+        displayedStreams.forEach(s => {
           const is1080 = (s.height >= 1080) || (s.name && s.name.includes('1080'));
           const is720 = (s.height >= 720 && s.height < 1080) || (s.name && s.name.includes('720'));
           const badgeClass = is1080 ? 'badge-quality badge-1080' : is720 ? 'badge-quality badge-720' : 'badge-quality badge-480';
@@ -1418,7 +1879,7 @@
         streamsList.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; margin-top: 1rem; flex-wrap: wrap; gap: 0.5rem;">
             <div style="font-weight: 700; color: #38bdf8; font-size: 1.05rem;">
-              ✅ Elérhető források (${allKnownStreams.length} db): ${titleLabel || id}
+              ✅ Elérhető források (${displayedStreams.length} db): ${titleLabel || id}
             </div>
             <div class="speed-badge" style="background: ${has1080p ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)'}; color: ${has1080p ? '#34d399' : '#60a5fa'};">
               ${has1080p ? '💎 1080p FHD' : '📺 720p HD'}
@@ -1428,9 +1889,11 @@
         `;
       }
 
+      window.reRenderStreams = () => updateStreamsUI(true);
+
       // STEP 1: Fast Stage (~3s response)
       try {
-        const fastRes = await fetch(`/api/test?id=${encodeURIComponent(id)}&sources=${encodeURIComponent(sourcesQuery)}&onlyHD=${onlyHD ? '1' : '0'}&stage=fast&timeout=3500`);
+        const fastRes = await fetch(`/api/test?id=${encodeURIComponent(id)}&sources=${encodeURIComponent(sourcesQuery)}&resolutions=${encodeURIComponent(resQuery)}&stage=fast&timeout=3500`);
         const fastData = await fastRes.json();
 
         if (searchToken === currentSearchToken) {
@@ -1448,11 +1911,11 @@
         console.warn('Fast stage fetch error:', err);
       }
 
-      // STEP 2: Deep Stage (full 10-second deep search across all sources)
+      // STEP 2: Deep Stage (full user-selected timeout deep search across all sources)
       try {
         const had1080pBefore = allKnownStreams.some(s => (s.height >= 1080) || (s.name && s.name.includes('1080')));
 
-        const deepRes = await fetch(`/api/test?id=${encodeURIComponent(id)}&sources=${encodeURIComponent(sourcesQuery)}&onlyHD=${onlyHD ? '1' : '0'}&stage=deep&timeout=9500`);
+        const deepRes = await fetch(`/api/test?id=${encodeURIComponent(id)}&sources=${encodeURIComponent(sourcesQuery)}&resolutions=${encodeURIComponent(resQuery)}&stage=deep&timeout=${TOTAL_SEARCH_MS}`);
         const deepData = await deepRes.json();
 
         if (searchToken === currentSearchToken) {
@@ -1479,6 +1942,8 @@
 
     // Init on load
     renderSourcesGrid();
+    updateResolutionUI();
+    onTimeoutChange(10);
     updateManifestUrl();
     highlightActivePreset();
     runSearch();
