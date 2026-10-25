@@ -342,6 +342,40 @@ function isTitleMatch(targetTitle, candidateTitle, targetYear, isSeries = false)
   return ratio >= 0.6;
 }
 
+function matchesEpisode(title, season, episode, epTitle = '') {
+  if (!season && !episode) return true;
+  const t = title.toLowerCase();
+
+  // If episode title is known (e.g. "A vérdíj")
+  if (epTitle && epTitle.length >= 4 && t.includes(epTitle.toLowerCase())) {
+    return true;
+  }
+
+  // Check SxxExx or sxxexx or SxEx
+  const seMatch = t.match(/s(\d+)e(\d+)/i) || t.match(/(\d+)x(\d+)/i);
+  if (seMatch) {
+    const s = parseInt(seMatch[1], 10);
+    const e = parseInt(seMatch[2], 10);
+    return e === episode && (s === season || isNaN(s));
+  }
+
+  // Check "X. rész" or "X.resz"
+  const reszMatch = t.match(/(\d+)\s*\.?\s*r[eé]sz/i);
+  if (reszMatch) {
+    const e = parseInt(reszMatch[1], 10);
+    return e === episode;
+  }
+
+  // Check "X. epizód"
+  const epMatch = t.match(/(\d+)\s*\.?\s*epiz[oó]d/i);
+  if (epMatch) {
+    const e = parseInt(epMatch[1], 10);
+    return e === episode;
+  }
+
+  return true;
+}
+
 /**
  * Searches Videa.hu for a movie/episode and returns validated full-length streaming links.
  */
@@ -373,16 +407,14 @@ async function scrapeVidea(meta) {
   if (meta.season && meta.episode) {
     const s = meta.season;
     const e = meta.episode;
+    const sPad = String(s).padStart(2, '0');
     const ePad = String(e).padStart(2, '0');
     if (meta.episodeTitle) {
       searchTerms.push(`${hu} ${meta.episodeTitle}`);
-      searchTerms.push(`${meta.episodeTitle}`);
     }
-    searchTerms.push(`${hu} S${String(s).padStart(2, '0')}E${ePad}`);
-    searchTerms.push(`${hu} ${s}x${ePad}`);
-    searchTerms.push(`${hu} ${s}x${e}`);
-    searchTerms.push(`${hu} ${s}. evad ${e}. resz`);
+    searchTerms.push(`${hu} S${sPad}E${ePad}`);
     searchTerms.push(`${hu} ${e}. resz`);
+    searchTerms.push(`${hu} ${s}x${ePad}`);
   } else {
     // Movies: Prioritize full movie queries
     searchTerms.push(`${hu} teljes film`);
@@ -445,6 +477,11 @@ async function scrapeVidea(meta) {
 
         // Title relevance match: must match searched title (and year/sequel rules for movies)
         if (!isTitleMatch(hu, videoData.videoTitle, meta.year, !isMovie) && !isTitleMatch(meta.englishTitle, videoData.videoTitle, meta.year, !isMovie)) {
+          continue;
+        }
+
+        // Strict episode filter for series:
+        if (!isMovie && !matchesEpisode(videoData.videoTitle, meta.season, meta.episode, meta.episodeTitle)) {
           continue;
         }
 

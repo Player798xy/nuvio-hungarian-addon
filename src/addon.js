@@ -67,7 +67,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.6.0',
+    version: '1.6.1',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
@@ -176,8 +176,22 @@ async function getStreams(type, id, config = {}) {
     return config.sources.includes(s.id);
   });
 
-  // 3. Run scrapers with specified timeout
-  const scraperPromises = activeScrapers.map(scraper => {
+  // 3. Run scrapers with smart tiering (Fast scrapers return in ~2s, preventing Nuvio timeouts)
+  const fastScrapers = activeScrapers.filter(s => s.fast);
+  const otherScrapers = activeScrapers.filter(s => !s.fast);
+  const allStreams = [];
+
+  const fastPromises = fastScrapers.map(scraper => {
+    return Promise.race([
+      scraper.fn(meta),
+      new Promise(resolve => setTimeout(() => resolve([]), 4500))
+    ]).catch(err => {
+      console.warn(`[Addon] ${scraper.name} error:`, err.message || err);
+      return [];
+    });
+  });
+
+  const otherPromises = otherScrapers.map(scraper => {
     return Promise.race([
       scraper.fn(meta),
       new Promise(resolve => setTimeout(() => resolve([]), timeoutMs))
@@ -187,17 +201,30 @@ async function getStreams(type, id, config = {}) {
     });
   });
 
-  const results = await Promise.allSettled(scraperPromises);
-  const allStreams = [];
-
-  results.forEach((res, idx) => {
+  // Await fast scrapers first
+  const fastResults = await Promise.allSettled(fastPromises);
+  fastResults.forEach((res, idx) => {
     if (res.status === 'fulfilled' && Array.isArray(res.value)) {
       if (res.value.length > 0) {
-        console.log(`[Addon] ${activeScrapers[idx].name} returned ${res.value.length} streams`);
+        console.log(`[Addon] ${fastScrapers[idx].name} returned ${res.value.length} streams`);
       }
       allStreams.push(...res.value);
     }
   });
+
+  // If fast scrapers already found high quality streams, return immediately for instant playback
+  const hasGoodStreams = allStreams.some(s => s.height >= 720) || allStreams.length >= 3;
+  if (!hasGoodStreams && otherScrapers.length > 0 && config.stage !== 'fast') {
+    const otherResults = await Promise.allSettled(otherPromises);
+    otherResults.forEach((res, idx) => {
+      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+        if (res.value.length > 0) {
+          console.log(`[Addon] ${otherScrapers[idx].name} returned ${res.value.length} streams`);
+        }
+        allStreams.push(...res.value);
+      }
+    });
+  }
 
   // Deduplicate by stream URL
   const seenUrls = new Set();

@@ -63,6 +63,46 @@ async function resolveHungarianTitle(englishTitle, imdbId) {
   return '';
 }
 
+const TENKES_KAPITANYA_EPISODES = {
+  1: 'A vérdíj',
+  2: 'Az embervadászat',
+  3: 'Buga Jakab',
+  4: 'A tőzsér',
+  5: 'A fejvadász',
+  6: 'A katona szerencséje',
+  7: 'Kettős kém',
+  8: 'A kémszemle',
+  9: 'A meglepetés',
+  10: 'A vörös ördögök',
+  11: 'A hadicsel',
+  12: 'A fogoly',
+  13: 'A vár ostroma'
+};
+
+const PRELOADED_HUNGARIAN_TITLES = {
+  'tt0056789': { hu: 'A Tenkes kapitánya', en: 'Captain Tenkes', year: '1964', runtime: 25 },
+  'tt0861751': { hu: 'Magyar népmesék', en: 'Hungarian Folk Tales', year: '1980', runtime: 10 },
+  'tt0136650': { hu: 'Üzenet a jövőből - A Mézga család', en: 'The Mézga Family', year: '1969', runtime: 25 },
+  'tt1225872': { hu: 'Vakáción a Mézga család', en: 'The Mézga Family on Holiday', year: '1978', runtime: 25 },
+  'tt0167595': { hu: 'Frakk, a macskák réme', en: 'Frakk, the Cats\' Nightmare', year: '1971', runtime: 10 },
+  'tt0168342': { hu: 'Kukori és Kotkoda', en: 'Kukori and Kotkoda', year: '1971', runtime: 10 },
+  'tt0154077': { hu: 'A nagy ho-ho-horgász', en: 'The Great Ho-ho-ho-angler', year: '1982', runtime: 10 },
+  'tt0166931': { hu: 'Pom-Pom meséi', en: 'Tales of Pom Pom', year: '1980', runtime: 10 },
+  'tt0168343': { hu: 'Kérem a következőt! (Dr. Bubó)', en: 'Next, Please!', year: '1974', runtime: 10 },
+  'tt0179955': { hu: 'Macskafogó', en: 'Cat City', year: '1986', runtime: 96 },
+  'tt0257290': { hu: 'Üvegtigris', en: 'Glass Tiger', year: '2001', runtime: 104 },
+  'tt0065067': { hu: 'A tanú', en: 'The Witness', year: '1969', runtime: 103 },
+  'tt0121403': { hu: 'Indul a bakterház', en: 'The Station Master', year: '1980', runtime: 66 },
+  'tt0303184': { hu: 'Valami Amerika', en: 'A Kind of America', year: '2002', runtime: 115 },
+  'tt0069697': { hu: 'Különben dühbe jövünk', en: 'Watch Out, We\'re Mad', year: '1974', runtime: 102 },
+  'tt0085327': { hu: 'Kincs, ami nincs', en: 'Who Finds a Friend Finds a Treasure', year: '1981', runtime: 102 },
+  'tt0131636': { hu: 'Vuk', en: 'The Little Fox', year: '1981', runtime: 76 },
+  'tt8111088': { hu: 'A Mandalóri', en: 'The Mandalorian', year: '2019', runtime: 40 },
+  'tt0268380': { hu: 'Jégkorszak', en: 'Ice Age', year: '2002', runtime: 81 },
+  'tt0060196': { hu: 'A Jó, a Rossz és a Csúf', en: 'The Good, the Bad and the Ugly', year: '1966', runtime: 161 },
+  'tt0848228': { hu: 'Bosszúállók', en: 'The Avengers', year: '2012', runtime: 143 }
+};
+
 async function getMediaMeta(type, id) {
   // id can be tt1234567 or tt1234567:1:1
   const parts = id.split(':');
@@ -73,7 +113,42 @@ async function getMediaMeta(type, id) {
   const cacheKey = `${type}:${imdbId}`;
   if (metaCache.has(cacheKey)) {
     const cached = metaCache.get(cacheKey);
-    return { ...cached, season, episode };
+    let episodeTitle = cached.episodeTitle || '';
+    if (imdbId === 'tt0861751' && season && episode && magyarNepmesekData) {
+      const sEpisodes = magyarNepmesekData[season] || [];
+      const matched = sEpisodes.find(item => item.ep === episode);
+      if (matched && matched.title) episodeTitle = matched.title;
+    } else if (imdbId === 'tt0056789' && episode && TENKES_KAPITANYA_EPISODES[episode]) {
+      episodeTitle = TENKES_KAPITANYA_EPISODES[episode];
+    }
+    return { ...cached, season, episode, episodeTitle };
+  }
+
+  // Fast-path: Check static pre-loaded dictionary
+  const preloaded = PRELOADED_HUNGARIAN_TITLES[imdbId];
+  if (preloaded) {
+    let episodeTitle = '';
+    if (imdbId === 'tt0861751' && season && episode && magyarNepmesekData) {
+      const sEpisodes = magyarNepmesekData[season] || [];
+      const matched = sEpisodes.find(item => item.ep === episode);
+      if (matched && matched.title) episodeTitle = matched.title;
+    } else if (imdbId === 'tt0056789' && episode && TENKES_KAPITANYA_EPISODES[episode]) {
+      episodeTitle = TENKES_KAPITANYA_EPISODES[episode];
+    }
+
+    const result = {
+      imdbId,
+      type,
+      englishTitle: preloaded.en,
+      hungarianTitle: preloaded.hu,
+      year: preloaded.year,
+      runtimeMinutes: preloaded.runtime,
+      season,
+      episode,
+      episodeTitle
+    };
+    metaCache.set(cacheKey, result);
+    return result;
   }
 
   let englishTitle = '';
