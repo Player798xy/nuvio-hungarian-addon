@@ -115,6 +115,56 @@ async function searchActorFilmography(query) {
   }
 }
 
+const huToEnCache = new Map();
+
+/**
+ * Resolves Hungarian movie/series titles to original English franchise/title via Wikipedia & langlinks
+ * E.g. "Játékháború" -> "Toy Story", "Agymanók" -> "Inside Out", "Verdák" -> "Cars"
+ */
+async function resolveHungarianQueryToEnglish(query) {
+  if (!query || query.length < 3) return [];
+  const clean = query.trim().toLowerCase();
+  if (huToEnCache.has(clean)) return huToEnCache.get(clean);
+
+  try {
+    const headers = { 'User-Agent': 'NuvioHungarianAddon/1.0 (https://nuvio-hungarian-addon.vercel.app)' };
+    const searchUrl = `https://hu.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json`;
+    const sRes = await fetch(searchUrl, { headers, signal: AbortSignal.timeout(2500) });
+    if (!sRes.ok) return [];
+    const sData = await sRes.json();
+    const topHits = (sData.query?.search || []).slice(0, 4);
+    if (topHits.length === 0) return [];
+
+    const titles = topHits.map(h => h.title).join('|');
+    const langUrl = `https://hu.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${encodeURIComponent(titles)}&lllang=en&format=json`;
+    const lRes = await fetch(langUrl, { headers, signal: AbortSignal.timeout(2500) });
+    if (!lRes.ok) return [];
+    const lData = await lRes.json();
+
+    const enTitles = new Set();
+    const pages = lData.query?.pages || {};
+    for (const pid of Object.keys(pages)) {
+      let enTitle = pages[pid]?.langlinks?.[0]?.['*'];
+      if (enTitle) {
+        enTitle = enTitle.replace(/\s*\([^)]+\)\s*$/g, '').trim();
+        if (enTitle.length > 1) {
+          enTitles.add(enTitle);
+          // If title has a sequel number or subtitle (e.g. 'Toy Story 2' -> add 'Toy Story')
+          const franchiseMatch = enTitle.match(/^([A-Za-z0-9\s:,'-]+?)(?:\s+\d+|\s*:\s*.+)?$/);
+          if (franchiseMatch && franchiseMatch[1] && franchiseMatch[1].length >= 3) {
+            enTitles.add(franchiseMatch[1].trim());
+          }
+        }
+      }
+    }
+    const result = Array.from(enTitles);
+    huToEnCache.set(clean, result);
+    return result;
+  } catch (e) {
+    return [];
+  }
+}
+
 async function searchCatalog(type, query) {
   if (!query) {
     return type === 'series' ? FEATURED_HUNGARIAN_SERIES : FEATURED_HUNGARIAN_MOVIES;
@@ -221,30 +271,51 @@ async function searchCatalog(type, query) {
     // Continue
   }
 
-  // 2. Search Cinemeta directly for English titles & global catalog
+  // 2. Resolve Hungarian query to English franchise titles (e.g. "Játékháború" -> "Toy Story")
+  let enQueries = [];
   try {
-    const cinemetaUrl = `https://v3-cinemeta.strem.io/catalog/${type}/top/search=${encodeURIComponent(cleanQuery)}.json`;
-    const res = await fetch(cinemetaUrl, { signal: AbortSignal.timeout(3500) });
-    if (res.ok) {
-      const data = await res.json();
-      for (const item of data.metas || []) {
-        if (!seenIds.has(item.id)) {
-          seenIds.add(item.id);
-          const itemType = item.type || type;
-          if (type && itemType !== type) continue;
-          results.push({
-            id: item.id,
-            type: itemType,
-            name: item.name,
-            poster: item.poster,
-            year: item.year,
-            description: item.description
-          });
+    enQueries = await resolveHungarianQueryToEnglish(cleanQuery);
+  } catch (e) {}
+
+  // Prioritize resolved English queries for Cinemeta
+  const queriesToSearch = enQueries.length > 0 ? [...enQueries, cleanQuery] : [cleanQuery];
+
+  for (const q of queriesToSearch.slice(0, 3)) {
+    try {
+      const cinemetaUrl = `https://v3-cinemeta.strem.io/catalog/${type}/top/search=${encodeURIComponent(q)}.json`;
+      const res = await fetch(cinemetaUrl, { signal: AbortSignal.timeout(3500) });
+      if (res.ok) {
+        const data = await res.json();
+        for (const item of data.metas || []) {
+          if (!seenIds.has(item.id)) {
+            const itemType = item.type || type;
+            if (type && itemType !== type) continue;
+
+            // Relevance filter: if we searched an English translation like 'Toy Story', 
+            // ensure the item actually matches and isn't a random match like 'Sisters' Feud'
+            if (q !== cleanQuery) {
+              const nameLower = (item.name || '').toLowerCase();
+              const qLower = q.toLowerCase();
+              if (!nameLower.includes(qLower) && !qLower.includes(nameLower)) {
+                continue;
+              }
+            }
+
+            seenIds.add(item.id);
+            results.push({
+              id: item.id,
+              type: itemType,
+              name: item.name,
+              poster: item.poster,
+              year: item.year,
+              description: item.description
+            });
+          }
         }
       }
+    } catch (e) {
+      // Continue
     }
-  } catch (e) {
-    // Continue
   }
 
   return results;
