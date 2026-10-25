@@ -2901,12 +2901,20 @@
         if (window.Hls && Hls.isSupported()) {
           const hls = new Hls({
             enableWorker: true,
-            lowLatencyMode: true
+            lowLatencyMode: true,
+            capLevelToPlayerSize: false
           });
           window._currentHls = hls;
           hls.loadSource(url);
           hls.attachMedia(video);
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+            // Instantly start in 1080p Full HD (highest rendition level) without waiting for ABR ramp up
+            if (data && data.levels && data.levels.length > 0) {
+              const maxIdx = data.levels.length - 1;
+              hls.currentLevel = maxIdx;
+              hls.startLevel = maxIdx;
+              console.log('[Player] Forced 1080p FHD initial level:', maxIdx, data.levels[maxIdx]);
+            }
             video.play().catch(e => console.log('Autoplay deferred:', e));
           });
           hls.on(Hls.Events.ERROR, (event, data) => {

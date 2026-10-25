@@ -40,7 +40,7 @@ function setCachedStreams(key, data) {
 }
 
 // Registry of all supported Hungarian sources
-const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2']);
+const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2', 'mediaklikk']);
 
 const ALL_SCRAPERS = [
   { id: 'videa', name: 'Videa', fn: scrapeVidea, fast: true },
@@ -115,7 +115,7 @@ function getManifest(config = {}) {
 async function getStreams(type, id, config = {}) {
   // Handle Live TV channels
   if (type === 'tv' || (id && id.startsWith('mediaklikk-live-'))) {
-    const liveStreams = await getLiveChannelStreams(id, config.clientIp);
+    const liveStreams = await getLiveChannelStreams(id, config.clientIp, config.hostUrl);
     return { streams: liveStreams };
   }
 

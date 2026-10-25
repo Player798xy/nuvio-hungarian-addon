@@ -7,6 +7,7 @@ const cors = require('cors');
 const path = require('path');
 const { getManifest, getStreams, searchCatalog, getMeta, ALL_SCRAPERS } = require('./src/addon');
 const { getSeriesEpisodes } = require('./src/utils/meta');
+const { getReorderedMasterPlaylist, getLiveHlsStream } = require('./src/scrapers/mediaklikk');
 
 const app = express();
 const PORT = process.env.PORT || 7000;
@@ -189,6 +190,9 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
   const { type, id } = req.params;
   const config = parseConfig(req.params.config, req.query);
   config.clientIp = getClientIp(req);
+  const host = req.get('host') || 'nuvio-hungarian-addon.vercel.app';
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  config.hostUrl = `${proto}://${host}`;
 
   try {
     const result = await getStreams(type, id, config);
@@ -197,6 +201,44 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
   } catch (err) {
     console.error(`[Server] Error processing stream request for ${type}/${id}:`, err);
     res.json({ streams: [] });
+  }
+});
+
+// Instant 1080p HLS Master Playlist Rewriter for Live TV (starts in 1080p FHD immediately)
+app.get(['/api/live/:streamId.m3u8', '/hls/live/:streamId.m3u8'], async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+  res.setHeader('Cache-Control', 'public, max-age=60');
+
+  let streamId = req.params.streamId;
+  if (streamId && streamId.endsWith('.m3u8')) streamId = streamId.slice(0, -5);
+  if (streamId === 'm4' || streamId === 'mtv4') streamId = 'mtv4live';
+  if (streamId === 'm4plus' || streamId === 'mtv4plus') streamId = 'mtv4plus';
+  if (streamId === 'm1' || streamId === 'mtv1') streamId = 'mtv1live';
+  if (streamId === 'm2' || streamId === 'mtv2') streamId = 'mtv2live';
+  if (streamId === 'm5' || streamId === 'mtv5') streamId = 'mtv5live';
+  if (streamId === 'duna') streamId = 'dunalive';
+  if (streamId === 'dunaworld') streamId = 'dunaworldlive';
+
+  const clientIp = getClientIp(req);
+
+  try {
+    const reordered = await getReorderedMasterPlaylist(streamId, clientIp);
+    if (reordered) {
+      return res.send(reordered);
+    }
+
+    // Fallback: direct redirect to authentic stream URL
+    const originalUrl = await getLiveHlsStream(streamId, clientIp);
+    if (originalUrl) {
+      return res.redirect(originalUrl);
+    }
+
+    res.status(404).send('#EXTM3U\n#EXT-X-ERROR: Stream not found\n');
+  } catch (err) {
+    console.error(`[Server] Live stream error for ${streamId}:`, err);
+    res.status(500).send('#EXTM3U\n#EXT-X-ERROR: Failed to load stream\n');
   }
 });
 
