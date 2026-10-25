@@ -11,6 +11,7 @@ const LIVE_CHANNELS = [
     id: 'mediaklikk-live-duna',
     channelKey: 'duna',
     streamId: 'dunalive',
+    pageUrl: 'https://mediaklikk.hu/elo/duna/',
     name: 'Duna TV Élő',
     type: 'tv',
     poster: 'https://cdn.connectmedia.hu/1300/duna.jpg',
@@ -22,6 +23,7 @@ const LIVE_CHANNELS = [
     id: 'mediaklikk-live-m1',
     channelKey: 'm1',
     streamId: 'mtv1live',
+    pageUrl: 'https://mediaklikk.hu/elo/mtv1live/',
     name: 'M1 Híradó Élő',
     type: 'tv',
     poster: 'https://cdn.connectmedia.hu/1300/m1.jpg',
@@ -33,6 +35,7 @@ const LIVE_CHANNELS = [
     id: 'mediaklikk-live-m2',
     channelKey: 'm2',
     streamId: 'mtv2live',
+    pageUrl: 'https://mediaklikk.hu/elo/mtv2live/',
     name: 'M2 Gyerek & Petőfi TV Élő',
     type: 'tv',
     poster: 'https://cdn.connectmedia.hu/1300/m2.jpg',
@@ -44,6 +47,7 @@ const LIVE_CHANNELS = [
     id: 'mediaklikk-live-m4',
     channelKey: 'm4',
     streamId: 'mtv4live',
+    pageUrl: 'https://m4sport.hu/elo/',
     name: 'M4 Sport Élő',
     type: 'tv',
     poster: 'https://cdn.connectmedia.hu/1300/m4.jpg',
@@ -55,6 +59,7 @@ const LIVE_CHANNELS = [
     id: 'mediaklikk-live-m4plus',
     channelKey: 'm4plus',
     streamId: 'mtv4plus',
+    pageUrl: 'https://mediaklikk.hu/m4-sport-plusz-elo/',
     name: 'M4 Sport+ Élő',
     type: 'tv',
     poster: 'https://cdn.connectmedia.hu/1300/m4plus.jpg',
@@ -66,6 +71,7 @@ const LIVE_CHANNELS = [
     id: 'mediaklikk-live-m5',
     channelKey: 'm5',
     streamId: 'mtv5live',
+    pageUrl: 'https://mediaklikk.hu/elo/mtv5live/',
     name: 'M5 Kultúra Élő',
     type: 'tv',
     poster: 'https://cdn.connectmedia.hu/1300/m5.jpg',
@@ -77,6 +83,7 @@ const LIVE_CHANNELS = [
     id: 'mediaklikk-live-dunaworld',
     channelKey: 'dunaworld',
     streamId: 'dunaworldlive',
+    pageUrl: 'https://mediaklikk.hu/elo/dunaworldlive/',
     name: 'Duna World Élő',
     type: 'tv',
     poster: 'https://cdn.connectmedia.hu/1300/dunaworld.jpg',
@@ -167,14 +174,14 @@ async function getLiveChannelStreams(channelIdOrKey, clientIp = null) {
   const hlsUrl = await getLiveHlsStream(channel.streamId, clientIp);
   if (!hlsUrl) return [];
 
-  const playerEmbedUrl = `https://player.mediaklikk.hu/playernew/player.php?video=${channel.streamId}`;
+  const officialPageUrl = channel.pageUrl || `https://mediaklikk.hu/elo/${channel.streamId}/`;
 
   return [
     {
       name: `🔴 ${channel.name} [ÉLŐ FHD]`,
       title: `🔴 ÉLŐ ADÁS • MédiaKlikk HLS Stream (1080p)\n${channel.description}`,
       url: hlsUrl,
-      playerUrl: playerEmbedUrl,
+      playerUrl: officialPageUrl,
       quality: '1080p',
       height: 1080,
       source: 'mediaklikk',
