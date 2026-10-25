@@ -128,14 +128,15 @@ async function getStreams(type, id, config = {}) {
 
   // 2. Filter active scrapers based on user configuration and stage
   let candidateScrapers = ALL_SCRAPERS;
-  let timeoutMs = config.timeoutMs || 9500; // Search up to 10 seconds for 1080p
+  let timeoutMs = config.timeoutMs || 9500; // Search up to 10 seconds for all sources and 1080p
 
   if (config.stage === 'fast') {
     candidateScrapers = ALL_SCRAPERS.filter(s => FAST_SCRAPER_IDS.has(s.id));
-    timeoutMs = config.timeoutMs || 2500; // Fast initial response (~1-2s)
-  } else if (config.stage === 'deep') {
-    candidateScrapers = ALL_SCRAPERS.filter(s => !FAST_SCRAPER_IDS.has(s.id));
-    timeoutMs = config.timeoutMs || 9500; // Search up to 10s for additional 1080p
+    timeoutMs = config.timeoutMs || 3500; // Fast initial response (~2-3s)
+  } else {
+    // Both 'deep' and default 'all' run ALL scrapers up to 10 seconds!
+    candidateScrapers = ALL_SCRAPERS;
+    timeoutMs = config.timeoutMs || 9500; // Full 10s search ensuring no source is missed
   }
 
   const activeScrapers = candidateScrapers.filter(s => {
