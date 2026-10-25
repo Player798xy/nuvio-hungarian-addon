@@ -93,13 +93,58 @@ app.get('/stream/:type/:id.json', async (req, res) => {
   }
 });
 
-// Diagnostic API for the web landing page
+// Search API for web landing page (supports Hungarian titles)
+app.get('/api/search', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const query = req.query.q || '';
+  try {
+    const [seriesResults, movieResults] = await Promise.all([
+      searchCatalog('series', query),
+      searchCatalog('movie', query)
+    ]);
+    const seen = new Set();
+    const combined = [];
+    for (const item of [...seriesResults, ...movieResults]) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        combined.push(item);
+      }
+    }
+    res.json({ results: combined });
+  } catch (err) {
+    res.status(500).json({ error: err.message, results: [] });
+  }
+});
+
+// Diagnostic API for the web landing page: accepts IMDb ID (tt...) OR Hungarian title
 app.get('/api/test', async (req, res) => {
-  const id = req.query.id || 'tt8111088:1:1';
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  let id = req.query.id || 'tt8111088:1:1';
+  id = id.trim();
+
+  // If user passed a title instead of tt..., resolve it first!
+  let matchedItem = null;
+  if (!id.startsWith('tt')) {
+    try {
+      const [series, movies] = await Promise.all([
+        searchCatalog('series', id),
+        searchCatalog('movie', id)
+      ]);
+      matchedItem = series[0] || movies[0];
+      if (matchedItem) {
+        id = matchedItem.type === 'series' ? `${matchedItem.id}:1:1` : matchedItem.id;
+      } else {
+        return res.json({ streams: [], resolvedTitle: null });
+      }
+    } catch (e) {
+      return res.status(500).json({ error: e.message, streams: [] });
+    }
+  }
+
   const type = id.includes(':') ? 'series' : 'movie';
   try {
     const result = await getStreams(type, id);
-    res.json(result);
+    res.json({ ...result, queryId: id, matchedItem });
   } catch (err) {
     res.status(500).json({ error: err.message, streams: [] });
   }
