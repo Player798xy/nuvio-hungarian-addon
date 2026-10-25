@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <g transform="translate(0, -265)">
+    
+      <g transform="translate(300, 420) scale(1.12)">
+        <circle cx="0" cy="0" r="140" fill="#ff2b3e" fill-opacity="0.32" filter="blur(30px)" />
+        <g transform="skewX(-14)">
+          <g transform="translate(-175, 0)">
+            <circle cx="0" cy="0" r="58" fill="none" stroke="#ffffff" stroke-width="11" />
+            <line x1="-30" y1="-64" x2="30" y2="64" stroke="#ffffff" stroke-width="11" stroke-linecap="round" />
+            <line x1="-10" y1="-68" x2="10" y2="68" stroke="#ff2b3e" stroke-width="9" stroke-linecap="round" />
+          </g>
+          <text x="-95" y="36" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="108" fill="#ffffff" letter-spacing="-2">m4</text>
+          <g transform="translate(70, 5)">
+            <rect x="-8" y="-36" width="130" height="46" rx="8" fill="#ff2b3e" />
+            <text x="57" y="-4" text-anchor="middle" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="30" fill="#ffffff" letter-spacing="1">SPORT</text>
+            <rect x="128" y="-36" width="46" height="46" rx="8" fill="#ffffff" />
+            <text x="151" y="-2" text-anchor="middle" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="36" fill="#e30613">+</text>
+          </g>
+        </g>
+      </g>
+    
+  </g>
+</svg>

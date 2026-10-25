@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <g transform="translate(0, -265)">
+    
+      <g transform="translate(300, 410) scale(1.15)">
+        <circle cx="0" cy="0" r="140" fill="#0284c7" fill-opacity="0.32" filter="blur(30px)" />
+        <g transform="translate(-120, 0)">
+          <circle cx="0" cy="0" r="66" fill="none" stroke="#ffffff" stroke-width="11" />
+          <circle cx="0" cy="0" r="66" fill="none" stroke="#0284c7" stroke-width="11" stroke-dasharray="120 200" stroke-dashoffset="60" />
+          <path d="M -50,15 C -25,-30 25,30 50,-15" fill="none" stroke="#38bdf8" stroke-width="11" stroke-linecap="round" />
+        </g>
+        <g transform="translate(25, 36)">
+          <text x="0" y="0" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="100" fill="#ffffff" letter-spacing="-1">duna</text>
+        </g>
+        <g transform="translate(0, 115)">
+          <rect x="-120" y="-22" width="240" height="40" rx="6" fill="#0284c7" />
+          <text x="0" y="6" text-anchor="middle" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="19" fill="#ffffff" letter-spacing="2">NEMZETI FŐADÓ</text>
+        </g>
+      </g>
+    
+  </g>
+</svg>

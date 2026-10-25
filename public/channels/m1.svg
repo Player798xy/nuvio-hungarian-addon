@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <g transform="translate(0, -265)">
+    
+      <g transform="translate(300, 410) scale(1.2)">
+        <circle cx="0" cy="0" r="140" fill="#0074d9" fill-opacity="0.3" filter="blur(30px)" />
+        <g transform="translate(-85, 0)">
+          <circle cx="0" cy="0" r="68" fill="none" stroke="#ffffff" stroke-width="12" />
+          <line x1="0" y1="-88" x2="0" y2="88" stroke="#0088ff" stroke-width="14" stroke-linecap="round" />
+          <circle cx="0" cy="0" r="68" fill="none" stroke="#00a8ff" stroke-width="12" stroke-dasharray="60 200" stroke-dashoffset="30" />
+        </g>
+        <g transform="translate(35, 36)">
+          <text x="0" y="0" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="115" fill="#ffffff" letter-spacing="-3">m1</text>
+        </g>
+        <g transform="translate(0, 115)">
+          <rect x="-105" y="-22" width="210" height="40" rx="6" fill="#0074d9" />
+          <text x="0" y="6" text-anchor="middle" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="22" fill="#ffffff" letter-spacing="3">HÍRADÓ</text>
+        </g>
+      </g>
+    
+  </g>
+</svg>

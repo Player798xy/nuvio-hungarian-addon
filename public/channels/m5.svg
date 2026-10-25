@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <g transform="translate(0, -265)">
+    
+      <g transform="translate(300, 410) scale(1.2)">
+        <circle cx="0" cy="0" r="140" fill="#a855f7" fill-opacity="0.32" filter="blur(30px)" />
+        <g transform="translate(-85, 0)">
+          <circle cx="0" cy="0" r="68" fill="none" stroke="#ffffff" stroke-width="12" />
+          <circle cx="0" cy="0" r="68" fill="none" stroke="#a855f7" stroke-width="12" stroke-dasharray="140 200" stroke-dashoffset="50" />
+          <line x1="-35" y1="-22" x2="35" y2="-22" stroke="#facc15" stroke-width="9" stroke-linecap="round" />
+          <line x1="-22" y1="0" x2="48" y2="0" stroke="#facc15" stroke-width="9" stroke-linecap="round" />
+          <line x1="-48" y1="22" x2="22" y2="22" stroke="#facc15" stroke-width="9" stroke-linecap="round" />
+        </g>
+        <g transform="translate(35, 36)">
+          <text x="0" y="0" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="115" fill="#ffffff" letter-spacing="-3">m5</text>
+        </g>
+        <g transform="translate(0, 115)">
+          <rect x="-105" y="-22" width="210" height="40" rx="6" fill="#9333ea" />
+          <text x="0" y="6" text-anchor="middle" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="22" fill="#ffffff" letter-spacing="3">KULTÚRA</text>
+        </g>
+      </g>
+    
+  </g>
+</svg>

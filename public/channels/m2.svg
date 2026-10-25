@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <g transform="translate(0, -265)">
+    
+      <g transform="translate(300, 410) scale(1.2)">
+        <circle cx="0" cy="0" r="140" fill="#84cc16" fill-opacity="0.32" filter="blur(30px)" />
+        <g transform="translate(-85, 0)">
+          <circle cx="0" cy="0" r="68" fill="none" stroke="#ffffff" stroke-width="12" />
+          <circle cx="0" cy="0" r="68" fill="none" stroke="#84cc16" stroke-width="12" stroke-dasharray="140 200" stroke-dashoffset="50" />
+          <line x1="-40" y1="40" x2="40" y2="-40" stroke="#facc15" stroke-width="12" stroke-linecap="round" />
+        </g>
+        <g transform="translate(35, 36)">
+          <text x="0" y="0" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="115" fill="#ffffff" letter-spacing="-3">m2</text>
+        </g>
+        <g transform="translate(0, 115)">
+          <rect x="-135" y="-22" width="130" height="40" rx="6" fill="#84cc16" />
+          <text x="-70" y="6" text-anchor="middle" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="19" fill="#0f172a" letter-spacing="1.5">GYEREK</text>
+          <rect x="5" y="-22" width="130" height="40" rx="6" fill="#f97316" />
+          <text x="70" y="6" text-anchor="middle" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="19" fill="#ffffff" letter-spacing="1.5">PETŐFI</text>
+        </g>
+      </g>
+    
+  </g>
+</svg>

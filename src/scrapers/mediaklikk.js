@@ -17,7 +17,7 @@ const LIVE_CHANNELS = [
     name: 'M4 Sport Élő',
     type: 'tv',
     poster: `${HOST_URL}/channels/poster-m4.svg`,
-    logo: `${HOST_URL}/channels/m4.png`,
+    logo: `${HOST_URL}/channels/m4.svg`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'A nemzeti sportcsatorna: Forma-1, magyar és nemzetközi labdarúgó bajnokságok, Bajnokok Ligája és olimpiai közvetítések 24 órában élőben.'
   },
@@ -29,7 +29,7 @@ const LIVE_CHANNELS = [
     name: 'M4 Sport+ Élő',
     type: 'tv',
     poster: `${HOST_URL}/channels/poster-m4plus.svg`,
-    logo: `${HOST_URL}/channels/m4plus.png`,
+    logo: `${HOST_URL}/channels/m4plus.svg`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'M4 Sport Plusz: párhuzamosan közvetített hazai és nemzetközi rangadók, bajnokságok és élő körkapcsolások.'
   },
@@ -41,7 +41,7 @@ const LIVE_CHANNELS = [
     name: 'M1 Híradó Élő',
     type: 'tv',
     poster: `${HOST_URL}/channels/poster-m1.svg`,
-    logo: `${HOST_URL}/channels/m1.png`,
+    logo: `${HOST_URL}/channels/m1.svg`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'Nemzeti hírcsatorna: élő híradások, percről percre frissülő tudósítások, rendkívüli bejelentések és háttérelemzések.'
   },
@@ -53,7 +53,7 @@ const LIVE_CHANNELS = [
     name: 'M2 Gyerek & Petőfi TV Élő',
     type: 'tv',
     poster: `${HOST_URL}/channels/poster-m2.svg`,
-    logo: `${HOST_URL}/channels/m2.png`,
+    logo: `${HOST_URL}/channels/m2.svg`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'Nappal M2 Gyerekcsatorna (klasszikus és új rajzfilmek, mesék), este Petőfi TV (zene, koncertek és ifjúsági magazinok).'
   },
@@ -65,7 +65,7 @@ const LIVE_CHANNELS = [
     name: 'M5 Kultúra Élő',
     type: 'tv',
     poster: `${HOST_URL}/channels/poster-m5.svg`,
-    logo: `${HOST_URL}/channels/m5.png`,
+    logo: `${HOST_URL}/channels/m5.svg`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'Kulturális, oktatási és tudományos csatorna: színházi közvetítések, hangversenyek, irodalom és minőségi dokumentumfilmek.'
   },
@@ -77,7 +77,7 @@ const LIVE_CHANNELS = [
     name: 'Duna TV Élő',
     type: 'tv',
     poster: `${HOST_URL}/channels/poster-duna.svg`,
-    logo: `${HOST_URL}/channels/duna.png`,
+    logo: `${HOST_URL}/channels/duna.svg`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'A nemzeti főadó: magyar filmek, közkedvelt sorozatok, családi és kulturális műsorok 24 órában élőben.'
   },
@@ -89,7 +89,7 @@ const LIVE_CHANNELS = [
     name: 'Duna World Élő',
     type: 'tv',
     poster: `${HOST_URL}/channels/poster-dunaworld.svg`,
-    logo: `${HOST_URL}/channels/dunaworld.png`,
+    logo: `${HOST_URL}/channels/dunaworld.svg`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'A határon túli magyarság csatornája: nemzetiségi műsorok, néphagyományok és magyar klasszikusok.'
   }

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <g transform="translate(0, -265)">
+    
+      <g transform="translate(300, 410) scale(1.15)">
+        <circle cx="0" cy="0" r="140" fill="#0d9488" fill-opacity="0.32" filter="blur(30px)" />
+        <g transform="translate(-135, 0)">
+          <circle cx="0" cy="0" r="66" fill="none" stroke="#ffffff" stroke-width="11" />
+          <path d="M -48,2 C -24,-26 24,26 48,-2" fill="none" stroke="#2dd4bf" stroke-width="9" stroke-linecap="round" />
+          <path d="M -48,24 C -24,-4 24,48 48,20" fill="none" stroke="#14b8a6" stroke-width="9" stroke-linecap="round" />
+        </g>
+        <g transform="translate(10, 15)">
+          <text x="0" y="0" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="80" fill="#ffffff" letter-spacing="-1">duna</text>
+          <text x="3" y="38" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="34" fill="#2dd4bf" letter-spacing="4">WORLD</text>
+        </g>
+        <g transform="translate(0, 115)">
+          <rect x="-125" y="-22" width="250" height="40" rx="6" fill="#0d9488" />
+          <text x="0" y="6" text-anchor="middle" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="18" fill="#ffffff" letter-spacing="2">HATÁROK NÉLKÜL</text>
+        </g>
+      </g>
+    
+  </g>
+</svg>
