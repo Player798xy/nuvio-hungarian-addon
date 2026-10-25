@@ -14,6 +14,7 @@ const { scrapeMeseFilm } = require('./scrapers/mesefilm');
 const { scrapeFilmezek } = require('./scrapers/filmezek');
 const { scrapeOnlineFilmek } = require('./scrapers/onlinefilmek');
 const { scrapeHDMozi } = require('./scrapers/hdmozi');
+const { scrapeMediaKlikk, getLiveChannelStreams, LIVE_CHANNELS } = require('./scrapers/mediaklikk');
 
 // High-speed In-Memory Cache (2 hours TTL for streams)
 const STREAM_CACHE = new Map();
@@ -46,6 +47,7 @@ const ALL_SCRAPERS = [
   { id: 'indavideo', name: 'Indavideo', fn: scrapeIndavideo, fast: true },
   { id: 'jobbmintatv', name: 'JobbMintATV', fn: scrapeJobbMintATV, fast: true },
   { id: 'filmvilag2', name: 'Filmvilag2', fn: scrapeFilmvilag, fast: true },
+  { id: 'mediaklikk', name: 'MédiaKlikk', fn: scrapeMediaKlikk, fast: true },
   { id: 'dmdamedia', name: 'DMDAMedia', fn: scrapeDMDAMedia, fast: false },
   { id: 'mesefilm', name: 'MeseFilm', fn: scrapeMeseFilm, fast: true },
   { id: 'filmezek', name: 'Filmezek', fn: scrapeFilmezek, fast: false },
@@ -72,9 +74,18 @@ function getManifest(config = {}) {
     icon: `${hostUrl}/logo.png`,
     background: `${hostUrl}/logo.png`,
     resources: ['catalog', 'stream', 'meta'],
-    types: ['movie', 'series'],
-    idPrefixes: ['tt'],
+    types: ['movie', 'series', 'tv'],
+    idPrefixes: ['tt', 'mediaklikk-live-'],
     catalogs: [
+      {
+        type: 'tv',
+        id: 'hu-live-tv',
+        name: '🔴 Magyar Élő TV (MédiaKlikk)',
+        extra: [
+          { name: 'search', isRequired: false },
+          { name: 'skip', isRequired: false }
+        ]
+      },
       {
         type: 'series',
         id: 'hu-series',
@@ -102,6 +113,12 @@ function getManifest(config = {}) {
 }
 
 async function getStreams(type, id, config = {}) {
+  // Handle Live TV channels
+  if (type === 'tv' || (id && id.startsWith('mediaklikk-live-'))) {
+    const liveStreams = await getLiveChannelStreams(id);
+    return { streams: liveStreams };
+  }
+
   if (!id || !id.startsWith('tt')) {
     return { streams: [] };
   }

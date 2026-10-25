@@ -692,6 +692,12 @@
       color: white;
     }
 
+    .badge-tv {
+      background: rgba(220, 38, 38, 0.9);
+      color: white;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    }
+
     .catalog-info {
       padding: 0.5rem;
       flex: 1;
@@ -1493,25 +1499,26 @@
       
       <div class="filter-tabs">
         <button class="filter-btn active" id="tabAll" onclick="setFilter('all')">Mind</button>
+        <button class="filter-btn" id="tabLive" onclick="setFilter('tv')">🔴 Élő TV (MédiaKlikk)</button>
         <button class="filter-btn" id="tabMovies" onclick="setFilter('movie')">🎬 Filmek</button>
         <button class="filter-btn" id="tabSeries" onclick="setFilter('series')">📺 Sorozatok & Mesék</button>
       </div>
 
       <div class="tester-controls">
-        <input type="text" id="testId" class="input-field" placeholder="Pl. Jégkorszak, Magyar népmesék, Bosszúállók, A Mandalóri, Mézga család..." value="Magyar népmesék" onkeydown="if(event.key==='Enter') runSearch()">
+        <input type="text" id="testId" class="input-field" placeholder="Pl. Jégkorszak, Magyar népmesék, M4 Sport, Duna, Bosszúállók..." value="Magyar népmesék" onkeydown="if(event.key==='Enter') runSearch()">
         <button class="btn btn-primary" id="testBtn" onclick="runSearch()">Keresés</button>
       </div>
 
       <div class="chips-container">
         <span style="font-size: 0.8rem; color: #64748b; align-self: center;">Gyors keresés:</span>
+        <span class="chip" onclick="quickSearch('M4 Sport')">🔴 M4 Sport Élő</span>
+        <span class="chip" onclick="quickSearch('Duna')">🔴 Duna TV Élő</span>
+        <span class="chip" onclick="quickSearch('M1')">🔴 M1 Híradó</span>
         <span class="chip" onclick="quickSearch('Bud Spencer')">🤠 Bud Spencer</span>
-        <span class="chip" onclick="quickSearch('Terence Hill')">🎬 Terence Hill</span>
         <span class="chip" onclick="quickSearch('Magyar népmesék')">📺 Magyar népmesék</span>
         <span class="chip" onclick="quickSearch('A Mandalóri')">📺 A Mandalóri</span>
-        <span class="chip" onclick="quickSearch('Mézga család')">📺 Mézga család</span>
-        <span class="chip" onclick="quickSearch('Jégkorszak')">🎬 Jégkorszak</span>
-        <span class="chip" onclick="quickSearch('Bosszúállók')">🎬 Bosszúállók</span>
-        <span class="chip" onclick="quickSearch('A Jó a Rossz és a Csúf')">🎬 A Jó a Rossz és a Csúf</span>
+        <span class="chip" onclick="quickSearch('Macskafogó')">🎬 Macskafogó</span>
+        <span class="chip" onclick="quickSearch('Indul a bakterház')">🎬 Indul a bakterház</span>
       </div>
 
       <div id="loadingIndicator" style="display: none; margin-top: 1.2rem; color: #38bdf8; font-weight: 600;">
@@ -1558,6 +1565,7 @@
     // Supported sources catalog
     const AVAILABLE_SOURCES = [
       { id: 'videa', name: 'Videa.hu', desc: '1080p / 720p Direct MP4 (FCode Noembed bypass)', fast: true },
+      { id: 'mediaklikk', name: 'MédiaKlikk (MTVA)', desc: 'Élő TV (M1, M2, M4 Sport, Duna) & HLS VOD archívum', fast: true },
       { id: 'indavideo', name: 'Indavideo.hu', desc: 'Közvetlen MP4 CDN tokenekkel', fast: true },
       { id: 'jobbmintatv', name: 'JobbMintATV', desc: 'Videa & OK.ru 1080p streamek', fast: true },
       { id: 'filmvilag2', name: 'Filmvilág2', desc: 'Videa 1080p / 720p források', fast: true },
@@ -1569,7 +1577,7 @@
     ];
 
     // State
-    let selectedSources = ['videa', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+    let selectedSources = ['videa', 'mediaklikk', 'indavideo', 'jobbmintatv', 'filmvilag2'];
     let selectedResolutions = ['1080p', '720p', '480p'];
     let selectedTimeoutSec = 10;
     let currentStreamQualityFilter = 'all';
@@ -1764,11 +1772,11 @@
 
     function applyPreset(preset) {
       if (preset === 'fast') {
-        selectedSources = ['videa', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+        selectedSources = ['videa', 'mediaklikk', 'indavideo', 'jobbmintatv', 'filmvilag2'];
       } else if (preset === 'all') {
         selectedSources = AVAILABLE_SOURCES.map(s => s.id);
       } else if (preset === 'kids') {
-        selectedSources = ['mesefilm', 'videa', 'indavideo', 'jobbmintatv'];
+        selectedSources = ['mesefilm', 'mediaklikk', 'videa', 'indavideo', 'jobbmintatv'];
       }
       renderSourcesGrid();
       updateManifestUrl();
@@ -1776,16 +1784,16 @@
     }
 
     function highlightActivePreset() {
-      const isFast = selectedSources.length === 4 && ['videa', 'indavideo', 'jobbmintatv', 'filmvilag2'].every(s => selectedSources.includes(s));
+      const isFast = selectedSources.length === 5 && ['videa', 'mediaklikk', 'indavideo', 'jobbmintatv', 'filmvilag2'].every(s => selectedSources.includes(s));
       const isAll = selectedSources.length === AVAILABLE_SOURCES.length;
-      const isKids = selectedSources.length === 4 && ['mesefilm', 'videa', 'indavideo', 'jobbmintatv'].every(s => selectedSources.includes(s));
+      const isKids = selectedSources.length === 5 && ['mesefilm', 'mediaklikk', 'videa', 'indavideo', 'jobbmintatv'].every(s => selectedSources.includes(s));
 
       document.getElementById('btnPresetFast').className = 'preset-btn' + (isFast ? ' active' : '');
       document.getElementById('btnPresetAll').className = 'preset-btn' + (isAll ? ' active' : '');
       document.getElementById('btnPresetKids').className = 'preset-btn' + (isKids ? ' active' : '');
 
       const speedBadge = document.getElementById('speedBadge');
-      if (selectedSources.length <= 4) {
+      if (selectedSources.length <= 5) {
         speedBadge.textContent = '⚡ Szupergyors mód (~500ms - 1s)';
         speedBadge.style.color = '#34d399';
         speedBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
@@ -1861,6 +1869,7 @@
     function setFilter(type) {
       activeFilter = type;
       document.getElementById('tabAll').className = type === 'all' ? 'filter-btn active' : 'filter-btn';
+      document.getElementById('tabLive').className = type === 'tv' ? 'filter-btn active' : 'filter-btn';
       document.getElementById('tabMovies').className = type === 'movie' ? 'filter-btn active' : 'filter-btn';
       document.getElementById('tabSeries').className = type === 'series' ? 'filter-btn active' : 'filter-btn';
       runSearch();
@@ -1872,8 +1881,8 @@
     }
 
     async function runSearch() {
-      const rawInput = document.getElementById('testId').value.trim();
-      if (!rawInput) return;
+      let rawInput = document.getElementById('testId').value.trim();
+      if (!rawInput && activeFilter !== 'tv') return;
 
       const catalogList = document.getElementById('catalogList');
       const seriesView = document.getElementById('seriesView');
@@ -1887,7 +1896,7 @@
       streamsList.innerHTML = '';
       if (loader) loader.style.display = 'block';
 
-      if (rawInput.startsWith('tt')) {
+      if (rawInput.startsWith('tt') || rawInput.startsWith('mediaklikk-live-')) {
         await loadStreamsForId(rawInput);
         return;
       }
@@ -1905,9 +1914,10 @@
           results.slice(0, 30).forEach((item, idx) => {
             const card = document.createElement('div');
             card.className = 'catalog-card' + (idx === 0 ? ' active' : '');
+            const isTv = item.type === 'tv';
             const isSeries = item.type === 'series';
-            const badgeText = isSeries ? '📺 Sorozat' : '🎬 Film';
-            const badgeClass = isSeries ? 'catalog-badge badge-sorozat' : 'catalog-badge badge-film';
+            const badgeText = isTv ? '🔴 Élő TV' : isSeries ? '📺 Sorozat' : '🎬 Film';
+            const badgeClass = isTv ? 'catalog-badge badge-tv' : isSeries ? 'catalog-badge badge-sorozat' : 'catalog-badge badge-film';
 
             const posterUrl = item.poster || (item.id ? `https://images.metahub.space/poster/medium/${item.id}/img` : NO_POSTER_SVG);
 
@@ -1944,10 +1954,19 @@
       }
     }
 
-    // Handles user clicking a catalog card (Movie vs Series)
+    // Handles user clicking a catalog card (Movie vs Series vs Live TV)
     async function onCatalogItemClick(item) {
       const seriesView = document.getElementById('seriesView');
       const streamsList = document.getElementById('streamsList');
+
+      if (item.type === 'tv' || (item.id && item.id.startsWith('mediaklikk-live-'))) {
+        if (seriesView) {
+          seriesView.innerHTML = '';
+          seriesView.style.display = 'none';
+        }
+        await loadStreamsForId(item.id, item.name);
+        return;
+      }
 
       if (item.type === 'series') {
         // Load Series View with Seasons and Episodes

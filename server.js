@@ -211,8 +211,12 @@ app.get('/api/episodes', async (req, res) => {
 app.get('/api/search', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const query = req.query.q || '';
-  const filterType = req.query.type; // 'movie' or 'series'
+  const filterType = req.query.type; // 'movie', 'series', or 'tv'
   try {
+    if (filterType === 'tv') {
+      const results = await searchCatalog('tv', query);
+      return res.json({ results });
+    }
     if (filterType === 'movie') {
       const results = await searchCatalog('movie', query);
       return res.json({ results });
@@ -222,13 +226,14 @@ app.get('/api/search', async (req, res) => {
       return res.json({ results });
     }
 
-    const [movieResults, seriesResults] = await Promise.all([
+    const [tvResults, movieResults, seriesResults] = await Promise.all([
+      searchCatalog('tv', query),
       searchCatalog('movie', query),
       searchCatalog('series', query)
     ]);
     const seen = new Set();
     const combined = [];
-    for (const item of [...movieResults, ...seriesResults]) {
+    for (const item of [...tvResults, ...movieResults, ...seriesResults]) {
       if (!seen.has(item.id)) {
         seen.add(item.id);
         combined.push(item);
@@ -248,6 +253,21 @@ app.get('/api/test', async (req, res) => {
   const config = parseConfig(null, req.query);
 
   const startMs = Date.now();
+
+  // Handle Live TV Channels directly
+  if (id.startsWith('mediaklikk-live-')) {
+    try {
+      const liveResult = await getStreams('tv', id, config);
+      return res.json({
+        streams: liveResult.streams || [],
+        queryId: id,
+        durationMs: Date.now() - startMs
+      });
+    } catch (e) {
+      return res.status(500).json({ error: e.message, streams: [] });
+    }
+  }
+
   let matchedItem = null;
   if (!id.startsWith('tt')) {
     try {
