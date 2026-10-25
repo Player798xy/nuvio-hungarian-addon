@@ -868,6 +868,10 @@
         <span class="chip" onclick="quickSearch('A Jó a Rossz és a Csúf')">🎬 A Jó a Rossz és a Csúf</span>
       </div>
 
+      <div id="loadingIndicator" style="display: none; margin-top: 1.2rem; color: #38bdf8; font-weight: 600;">
+        <span class="pulse-dot"></span> ⏳ Címek keresése a katalógusban...
+      </div>
+
       <!-- Catalog Cards Grid -->
       <div id="catalogList" class="catalog-results" style="display: none;"></div>
 
@@ -1065,7 +1069,7 @@
       seriesView.innerHTML = '';
       seriesView.style.display = 'none';
       streamsList.innerHTML = '';
-      loader.style.display = 'block';
+      if (loader) loader.style.display = 'block';
 
       if (rawInput.startsWith('tt')) {
         await loadStreamsForId(rawInput);
@@ -1078,7 +1082,7 @@
         const data = await res.json();
         const results = data.results || [];
 
-        loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
 
         if (results.length > 0) {
           catalogList.style.display = 'grid';
@@ -1111,7 +1115,7 @@
           await loadStreamsForId(rawInput);
         }
       } catch (err) {
-        loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
         await loadStreamsForId(rawInput);
       }
     }
@@ -1137,12 +1141,12 @@
     async function loadSeriesEpisodes(seriesId, titleHint) {
       const seriesView = document.getElementById('seriesView');
       const loader = document.getElementById('loadingIndicator');
-      loader.style.display = 'block';
+      if (loader) loader.style.display = 'block';
 
       try {
         const res = await fetch(`/api/episodes?id=${encodeURIComponent(seriesId)}`);
         const data = await res.json();
-        loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
 
         if (!data || !data.seasons || Object.keys(data.seasons).length === 0) {
           // Fallback if episodes not found
@@ -1168,7 +1172,7 @@
           await loadStreamsForId(firstEp.id, `${data.name} - ${initialSeason}. Évad ${firstEp.episode}. Rész`);
         }
       } catch (err) {
-        loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
         await loadStreamsForId(`${seriesId}:1:1`, titleHint);
       }
     }
