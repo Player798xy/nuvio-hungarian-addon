@@ -30,6 +30,91 @@ const FEATURED_HUNGARIAN_MOVIES = [
   { id: 'tt0362758', name: 'Indul a bakterház', type: 'movie', poster: 'https://images.metahub.space/poster/medium/tt0362758/img', year: '1980', description: 'Klasszikus magyar vígjáték.' }
 ];
 
+const actorFilmographyCache = new Map();
+
+/**
+ * Searches filmography when user queries an actor or person name (e.g. "Bud Spencer", "Terence Hill").
+ * Resolves Wikidata entity and fetches all starring movies with Hungarian titles.
+ */
+async function searchActorFilmography(query) {
+  if (!query || query.length < 3) return [];
+  const clean = query.trim().toLowerCase();
+  if (actorFilmographyCache.has(clean)) {
+    return actorFilmographyCache.get(clean);
+  }
+
+  try {
+    const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=hu&type=item&format=json`;
+    const sRes = await fetch(searchUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      signal: AbortSignal.timeout(2500)
+    });
+    if (!sRes.ok) return [];
+
+    const sData = await sRes.json();
+    const searchList = sData.search || [];
+    if (searchList.length === 0) return [];
+
+    const actorEntity = searchList.find(item => {
+      const desc = (item.description || '').toLowerCase();
+      return desc.includes('actor') || desc.includes('színész') || desc.includes('szinesz') || desc.includes('actress') || desc.includes('film');
+    }) || searchList[0];
+
+    const desc = (actorEntity.description || '').toLowerCase();
+    const isPerson = desc.includes('actor') || desc.includes('színész') || desc.includes('szinesz') || desc.includes('actress') || desc.includes('film') || desc.includes('director') || desc.includes('producer');
+    if (!isPerson && searchList.length > 3) {
+      return [];
+    }
+
+    const qId = actorEntity.id;
+
+    const sparql = `SELECT DISTINCT ?item ?itemLabel ?imdbId ?year WHERE {
+      ?item wdt:P161 wd:${qId} .
+      ?item wdt:P345 ?imdbId .
+      OPTIONAL { ?item wdt:P577 ?date . BIND(YEAR(?date) AS ?year) }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "hu,en". }
+    } ORDER BY DESC(?year) LIMIT 35`;
+
+    const qUrl = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
+    const qRes = await fetch(qUrl, {
+      headers: {
+        'User-Agent': 'NuvioHungarianAddon/1.0',
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(3500)
+    });
+
+    if (!qRes.ok) return [];
+    const qData = await qRes.json();
+    const bindings = qData.results?.bindings || [];
+
+    const movies = [];
+    const seen = new Set();
+    for (const b of bindings) {
+      const imdbId = b.imdbId?.value;
+      if (!imdbId || seen.has(imdbId)) continue;
+      seen.add(imdbId);
+
+      const title = b.itemLabel?.value || '';
+      const year = b.year?.value || '';
+
+      movies.push({
+        id: imdbId,
+        type: 'movie',
+        name: title,
+        poster: `https://images.metahub.space/poster/medium/${imdbId}/img`,
+        year,
+        description: `${actorEntity.label || query} filmje (${year})`
+      });
+    }
+
+    actorFilmographyCache.set(clean, movies);
+    return movies;
+  } catch (err) {
+    return [];
+  }
+}
+
 async function searchCatalog(type, query) {
   if (!query) {
     return type === 'series' ? FEATURED_HUNGARIAN_SERIES : FEATURED_HUNGARIAN_MOVIES;
@@ -38,6 +123,19 @@ async function searchCatalog(type, query) {
   const results = [];
   const seenIds = new Set();
   const cleanQuery = query.trim();
+
+  // Check if query is an actor name (e.g. Bud Spencer, Terence Hill)
+  if (!type || type === 'movie') {
+    try {
+      const actorMovies = await searchActorFilmography(cleanQuery);
+      for (const m of actorMovies) {
+        if (!seenIds.has(m.id)) {
+          seenIds.add(m.id);
+          results.push(m);
+        }
+      }
+    } catch (e) {}
+  }
 
   // 1. First search JobbMintATV (Hungarian titles & aliases map directly to IMDb)
   try {

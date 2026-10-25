@@ -30,13 +30,14 @@ async function extractOkRuStreams(embedUrl, srcName = 'Filmezek') {
       for (const v of meta.videos) {
         let height = 480;
         let qLabel = '480p';
-        if (v.name === 'ultra' || v.name === 'quad') {
+        const vName = (v.name || '').toLowerCase();
+        if (vName === 'ultra' || vName === 'quad' || vName === 'full' || vName === 'fhd' || vName.includes('1080')) {
           height = 1080;
           qLabel = '1080p FHD';
-        } else if (v.name === 'hd') {
+        } else if (vName === 'hd' || vName.includes('720')) {
           height = 720;
           qLabel = '720p HD';
-        } else if (v.name === 'sd') {
+        } else if (vName === 'sd' || vName.includes('480')) {
           height = 480;
           qLabel = '480p SD';
         } else {

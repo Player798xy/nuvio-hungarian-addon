@@ -417,7 +417,7 @@ async function scrapeVidea(meta) {
         if (!seenVideoIds.has(vid)) {
           seenVideoIds.add(vid);
           candidateIds.push(vid);
-          if (candidateIds.length >= 4) break;
+          if (candidateIds.length >= 8) break;
         }
       }
 
@@ -461,11 +461,13 @@ async function scrapeVidea(meta) {
           });
         }
 
-        // Stop if we found enough high-quality full streams
-        if (streams.length >= 6) break;
+        // Keep collecting to maximize 1080p finds
+        const count1080 = streams.filter(s => s.height >= 1080).length;
+        if (count1080 >= 5 || streams.length >= 15) break;
       }
 
-      if (streams.length >= 4) break;
+      const count1080 = streams.filter(s => s.height >= 1080).length;
+      if (count1080 >= 4 || streams.length >= 12) break;
     } catch (e) {
       // Continue to next search term
     }

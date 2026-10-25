@@ -860,6 +860,8 @@
 
       <div class="chips-container">
         <span style="font-size: 0.8rem; color: #64748b; align-self: center;">Gyors keresés:</span>
+        <span class="chip" onclick="quickSearch('Bud Spencer')">🤠 Bud Spencer</span>
+        <span class="chip" onclick="quickSearch('Terence Hill')">🎬 Terence Hill</span>
         <span class="chip" onclick="quickSearch('Magyar népmesék')">📺 Magyar népmesék</span>
         <span class="chip" onclick="quickSearch('A Mandalóri')">📺 A Mandalóri</span>
         <span class="chip" onclick="quickSearch('Mézga család')">📺 Mézga család</span>
@@ -1086,7 +1088,7 @@
 
         if (results.length > 0) {
           catalogList.style.display = 'grid';
-          results.slice(0, 10).forEach((item, idx) => {
+          results.slice(0, 30).forEach((item, idx) => {
             const card = document.createElement('div');
             card.className = 'catalog-card' + (idx === 0 ? ' active' : '');
             const isSeries = item.type === 'series';

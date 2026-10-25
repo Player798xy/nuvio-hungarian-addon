@@ -57,11 +57,10 @@ async function scrapeJobbMintATV(meta) {
 
         if (links.length === 0) continue;
 
-        // Find best matching item
+        // Find top matching candidate releases
         const normTarget = normalize(hu);
         const targetSlug = normTarget.replace(/\s+/g, '_');
-        let bestItem = null;
-        let bestScore = -1;
+        const scoredItems = [];
 
         for (const item of links) {
           const normTitle = normalize(item.title);
@@ -81,94 +80,98 @@ async function scrapeJobbMintATV(meta) {
             score += (overlap / Math.max(targetWords.length, 1)) * 40;
           }
 
-          if (score > bestScore) {
-            bestScore = score;
-            bestItem = item;
+          if (score >= 40) {
+            scoredItems.push({ item, score });
           }
         }
 
-        if (!bestItem || bestScore < 40) continue;
+        if (scoredItems.length === 0) continue;
+        scoredItems.sort((a, b) => b.score - a.score);
+        const candidates = scoredItems.slice(0, 3).map(x => x.item);
 
-        let targetUrl = bestItem.url;
+        await Promise.all(candidates.map(async (candidate) => {
+          let targetUrl = candidate.url;
 
-        // If series, construct episode URL
-        if (meta.season && meta.episode) {
-          const s = meta.season;
-          const e = meta.episode;
-          // Format: /online/{slug}/{s}_evad/{e}_resz/
-          const cleanUrl = targetUrl.replace(/\/+$/, '');
-          targetUrl = `${cleanUrl}/${s}_evad/${e}_resz/`;
-        }
+          // If series, construct episode URL
+          if (meta.season && meta.episode) {
+            const s = meta.season;
+            const e = meta.episode;
+            const cleanUrl = targetUrl.replace(/\/+$/, '');
+            targetUrl = `${cleanUrl}/${s}_evad/${e}_resz/`;
+          }
 
-        const pageRes = await fetch(targetUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          },
-          signal: AbortSignal.timeout(5000)
-        });
-        if (!pageRes.ok) continue;
+          try {
+            const pageRes = await fetch(targetUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+              },
+              signal: AbortSignal.timeout(5000)
+            });
+            if (!pageRes.ok) return;
 
-        const pageHtml = await pageRes.text();
-        const iframes = [...pageHtml.matchAll(/<iframe[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
+            const pageHtml = await pageRes.text();
+            const iframes = [...pageHtml.matchAll(/<iframe[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
 
-        for (const ifr of iframes) {
-          let iframeSrc = ifr.startsWith('//') ? 'https:' + ifr : ifr;
+            for (const ifr of iframes) {
+              let iframeSrc = ifr.startsWith('//') ? 'https:' + ifr : ifr;
 
-          // 1. Videa embed -> decode direct MP4s
-          if (iframeSrc.includes('videa.hu/player?v=')) {
-            const vcodeMatch = iframeSrc.match(/v=([a-zA-Z0-9]{16})/);
-            if (vcodeMatch) {
-              const vcode = vcodeMatch[1];
-              const vData = await extractVideaStreams(vcode);
-              const vStreams = vData?.sources || [];
-              for (const vs of vStreams) {
-                const qualLabel = vs.height >= 1080 ? '1080p FHD' : vs.height >= 720 ? '720p HD' : `${vs.height}p`;
-                streams.push({
-                  name: `[HU] JobbMintATV ${qualLabel}`,
-                  title: `${bestItem.title}\n🇭🇺 JobbMintATV (Videa) • ${qualLabel} • Szinkron`,
-                  url: vs.url,
-                  quality: vs.height >= 1080 ? '1080p' : vs.height >= 720 ? '720p' : '480p',
-                  height: vs.height,
-                  source: 'jobbmintatv'
-                });
+              // 1. Videa embed -> decode direct MP4s
+              if (iframeSrc.includes('videa.hu/player?v=')) {
+                const vcodeMatch = iframeSrc.match(/v=([a-zA-Z0-9]{16})/);
+                if (vcodeMatch) {
+                  const vcode = vcodeMatch[1];
+                  const vData = await extractVideaStreams(vcode);
+                  const vStreams = vData?.sources || [];
+                  for (const vs of vStreams) {
+                    const qualLabel = vs.height >= 1080 ? '1080p FHD' : vs.height >= 720 ? '720p HD' : `${vs.height}p`;
+                    streams.push({
+                      name: `[HU] JobbMintATV ${qualLabel}`,
+                      title: `${candidate.title}\n🇭🇺 JobbMintATV (Videa) • ${qualLabel} • Szinkron`,
+                      url: vs.url,
+                      quality: vs.height >= 1080 ? '1080p' : vs.height >= 720 ? '720p' : '480p',
+                      height: vs.height,
+                      source: 'jobbmintatv'
+                    });
+                  }
+                }
+              }
+
+              // 2. Indavideo embed -> decode direct MP4s
+              if (iframeSrc.includes('embed.indavideo.hu/player/video/')) {
+                const ihashMatch = iframeSrc.match(/video\/([a-zA-Z0-9]+)/);
+                if (ihashMatch) {
+                  const ihash = ihashMatch[1];
+                  const iData = await extractIndavideoStreams(ihash);
+                  const iStreams = iData?.streams || [];
+                  for (const is of iStreams) {
+                    const qualLabel = is.height >= 1080 ? '1080p FHD' : is.height >= 720 ? '720p HD' : `${is.height}p`;
+                    streams.push({
+                      name: `[HU] JobbMintATV (Inda) ${qualLabel}`,
+                      title: `${candidate.title}\n🇭🇺 JobbMintATV (Indavideo) • ${qualLabel} • Szinkron`,
+                      url: is.url,
+                      quality: is.height >= 1080 ? '1080p' : is.height >= 720 ? '720p' : '480p',
+                      height: is.height,
+                      source: 'jobbmintatv'
+                    });
+                  }
+                }
+              }
+
+              // 3. OK.ru embed -> decode direct MP4s / HLS
+              if (iframeSrc.includes('ok.ru/videoembed/')) {
+                const okStreams = await extractOkRuStreams(iframeSrc, 'JobbMintATV');
+                streams.push(...okStreams);
               }
             }
-          }
+          } catch (e) {}
+        }));
 
-          // 2. Indavideo embed -> decode direct MP4s
-          if (iframeSrc.includes('embed.indavideo.hu/player/video/')) {
-            const ihashMatch = iframeSrc.match(/video\/([a-zA-Z0-9]+)/);
-            if (ihashMatch) {
-              const ihash = ihashMatch[1];
-              const iData = await extractIndavideoStreams(ihash);
-              const iStreams = iData?.streams || [];
-              for (const is of iStreams) {
-                const qualLabel = is.height >= 1080 ? '1080p FHD' : is.height >= 720 ? '720p HD' : `${is.height}p`;
-                streams.push({
-                  name: `[HU] JobbMintATV (Inda) ${qualLabel}`,
-                  title: `${bestItem.title}\n🇭🇺 JobbMintATV (Indavideo) • ${qualLabel} • Szinkron`,
-                  url: is.url,
-                  quality: is.height >= 1080 ? '1080p' : is.height >= 720 ? '720p' : '480p',
-                  height: is.height,
-                  source: 'jobbmintatv'
-                });
-              }
-            }
-          }
-
-          // 3. OK.ru embed -> decode direct MP4s / HLS
-          if (iframeSrc.includes('ok.ru/videoembed/')) {
-            const okStreams = await extractOkRuStreams(iframeSrc, 'JobbMintATV');
-            streams.push(...okStreams);
-          }
-        }
-
-        if (streams.length > 0) break;
+        if (streams.length >= 6) break;
       } catch (err) {
         // Continue
       }
     }
-    if (streams.length > 0) break;
+    if (streams.length >= 6) break;
   }
 
   return streams;
