@@ -179,12 +179,16 @@ async function resolveHungarianQueryToEnglish(query) {
   }
 }
 
-async function searchCatalog(type, query) {
-  // If Live TV requested
-  if (type === 'tv') {
-    if (!query) return LIVE_CHANNELS;
+async function searchCatalog(type, query, catalogId = null) {
+  // If Live TV catalog requested (either by catalog id or by type)
+  if (catalogId === 'hu-live-tv' || catalogId === 'hu-live-tv-channel' || type === 'tv' || type === 'channel') {
+    const list = LIVE_CHANNELS.map(ch => ({
+      ...ch,
+      type: type || 'movie'
+    }));
+    if (!query) return list;
     const qNorm = normalize(query);
-    return LIVE_CHANNELS.filter(ch => 
+    return list.filter(ch => 
       normalize(ch.name).includes(qNorm) || 
       normalize(ch.description).includes(qNorm) ||
       ch.channelKey.includes(qNorm)
@@ -192,8 +196,8 @@ async function searchCatalog(type, query) {
   }
 
   if (!query) {
-    if (type === 'series') return FEATURED_HUNGARIAN_SERIES;
-    if (type === 'movie') return FEATURED_HUNGARIAN_MOVIES;
+    if (catalogId === 'hu-series' || type === 'series') return FEATURED_HUNGARIAN_SERIES;
+    if (catalogId === 'hu-movies' || type === 'movie') return FEATURED_HUNGARIAN_MOVIES;
     return [...LIVE_CHANNELS, ...FEATURED_HUNGARIAN_MOVIES, ...FEATURED_HUNGARIAN_SERIES];
   }
 
@@ -368,19 +372,23 @@ async function getMeta(type, id) {
   if (!id) return null;
 
   // Handle Live TV channels
-  if (type === 'tv' || id.startsWith('mediaklikk-live-')) {
+  if (type === 'tv' || type === 'channel' || type === 'movie' || (id && id.startsWith('mediaklikk-live-'))) {
     const channel = LIVE_CHANNELS.find(ch => ch.id === id || ch.channelKey === id);
     if (channel) {
       return {
         meta: {
           id: channel.id,
-          type: 'tv',
+          type: type || 'movie',
           name: channel.name,
           poster: channel.poster,
           background: channel.poster,
           logo: channel.logo,
           description: channel.description,
-          releaseInfo: channel.year
+          releaseInfo: channel.year,
+          behaviorHints: {
+            defaultVideoId: channel.id,
+            isLive: true
+          }
         }
       };
     }

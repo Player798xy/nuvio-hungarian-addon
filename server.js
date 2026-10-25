@@ -152,7 +152,7 @@ app.get([
   }
 
   try {
-    const metas = await searchCatalog(type, search);
+    const metas = await searchCatalog(type, search, id);
     res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
     res.json({ metas: metas || [] });
   } catch (err) {

@@ -15,9 +15,9 @@ const LIVE_CHANNELS = [
     streamId: 'mtv4live',
     pageUrl: 'https://m4sport.hu/elo/',
     name: 'M4 Sport Élő',
-    type: 'tv',
-    poster: `${HOST_URL}/channels/poster-m4.svg`,
-    logo: `${HOST_URL}/channels/m4.svg`,
+    type: 'movie',
+    poster: `${HOST_URL}/channels/poster-m4.png`,
+    logo: `${HOST_URL}/channels/m4.png`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'A nemzeti sportcsatorna: Forma-1, magyar és nemzetközi labdarúgó bajnokságok, Bajnokok Ligája és olimpiai közvetítések 24 órában élőben.'
   },
@@ -27,9 +27,9 @@ const LIVE_CHANNELS = [
     streamId: 'mtv4plus',
     pageUrl: 'https://mediaklikk.hu/m4-sport-plusz-elo/',
     name: 'M4 Sport+ Élő',
-    type: 'tv',
-    poster: `${HOST_URL}/channels/poster-m4plus.svg`,
-    logo: `${HOST_URL}/channels/m4plus.svg`,
+    type: 'movie',
+    poster: `${HOST_URL}/channels/poster-m4plus.png`,
+    logo: `${HOST_URL}/channels/m4plus.png`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'M4 Sport Plusz: párhuzamosan közvetített hazai és nemzetközi rangadók, bajnokságok és élő körkapcsolások.'
   },
@@ -39,9 +39,9 @@ const LIVE_CHANNELS = [
     streamId: 'mtv1live',
     pageUrl: 'https://mediaklikk.hu/elo/mtv1live/',
     name: 'M1 Híradó Élő',
-    type: 'tv',
-    poster: `${HOST_URL}/channels/poster-m1.svg`,
-    logo: `${HOST_URL}/channels/m1.svg`,
+    type: 'movie',
+    poster: `${HOST_URL}/channels/poster-m1.png`,
+    logo: `${HOST_URL}/channels/m1.png`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'Nemzeti hírcsatorna: élő híradások, percről percre frissülő tudósítások, rendkívüli bejelentések és háttérelemzések.'
   },
@@ -51,9 +51,9 @@ const LIVE_CHANNELS = [
     streamId: 'mtv2live',
     pageUrl: 'https://mediaklikk.hu/elo/mtv2live/',
     name: 'M2 Gyerek & Petőfi TV Élő',
-    type: 'tv',
-    poster: `${HOST_URL}/channels/poster-m2.svg`,
-    logo: `${HOST_URL}/channels/m2.svg`,
+    type: 'movie',
+    poster: `${HOST_URL}/channels/poster-m2.png`,
+    logo: `${HOST_URL}/channels/m2.png`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'Nappal M2 Gyerekcsatorna (klasszikus és új rajzfilmek, mesék), este Petőfi TV (zene, koncertek és ifjúsági magazinok).'
   },
@@ -63,9 +63,9 @@ const LIVE_CHANNELS = [
     streamId: 'mtv5live',
     pageUrl: 'https://mediaklikk.hu/elo/mtv5live/',
     name: 'M5 Kultúra Élő',
-    type: 'tv',
-    poster: `${HOST_URL}/channels/poster-m5.svg`,
-    logo: `${HOST_URL}/channels/m5.svg`,
+    type: 'movie',
+    poster: `${HOST_URL}/channels/poster-m5.png`,
+    logo: `${HOST_URL}/channels/m5.png`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'Kulturális, oktatási és tudományos csatorna: színházi közvetítések, hangversenyek, irodalom és minőségi dokumentumfilmek.'
   },
@@ -75,9 +75,9 @@ const LIVE_CHANNELS = [
     streamId: 'dunalive',
     pageUrl: 'https://mediaklikk.hu/elo/duna/',
     name: 'Duna TV Élő',
-    type: 'tv',
-    poster: `${HOST_URL}/channels/poster-duna.svg`,
-    logo: `${HOST_URL}/channels/duna.svg`,
+    type: 'movie',
+    poster: `${HOST_URL}/channels/poster-duna.png`,
+    logo: `${HOST_URL}/channels/duna.png`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'A nemzeti főadó: magyar filmek, közkedvelt sorozatok, családi és kulturális műsorok 24 órában élőben.'
   },
@@ -87,9 +87,9 @@ const LIVE_CHANNELS = [
     streamId: 'dunaworldlive',
     pageUrl: 'https://mediaklikk.hu/elo/dunaworldlive/',
     name: 'Duna World Élő',
-    type: 'tv',
-    poster: `${HOST_URL}/channels/poster-dunaworld.svg`,
-    logo: `${HOST_URL}/channels/dunaworld.svg`,
+    type: 'movie',
+    poster: `${HOST_URL}/channels/poster-dunaworld.png`,
+    logo: `${HOST_URL}/channels/dunaworld.png`,
     year: 'ÉLŐ • 1080p FHD',
     description: 'A határon túli magyarság csatornája: nemzetiségi műsorok, néphagyományok és magyar klasszikusok.'
   }
@@ -253,27 +253,29 @@ async function getLiveChannelStreams(channelIdOrKey, clientIp = null, hostUrl = 
 
   return [
     {
-      name: `🔴 ${channel.name} [1080p FHD Azonnali]`,
-      title: `⚡ 1080p FULL HD AZONNALI INDÍTÁS • MTVA HLS\n${channel.description}\nKözvetlen 1080p indítás az első másodperctől, nulla felbontásugrálás vagy homályos indulás.`,
-      url: instant1080Url,
-      playerUrl: officialPageUrl,
-      quality: '1080p',
-      height: 1080,
-      source: 'mediaklikk',
-      behaviorHints: {
-        notWebReady: false
-      }
-    },
-    {
-      name: `🔴 ${channel.name} [Eredeti Auto ABR]`,
-      title: `📡 Eredeti MédiaKlikk CDN Stream (240p - 1080p Adaptív Bitráta)\n${channel.description}`,
+      name: `🔴 ${channel.name} [1080p FHD Élő Közvetítés]`,
+      title: `⚡ Hivatalos MTVA CDN Élő Közvetítés (1080p Full HD)\n${channel.description}\nKözvetlen adás TV-re és mobilra optimalizálva.`,
       url: hlsUrl,
       playerUrl: officialPageUrl,
       quality: '1080p',
       height: 1080,
       source: 'mediaklikk',
       behaviorHints: {
-        notWebReady: false
+        notWebReady: false,
+        isLive: true
+      }
+    },
+    {
+      name: `🔴 ${channel.name} [1080p FHD Azonnali Rewriter]`,
+      title: `⚡ 1080p FULL HD AZONNALI INDÍTÁS • MTVA HLS Rewriter\n${channel.description}\nKözvetlen 1080p indítás az első másodperctől, nulla felbontásugrálás.`,
+      url: instant1080Url,
+      playerUrl: officialPageUrl,
+      quality: '1080p',
+      height: 1080,
+      source: 'mediaklikk',
+      behaviorHints: {
+        notWebReady: false,
+        isLive: true
       }
     }
   ];

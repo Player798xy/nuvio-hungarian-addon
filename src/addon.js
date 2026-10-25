@@ -67,20 +67,20 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.5.0',
+    version: '1.6.0',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
     icon: `${hostUrl}/logo.png`,
     background: `${hostUrl}/logo.png`,
     resources: ['catalog', 'stream', 'meta'],
-    types: ['movie', 'series', 'tv'],
+    types: ['movie', 'series', 'channel', 'tv'],
     idPrefixes: ['tt', 'mediaklikk-live-'],
     catalogs: [
       {
-        type: 'tv',
+        type: 'movie',
         id: 'hu-live-tv',
-        name: '🔴 Magyar Élő TV (MédiaKlikk)',
+        name: '🔴 Magyar Élő TV (M4 Sport, M1, Duna)',
         extra: [
           { name: 'search', isRequired: false },
           { name: 'skip', isRequired: false }
@@ -103,6 +103,15 @@ function getManifest(config = {}) {
           { name: 'search', isRequired: false },
           { name: 'skip', isRequired: false }
         ]
+      },
+      {
+        type: 'tv',
+        id: 'hu-live-tv-channel',
+        name: '🔴 Magyar Élő TV (IPTV)',
+        extra: [
+          { name: 'search', isRequired: false },
+          { name: 'skip', isRequired: false }
+        ]
       }
     ],
     behaviorHints: {
@@ -114,7 +123,7 @@ function getManifest(config = {}) {
 
 async function getStreams(type, id, config = {}) {
   // Handle Live TV channels
-  if (type === 'tv' || (id && id.startsWith('mediaklikk-live-'))) {
+  if (type === 'tv' || type === 'channel' || (id && id.startsWith('mediaklikk-live-'))) {
     const liveStreams = await getLiveChannelStreams(id, config.clientIp, config.hostUrl);
     return { streams: liveStreams };
   }
