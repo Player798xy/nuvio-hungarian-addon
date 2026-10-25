@@ -100,6 +100,9 @@ app.get(['/manifest.json', '/:config/manifest.json'], (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
 
   const config = parseConfig(req.params.config, req.query);
+  const host = req.get('host') || 'nuvio-hungarian-addon.vercel.app';
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  config.hostUrl = `${proto}://${host}`;
   res.json(getManifest(config));
 });
 

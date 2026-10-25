@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0f1d" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)" />
+  <rect x="12" y="12" width="488" height="488" rx="88" stroke="url(#cyanGrad)" stroke-width="5" opacity="0.8" />
+
+  <!-- Hungarian Flag Tricolor -->
+  <g filter="url(#glow)">
+    <rect x="96" y="115" width="320" height="55" rx="8" fill="#dc2626" />
+    <rect x="96" y="170" width="320" height="55" fill="#f8fafc" />
+    <rect x="96" y="225" width="320" height="55" rx="8" fill="#16a34a" />
+  </g>
+  <rect x="96" y="115" width="320" height="165" rx="10" stroke="#1e293b" stroke-width="4" fill="none" />
+
+  <!-- Center Play Button -->
+  <circle cx="256" cy="198" r="62" fill="#0a0f1d" stroke="#38bdf8" stroke-width="6" />
+  <polygon points="244,170 244,226 288,198" fill="#38bdf8" />
+
+  <!-- Typography -->
+  <text x="256" y="340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="36" font-weight="800" fill="#f1f5f9" text-anchor="middle" letter-spacing="1.5">HUNGARIAN</text>
+  <text x="256" y="390" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="800" fill="#38bdf8" text-anchor="middle" letter-spacing="3">STREAMS</text>
+
+  <!-- 1080p FHD Badge -->
+  <rect x="186" y="420" width="140" height="34" rx="6" fill="#10b981" />
+  <text x="256" y="443" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="800" fill="#ffffff" text-anchor="middle">1080p FHD</text>
+</svg>

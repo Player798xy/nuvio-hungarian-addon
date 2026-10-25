@@ -61,11 +61,16 @@ function getManifest(config = {}) {
     name = `Hungarian Streams [${config.sources.length} forrás]`;
   }
 
+  const hostUrl = config.hostUrl || 'https://nuvio-hungarian-addon.vercel.app';
+
   return {
     id: 'community.nuvio.hungarian.streams',
     version: '1.5.0',
     name,
     description: desc,
+    logo: `${hostUrl}/logo.png`,
+    icon: `${hostUrl}/logo.png`,
+    background: `${hostUrl}/logo.png`,
     resources: ['catalog', 'stream', 'meta'],
     types: ['movie', 'series'],
     idPrefixes: ['tt'],
