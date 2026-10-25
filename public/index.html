@@ -604,12 +604,24 @@
       border-color: #38bdf8;
     }
 
-    /* Catalog Cards */
+    /* Catalog Cards - Exactly 1 Row of 6 items per page */
     .catalog-results {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.85rem;
       margin-top: 1.5rem;
+      align-items: stretch;
+    }
+
+    @media (max-width: 768px) {
+      .catalog-results {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(135px, 1fr);
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        scrollbar-width: thin;
+      }
     }
 
     .catalog-card {
@@ -2078,7 +2090,7 @@
     // Catalog Pagination State
     let currentCatalogResults = [];
     let currentCatalogPage = 1;
-    const CATALOG_ITEMS_PER_PAGE = 12;
+    const CATALOG_ITEMS_PER_PAGE = 6;
 
     function renderCatalogPage(page = 1) {
       const catalogList = document.getElementById('catalogList');
