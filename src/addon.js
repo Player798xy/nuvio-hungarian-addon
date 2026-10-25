@@ -115,7 +115,7 @@ function getManifest(config = {}) {
 async function getStreams(type, id, config = {}) {
   // Handle Live TV channels
   if (type === 'tv' || (id && id.startsWith('mediaklikk-live-'))) {
-    const liveStreams = await getLiveChannelStreams(id);
+    const liveStreams = await getLiveChannelStreams(id, config.clientIp);
     return { streams: liveStreams };
   }
 

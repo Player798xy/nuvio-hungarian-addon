@@ -89,6 +89,15 @@ function parseConfig(configStr, query = {}) {
   return config;
 }
 
+function getClientIp(req) {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  if (xForwardedFor) {
+    const first = xForwardedFor.split(',')[0].trim();
+    if (first) return first;
+  }
+  return req.headers['x-real-ip'] || req.socket?.remoteAddress || null;
+}
+
 // Serve static UI assets
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -179,6 +188,7 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
 
   const { type, id } = req.params;
   const config = parseConfig(req.params.config, req.query);
+  config.clientIp = getClientIp(req);
 
   try {
     const result = await getStreams(type, id, config);
@@ -251,6 +261,7 @@ app.get('/api/test', async (req, res) => {
   let id = req.query.id || 'tt8111088:1:1';
   id = id.trim();
   const config = parseConfig(null, req.query);
+  config.clientIp = getClientIp(req);
 
   const startMs = Date.now();
 

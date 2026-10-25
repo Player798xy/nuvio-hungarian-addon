@@ -103,23 +103,34 @@ function normalize(str) {
 /**
  * Resolves the direct HLS m3u8 stream for an MTVA live TV channel
  * @param {string} streamId e.g. 'dunalive', 'mtv1live', 'mtv4live'
+ * @param {string|null} clientIp Optional user client IP for ConnectMedia token binding
  * @returns {Promise<string|null>} HLS stream URL
  */
-async function getLiveHlsStream(streamId) {
+async function getLiveHlsStream(streamId, clientIp = null) {
   if (!streamId) return null;
 
-  const cached = LIVE_STREAM_CACHE.get(streamId);
+  // Cache per IP since ConnectMedia token binds to the requesting IP
+  const cacheKey = clientIp ? `${streamId}:${clientIp}` : streamId;
+  const cached = LIVE_STREAM_CACHE.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp < LIVE_CACHE_TTL_MS)) {
     return cached.url;
   }
 
   try {
     const playerUrl = `https://player.mediaklikk.hu/playernew/player.php?video=${encodeURIComponent(streamId)}`;
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://mediaklikk.hu/'
+    };
+
+    if (clientIp) {
+      headers['X-Forwarded-For'] = clientIp;
+      headers['X-Real-IP'] = clientIp;
+      headers['Client-IP'] = clientIp;
+    }
+
     const res = await fetch(playerUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://mediaklikk.hu/'
-      },
+      headers,
       signal: AbortSignal.timeout(4000)
     });
 
@@ -128,11 +139,10 @@ async function getLiveHlsStream(streamId) {
     const match = html.match(/"file":\s*"([^"]+\.m3u8[^"]*)"/i);
     if (match) {
       const hlsUrl = match[1].replace(/\\\//g, '/');
-      LIVE_STREAM_CACHE.set(streamId, { url: hlsUrl, timestamp: Date.now() });
+      LIVE_STREAM_CACHE.set(cacheKey, { url: hlsUrl, timestamp: Date.now() });
       return hlsUrl;
     }
   } catch (err) {
-    // Return stale cache if available
     if (cached) return cached.url;
   }
   return null;
@@ -140,8 +150,10 @@ async function getLiveHlsStream(streamId) {
 
 /**
  * Resolves streams for a live channel ID (e.g. 'mediaklikk-live-duna' or 'duna')
+ * @param {string} channelIdOrKey Channel identifier
+ * @param {string|null} clientIp User's client IP
  */
-async function getLiveChannelStreams(channelIdOrKey) {
+async function getLiveChannelStreams(channelIdOrKey, clientIp = null) {
   const cleanId = (channelIdOrKey || '').toLowerCase();
   const channel = LIVE_CHANNELS.find(ch => 
     ch.id === cleanId || 
@@ -152,14 +164,17 @@ async function getLiveChannelStreams(channelIdOrKey) {
 
   if (!channel) return [];
 
-  const hlsUrl = await getLiveHlsStream(channel.streamId);
+  const hlsUrl = await getLiveHlsStream(channel.streamId, clientIp);
   if (!hlsUrl) return [];
+
+  const playerEmbedUrl = `https://player.mediaklikk.hu/playernew/player.php?video=${channel.streamId}`;
 
   return [
     {
       name: `🔴 ${channel.name} [ÉLŐ FHD]`,
       title: `🔴 ÉLŐ ADÁS • MédiaKlikk HLS Stream (1080p)\n${channel.description}`,
       url: hlsUrl,
+      playerUrl: playerEmbedUrl,
       quality: '1080p',
       height: 1080,
       source: 'mediaklikk',

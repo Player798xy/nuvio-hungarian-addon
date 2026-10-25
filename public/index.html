@@ -2454,9 +2454,16 @@
                 </div>
                 <div style="color: #94a3b8; font-size: 0.82rem; margin-top: 0.3rem; white-space: pre-line; word-break: break-word;">${s.title}</div>
               </div>
-              <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; white-space: nowrap;">
-                ▶️ Lejátszás
-              </a>
+              <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                ${s.playerUrl ? `
+                  <a href="${s.playerUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.5rem 0.85rem; white-space: nowrap;">
+                    📺 MédiaKlikk Lejátszó
+                  </a>
+                ` : ''}
+                <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 0.85rem; white-space: nowrap;">
+                  ▶️ Közvetlen HLS
+                </a>
+              </div>
             </div>
           `;
         });
@@ -2475,6 +2482,49 @@
       }
 
       window.reRenderStreams = () => updateStreamsUI(true);
+
+      // SPECIAL HANDLING: If this is an MTVA Live TV Channel, fetch directly from user's browser
+      // so ConnectMedia CDN hashes the user's real client IP directly (preventing IP-mismatch 'err')
+      if (id.startsWith('mediaklikk-live-')) {
+        const streamIdMap = {
+          'mediaklikk-live-duna': 'dunalive',
+          'mediaklikk-live-m1': 'mtv1live',
+          'mediaklikk-live-m2': 'mtv2live',
+          'mediaklikk-live-m4': 'mtv4live',
+          'mediaklikk-live-m4plus': 'mtv4plus',
+          'mediaklikk-live-m5': 'mtv5live',
+          'mediaklikk-live-dunaworld': 'dunaworldlive'
+        };
+        const streamId = streamIdMap[id] || id.replace('mediaklikk-live-', '');
+        try {
+          const plRes = await fetch(`https://player.mediaklikk.hu/playernew/player.php?video=${streamId}`);
+          if (plRes.ok) {
+            const plHtml = await plRes.text();
+            const m3u8Match = plHtml.match(/"file":\s*"([^"]+\.m3u8[^"]*)"/i);
+            if (m3u8Match) {
+              const clientHls = m3u8Match[1].replace(/\\\//g, '/');
+              const channelTitle = titleLabel || 'Élő TV Csatorna';
+              allKnownStreams = [{
+                name: `🔴 ${channelTitle} [ÉLŐ FHD]`,
+                title: `🔴 ÉLŐ KÖZVETÍTÉS • MédiaKlikk HLS Stream (1080p)\nA token a saját IP-címedre generálva a közvetlen lejátszáshoz!`,
+                url: clientHls,
+                playerUrl: `https://player.mediaklikk.hu/playernew/player.php?video=${streamId}`,
+                quality: '1080p',
+                height: 1080,
+                source: 'mediaklikk'
+              }];
+              if (activeProgressInterval) {
+                clearInterval(activeProgressInterval);
+                activeProgressInterval = null;
+              }
+              updateStreamsUI(true);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Client-side player.php fetch error, falling back to server test endpoint:', e);
+        }
+      }
 
       // STEP 1: Fast Stage (~3s response)
       try {
