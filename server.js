@@ -5,7 +5,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { getManifest, getStreams } = require('./src/addon');
+const { getManifest, getStreams, searchCatalog, getMeta } = require('./src/addon');
 
 const app = express();
 const PORT = process.env.PORT || 7000;
@@ -22,6 +22,59 @@ app.get('/manifest.json', (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Content-Type', 'application/json');
   res.json(getManifest());
+});
+
+// Stremio / Nuvio Catalog Endpoint
+app.get(['/catalog/:type/:id.json', '/catalog/:type/:id/:extra.json'], async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Content-Type', 'application/json');
+
+  const { type, id, extra } = req.params;
+  let search = req.query.search;
+  let skip = parseInt(req.query.skip || '0', 10);
+
+  if (extra) {
+    const pairs = extra.split('&');
+    for (const pair of pairs) {
+      const idx = pair.indexOf('=');
+      if (idx !== -1) {
+        const key = pair.slice(0, idx);
+        const val = decodeURIComponent(pair.slice(idx + 1));
+        if (key === 'search') search = val;
+        if (key === 'skip') skip = parseInt(val, 10);
+      }
+    }
+  }
+
+  try {
+    const metas = await searchCatalog(type, search);
+    res.setHeader('Cache-Control', 'max-age=3600, stale-while-revalidate=86400');
+    res.json({ metas: metas || [] });
+  } catch (err) {
+    console.error(`[Server] Error processing catalog for ${type}/${id}:`, err);
+    res.json({ metas: [] });
+  }
+});
+
+// Stremio / Nuvio Meta Endpoint
+app.get('/meta/:type/:id.json', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Content-Type', 'application/json');
+
+  const { type, id } = req.params;
+  try {
+    const metaData = await getMeta(type, id);
+    if (metaData) {
+      res.setHeader('Cache-Control', 'max-age=86400, stale-while-revalidate=604800');
+      return res.json(metaData);
+    }
+    res.json({ meta: null });
+  } catch (err) {
+    console.error(`[Server] Error processing meta for ${type}/${id}:`, err);
+    res.json({ meta: null });
+  }
 });
 
 // Stremio / Nuvio Streams Endpoint

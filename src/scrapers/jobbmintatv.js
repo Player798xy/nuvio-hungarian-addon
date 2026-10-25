@@ -41,7 +41,13 @@ async function scrapeJobbMintATV(meta) {
         });
         if (!res.ok) continue;
 
-        const html = await res.text();
+        const buf = await res.arrayBuffer();
+        let html = '';
+        try {
+          html = new TextDecoder('iso-8859-2').decode(buf);
+        } catch (e) {
+          html = new TextDecoder('utf-8').decode(buf);
+        }
         if (html.includes('Nincs')) continue;
 
         const links = [...html.matchAll(/<a href=["']([^"']+)["'][^>]*><div[^>]*>([^<]+)<\/div><\/a>/gi)].map(m => ({
@@ -53,13 +59,14 @@ async function scrapeJobbMintATV(meta) {
 
         // Find best matching item
         const normTarget = normalize(hu);
+        const targetSlug = normTarget.replace(/\s+/g, '_');
         let bestItem = null;
         let bestScore = -1;
 
         for (const item of links) {
           const normTitle = normalize(item.title);
           let score = 0;
-          if (normTitle === normTarget) {
+          if (normTitle === normTarget || item.url.toLowerCase().includes(targetSlug)) {
             score += 100;
           } else if (normTitle.startsWith(normTarget) || normTarget.startsWith(normTitle)) {
             score += 60;
@@ -68,7 +75,7 @@ async function scrapeJobbMintATV(meta) {
             const itemWords = normTitle.split(' ').filter(w => w.length > 2);
             let overlap = 0;
             for (const w of targetWords) {
-              if (itemWords.includes(w)) overlap++;
+              if (itemWords.includes(w) || item.url.toLowerCase().includes(w)) overlap++;
             }
             if (overlap === 0) continue;
             score += (overlap / Math.max(targetWords.length, 1)) * 40;

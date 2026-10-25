@@ -4,6 +4,7 @@
  */
 
 const { getMediaMeta } = require('./utils/meta');
+const { searchCatalog, getMeta } = require('./catalog');
 const { scrapeVidea } = require('./scrapers/videa');
 const { scrapeIndavideo } = require('./scrapers/indavideo');
 const { scrapeJobbMintATV } = require('./scrapers/jobbmintatv');
@@ -14,13 +15,32 @@ const { scrapeHDMozi } = require('./scrapers/hdmozi');
 function getManifest() {
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.3.0',
+    version: '1.4.0',
     name: 'Hungarian Streams (Magyar Források)',
-    description: 'Magyar szinkronos filmek és sorozatok 1080p & 720p minőségben (Videa, Indavideo, JobbMintATV, Filmezek, OnlineFilmek, HDMozi) azonnali közvetlen indítással',
-    resources: ['stream'],
+    description: 'Magyar szinkronos filmek és sorozatok 1080p & 720p minőségben (Videa, Indavideo, JobbMintATV, Filmezek, OnlineFilmek, HDMozi) azonnali közvetlen indítással és magyar keresővel',
+    resources: ['catalog', 'stream', 'meta'],
     types: ['movie', 'series'],
     idPrefixes: ['tt'],
-    catalogs: [],
+    catalogs: [
+      {
+        type: 'series',
+        id: 'hu-series',
+        name: 'Magyar Sorozatok & Mesék',
+        extra: [
+          { name: 'search', isRequired: false },
+          { name: 'skip', isRequired: false }
+        ]
+      },
+      {
+        type: 'movie',
+        id: 'hu-movies',
+        name: 'Magyar Filmek',
+        extra: [
+          { name: 'search', isRequired: false },
+          { name: 'skip', isRequired: false }
+        ]
+      }
+    ],
     behaviorHints: {
       configurable: false
     }
@@ -88,5 +108,7 @@ async function getStreams(type, id) {
 
 module.exports = {
   getManifest,
-  getStreams
+  getStreams,
+  searchCatalog,
+  getMeta
 };
