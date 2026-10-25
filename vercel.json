@@ -32,6 +32,10 @@
       "dest": "/api/index.js"
     },
     {
+      "src": "/(logo\\.png|icon\\.png|logo\\.svg|favicon\\.ico)",
+      "dest": "/public/$1"
+    },
+    {
       "src": "/configure",
       "dest": "/public/index.html"
     },

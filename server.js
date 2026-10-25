@@ -92,6 +92,13 @@ function parseConfig(configStr, query = {}) {
 // Serve static UI assets
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve branding logos explicitly
+app.get(['/logo.png', '/icon.png', '/logo.svg'], (req, res) => {
+  const filename = path.basename(req.path);
+  const filePath = path.join(__dirname, 'public', filename);
+  res.sendFile(filePath);
+});
+
 // Stremio / Nuvio Manifest Endpoint (supports /manifest.json and /:config/manifest.json)
 app.get(['/manifest.json', '/:config/manifest.json'], (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
