@@ -27,6 +27,12 @@ function parseConfig(configStr, query = {}) {
   if (query.onlyHD === 'true' || query.onlyHD === '1') {
     config.onlyHD = true;
   }
+  if (query.stage) {
+    config.stage = query.stage.trim().toLowerCase();
+  }
+  if (query.timeout) {
+    config.timeoutMs = parseInt(query.timeout, 10);
+  }
 
   if (!configStr) return config;
 

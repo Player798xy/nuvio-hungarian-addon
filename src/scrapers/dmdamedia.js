@@ -51,7 +51,9 @@ async function scrapeDMDAMedia(meta) {
       if (links.length === 0) continue;
 
       const normTarget = normalize(hu);
-      for (const item of links.slice(0, 4)) {
+      const candidates = links.slice(0, 4);
+
+      await Promise.all(candidates.map(async (item) => {
         let targetUrl = `https://dmdamedia.hu${item.url}`;
 
         // If series, navigate to specific season & episode
@@ -64,9 +66,9 @@ async function scrapeDMDAMedia(meta) {
         try {
           const pageRes = await fetch(targetUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-            signal: AbortSignal.timeout(4000)
+            signal: AbortSignal.timeout(5000)
           });
-          if (!pageRes.ok) continue;
+          if (!pageRes.ok) return;
 
           const pageHtml = await pageRes.text();
           const iframes = [...pageHtml.matchAll(/<iframe[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
@@ -101,7 +103,7 @@ async function scrapeDMDAMedia(meta) {
               if (ihashMatch) {
                 const ihash = ihashMatch[1];
                 const iData = await extractIndavideoStreams(ihash);
-                const iStreams = iData?.sources || [];
+                const iStreams = iData?.streams || [];
                 for (const is of iStreams) {
                   const qualLabel = is.height >= 1080 ? '1080p FHD' : is.height >= 720 ? '720p HD' : `${is.height}p`;
                   streams.push({
@@ -117,9 +119,7 @@ async function scrapeDMDAMedia(meta) {
             }
           }
         } catch (e) {}
-
-        if (streams.length >= 4) break;
-      }
+      }));
 
       if (streams.length > 0) break;
     } catch (e) {}

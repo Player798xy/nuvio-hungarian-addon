@@ -56,19 +56,19 @@ async function scrapeFilmvilag(meta) {
       if (links.length === 0) continue;
 
       const normTarget = normalize(hu);
-      for (const item of links.slice(0, 3)) {
+      const candidates = links.slice(0, 3).filter(item => {
         const normItemTitle = normalize(item.title);
-        // Ensure reasonable title relevance
         const targetWords = normTarget.split(' ').filter(w => w.length > 2);
-        const matchesWord = targetWords.some(w => normItemTitle.includes(w) || item.url.toLowerCase().includes(w));
-        if (!matchesWord) continue;
+        return targetWords.some(w => normItemTitle.includes(w) || item.url.toLowerCase().includes(w));
+      });
 
+      await Promise.all(candidates.map(async (item) => {
         try {
           const artRes = await fetch(item.url, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-            signal: AbortSignal.timeout(4000)
+            signal: AbortSignal.timeout(5000)
           });
-          if (!artRes.ok) continue;
+          if (!artRes.ok) return;
 
           const artHtml = await artRes.text();
           const iframes = [...artHtml.matchAll(/<iframe[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
@@ -103,7 +103,7 @@ async function scrapeFilmvilag(meta) {
               if (ihashMatch) {
                 const ihash = ihashMatch[1];
                 const iData = await extractIndavideoStreams(ihash);
-                const iStreams = iData?.sources || [];
+                const iStreams = iData?.streams || [];
                 for (const is of iStreams) {
                   const qualLabel = is.height >= 1080 ? '1080p FHD' : is.height >= 720 ? '720p HD' : `${is.height}p`;
                   streams.push({
@@ -119,9 +119,7 @@ async function scrapeFilmvilag(meta) {
             }
           }
         } catch (e) {}
-
-        if (streams.length >= 4) break;
-      }
+      }));
 
       if (streams.length > 0) break;
     } catch (err) {

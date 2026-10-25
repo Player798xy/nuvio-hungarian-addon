@@ -608,6 +608,27 @@
       justify-content: space-between;
       align-items: center;
       gap: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .stream-card-fhd {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.04);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #60a5fa;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulseAnimation 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulseAnimation {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.4); opacity: 1; box-shadow: 0 0 8px #60a5fa; }
+      100% { transform: scale(0.9); opacity: 0.7; }
     }
 
     .badge-quality {
@@ -1119,72 +1140,173 @@
       loadStreamsForId(episodeId, label);
     }
 
-    // Fetches streams for a movie (tt...) or episode (tt...:s:e) using configured sources
+    let currentSearchToken = 0;
+
+    // Fetches streams progressively: quick initial results (~1s) + deep search for up to 10s for 1080p!
     async function loadStreamsForId(id, titleLabel) {
+      const searchToken = ++currentSearchToken;
       const streamsList = document.getElementById('streamsList');
       const loader = document.getElementById('loadingIndicator');
-      loader.style.display = 'block';
 
       const onlyHD = document.getElementById('onlyHDCheckbox').checked;
       const sourcesQuery = selectedSources.join(',');
 
-      try {
-        const res = await fetch(`/api/test?id=${encodeURIComponent(id)}&sources=${encodeURIComponent(sourcesQuery)}&onlyHD=${onlyHD ? '1' : '0'}`);
-        const data = await res.json();
+      // Reset UI
+      streamsList.innerHTML = '';
+      loader.style.display = 'block';
+      loader.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.6rem; color: #38bdf8;">
+          <span class="pulse-dot"></span>
+          <span>⚡ Gyors források beolvasása folyamatban...</span>
+        </div>
+      `;
+
+      let allKnownStreams = [];
+      const seenUrls = new Set();
+
+      function updateStreamsUI(isFinal = false, durationMs = null, newlyFound1080p = false) {
+        if (searchToken !== currentSearchToken) return;
+
         loader.style.display = 'none';
 
-        if (!data.streams || data.streams.length === 0) {
-          streamsList.innerHTML = `
-            <div style="color: #f87171; padding: 1.2rem; text-align: center; background: #0f172a; border-radius: 0.6rem; border: 1px solid #7f1d1d;">
-              Nem található közvetlen stream a kiválasztott forrásokkal ehhez: <strong>${titleLabel || id}</strong>.<br>
-              <span style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.4rem; display: inline-block;">
-                Tipp: Kapcsolj be további forrásokat a fenti beállításoknál (pl. JobbMintATV, DMDAMedia, Filmvilág2, MeseFilm)!
-              </span>
-            </div>
-          `;
+        if (allKnownStreams.length === 0) {
+          if (isFinal) {
+            streamsList.innerHTML = `
+              <div style="color: #f87171; padding: 1.2rem; text-align: center; background: #0f172a; border-radius: 0.6rem; border: 1px solid #7f1d1d;">
+                Nem található közvetlen stream a kiválasztott forrásokkal ehhez: <strong>${titleLabel || id}</strong>.<br>
+                <span style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.4rem; display: inline-block;">
+                  Tipp: Kapcsolj be további forrásokat a fenti beállításoknál (pl. JobbMintATV, DMDAMedia, Filmvilág2, MeseFilm)!
+                </span>
+              </div>
+            `;
+          }
           return;
         }
 
-        const duration = data.durationMs ? `${data.durationMs}ms` : '< 1s';
-        const isSuperFast = data.durationMs && data.durationMs < 1200;
+        // Sort: 1080p -> 720p -> 480p, direct MP4s first
+        allKnownStreams.sort((a, b) => {
+          const heightA = a.height || 0;
+          const heightB = b.height || 0;
+          if (heightB !== heightA) return heightB - heightA;
+          const isDirectA = a.source === 'videa' || a.source === 'indavideo' || a.source === 'jobbmintatv';
+          const isDirectB = b.source === 'videa' || b.source === 'indavideo' || b.source === 'jobbmintatv';
+          if (isDirectA && !isDirectB) return -1;
+          if (isDirectB && !isDirectA) return 1;
+          return 0;
+        });
 
-        streamsList.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
-            <div style="font-weight: 700; color: #38bdf8; font-size: 1.05rem;">
-              ✅ Talált források (${data.streams.length} db): ${titleLabel || data.queryId || id}
-            </div>
-            <div class="speed-badge" style="background: ${isSuperFast ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)'}; color: ${isSuperFast ? '#34d399' : '#60a5fa'};">
-              ⚡ Válaszidő: ${duration}
-            </div>
-          </div>
-        `;
+        const has1080p = allKnownStreams.some(s => (s.height >= 1080) || (s.name && s.name.includes('1080')));
+        const durationText = durationMs ? `${durationMs}ms` : '< 1s';
 
-        data.streams.forEach(s => {
-          const card = document.createElement('div');
-          card.className = 'stream-card';
-          
+        let bannerHtml = '';
+        if (!isFinal) {
+          bannerHtml = `
+            <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 0.5rem; padding: 0.65rem 0.9rem; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.85rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; color: #60a5fa;">
+                <span class="pulse-dot"></span>
+                <span>Gyors források beolvasva! <strong>További források keresése a háttérben 10 mp-ig (1080p vadászat)...</strong></span>
+              </div>
+              <span class="speed-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">Keresés folyamatban...</span>
+            </div>
+          `;
+        } else if (newlyFound1080p) {
+          bannerHtml = `
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.5rem; padding: 0.65rem 0.9rem; margin-bottom: 0.8rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.85rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; color: #34d399;">
+                <span>🎉</span>
+                <span><strong>Új 1080p Full HD stream(ek) találva a mélykeresés során!</strong></span>
+              </div>
+              <span class="speed-badge" style="background: rgba(16, 185, 129, 0.25); color: #34d399;">1080p Elérhető</span>
+            </div>
+          `;
+        }
+
+        let streamsCardsHtml = '';
+        allKnownStreams.forEach(s => {
           const is1080 = (s.height >= 1080) || (s.name && s.name.includes('1080'));
           const is720 = (s.height >= 720 && s.height < 1080) || (s.name && s.name.includes('720'));
           const badgeClass = is1080 ? 'badge-quality badge-1080' : is720 ? 'badge-quality badge-720' : 'badge-quality badge-480';
           const badgeText = is1080 ? '1080p FHD' : is720 ? '720p HD' : (s.height ? `${s.height}p` : 'SD');
 
-          card.innerHTML = `
-            <div style="flex: 1; min-width: 0;">
-              <div>
-                <span class="${badgeClass}">${badgeText}</span>
-                <strong style="color: #f1f5f9;">${s.name}</strong>
+          streamsCardsHtml += `
+            <div class="stream-card ${is1080 ? 'stream-card-fhd' : ''}">
+              <div style="flex: 1; min-width: 0;">
+                <div>
+                  <span class="${badgeClass}">${badgeText}</span>
+                  <strong style="color: #f1f5f9;">${s.name}</strong>
+                  ${is1080 ? '<span style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 0.15rem 0.4rem; border-radius: 0.25rem; margin-left: 0.4rem; font-weight: 700;">★ 1080p</span>' : ''}
+                </div>
+                <div style="color: #94a3b8; font-size: 0.82rem; margin-top: 0.3rem; white-space: pre-line; word-break: break-word;">${s.title}</div>
               </div>
-              <div style="color: #94a3b8; font-size: 0.82rem; margin-top: 0.3rem; white-space: pre-line; word-break: break-word;">${s.title}</div>
+              <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; white-space: nowrap;">
+                ▶️ Lejátszás
+              </a>
             </div>
-            <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; white-space: nowrap;">
-              ▶️ Lejátszás
-            </a>
           `;
-          streamsList.appendChild(card);
         });
+
+        streamsList.innerHTML = `
+          ${bannerHtml}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 1.05rem;">
+              ✅ Talált források (${allKnownStreams.length} db): ${titleLabel || id}
+            </div>
+            <div class="speed-badge" style="background: ${has1080p ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)'}; color: ${has1080p ? '#34d399' : '#60a5fa'};">
+              ${has1080p ? '💎 1080p FHD' : '📺 720p HD'} • ${durationText}
+            </div>
+          </div>
+          ${streamsCardsHtml}
+        `;
+      }
+
+      // STEP 1: Quick Fast Stage (~1s response)
+      try {
+        const fastRes = await fetch(`/api/test?id=${encodeURIComponent(id)}&sources=${encodeURIComponent(sourcesQuery)}&onlyHD=${onlyHD ? '1' : '0'}&stage=fast&timeout=2500`);
+        const fastData = await fastRes.json();
+
+        if (searchToken === currentSearchToken) {
+          if (fastData.streams && Array.isArray(fastData.streams)) {
+            for (const s of fastData.streams) {
+              if (s.url && !seenUrls.has(s.url)) {
+                seenUrls.add(s.url);
+                allKnownStreams.push(s);
+              }
+            }
+          }
+          // Immediately show initial fast streams!
+          updateStreamsUI(false, fastData.durationMs);
+        }
       } catch (err) {
-        loader.style.display = 'none';
-        streamsList.innerHTML = `<div style="color: #f87171; padding: 1rem;">Hiba történt: ${err.message}</div>`;
+        console.warn('Fast stage error:', err);
+      }
+
+      // STEP 2: Deep Stage (up to 10 seconds to find additional 1080p streams!)
+      try {
+        const had1080pBefore = allKnownStreams.some(s => (s.height >= 1080) || (s.name && s.name.includes('1080')));
+
+        const deepRes = await fetch(`/api/test?id=${encodeURIComponent(id)}&sources=${encodeURIComponent(sourcesQuery)}&onlyHD=${onlyHD ? '1' : '0'}&stage=deep&timeout=9500`);
+        const deepData = await deepRes.json();
+
+        if (searchToken === currentSearchToken) {
+          if (deepData.streams && Array.isArray(deepData.streams)) {
+            for (const s of deepData.streams) {
+              if (s.url && !seenUrls.has(s.url)) {
+                seenUrls.add(s.url);
+                allKnownStreams.push(s);
+              }
+            }
+          }
+
+          const has1080pNow = allKnownStreams.some(s => (s.height >= 1080) || (s.name && s.name.includes('1080')));
+          const newlyFound1080p = !had1080pBefore && has1080pNow;
+
+          // Final update with all results
+          updateStreamsUI(true, deepData.durationMs, newlyFound1080p);
+        }
+      } catch (err) {
+        if (searchToken === currentSearchToken) {
+          updateStreamsUI(true);
+        }
       }
     }
 

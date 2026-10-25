@@ -39,16 +39,18 @@ function setCachedStreams(key, data) {
 }
 
 // Registry of all supported Hungarian sources
+const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2']);
+
 const ALL_SCRAPERS = [
-  { id: 'videa', name: 'Videa', fn: scrapeVidea },
-  { id: 'indavideo', name: 'Indavideo', fn: scrapeIndavideo },
-  { id: 'jobbmintatv', name: 'JobbMintATV', fn: scrapeJobbMintATV },
-  { id: 'filmvilag2', name: 'Filmvilag2', fn: scrapeFilmvilag },
-  { id: 'dmdamedia', name: 'DMDAMedia', fn: scrapeDMDAMedia },
-  { id: 'mesefilm', name: 'MeseFilm', fn: scrapeMeseFilm },
-  { id: 'filmezek', name: 'Filmezek', fn: scrapeFilmezek },
-  { id: 'onlinefilmek', name: 'OnlineFilmek', fn: scrapeOnlineFilmek },
-  { id: 'hdmozi', name: 'HDMozi', fn: scrapeHDMozi }
+  { id: 'videa', name: 'Videa', fn: scrapeVidea, fast: true },
+  { id: 'indavideo', name: 'Indavideo', fn: scrapeIndavideo, fast: true },
+  { id: 'jobbmintatv', name: 'JobbMintATV', fn: scrapeJobbMintATV, fast: true },
+  { id: 'filmvilag2', name: 'Filmvilag2', fn: scrapeFilmvilag, fast: true },
+  { id: 'dmdamedia', name: 'DMDAMedia', fn: scrapeDMDAMedia, fast: false },
+  { id: 'mesefilm', name: 'MeseFilm', fn: scrapeMeseFilm, fast: true },
+  { id: 'filmezek', name: 'Filmezek', fn: scrapeFilmezek, fast: false },
+  { id: 'onlinefilmek', name: 'OnlineFilmek', fn: scrapeOnlineFilmek, fast: false },
+  { id: 'hdmozi', name: 'HDMozi', fn: scrapeHDMozi, fast: false }
 ];
 
 function getManifest(config = {}) {
@@ -101,29 +103,51 @@ async function getStreams(type, id, config = {}) {
 
   // 1. Check in-memory fast cache
   const configSourcesKey = config.sources ? [...config.sources].sort().join(',') : 'all';
-  const cacheKey = `${id}:${configSourcesKey}:${config.onlyHD ? 1 : 0}`;
-  const cached = getCachedStreams(cacheKey);
-  if (cached) {
-    console.log(`[Addon] Cache HIT for ${id} (${cached.streams.length} streams, returning in <1ms)`);
-    return cached;
+  const fullCacheKey = `${id}:${configSourcesKey}:${config.onlyHD ? 1 : 0}`;
+  const stageCacheKey = config.stage ? `${fullCacheKey}:${config.stage}` : fullCacheKey;
+
+  // If full cache is hit, return it even if fast stage was requested
+  const cachedFull = getCachedStreams(fullCacheKey);
+  if (cachedFull) {
+    console.log(`[Addon] Full Cache HIT for ${id} (${cachedFull.streams.length} streams, returning in <1ms)`);
+    return cachedFull;
+  }
+
+  if (config.stage && config.stage !== 'all') {
+    const cachedStage = getCachedStreams(stageCacheKey);
+    if (cachedStage) {
+      console.log(`[Addon] Stage Cache HIT for ${id}:${config.stage} (${cachedStage.streams.length} streams)`);
+      return cachedStage;
+    }
   }
 
   const startTime = Date.now();
-  console.log(`[Addon] Fetching streams for ${type} ${id} (sources: ${configSourcesKey})`);
+  console.log(`[Addon] Fetching streams for ${type} ${id} (sources: ${configSourcesKey}, stage: ${config.stage || 'all'})`);
   const meta = await getMediaMeta(type, id);
   console.log(`[Addon] Resolved: "${meta.englishTitle}" / "${meta.hungarianTitle}" (${meta.year || 'N/A'}) S:${meta.season} E:${meta.episode}`);
 
-  // 2. Filter active scrapers based on user configuration
-  const activeScrapers = ALL_SCRAPERS.filter(s => {
+  // 2. Filter active scrapers based on user configuration and stage
+  let candidateScrapers = ALL_SCRAPERS;
+  let timeoutMs = config.timeoutMs || 9500; // Search up to 10 seconds for 1080p
+
+  if (config.stage === 'fast') {
+    candidateScrapers = ALL_SCRAPERS.filter(s => FAST_SCRAPER_IDS.has(s.id));
+    timeoutMs = config.timeoutMs || 2500; // Fast initial response (~1-2s)
+  } else if (config.stage === 'deep') {
+    candidateScrapers = ALL_SCRAPERS.filter(s => !FAST_SCRAPER_IDS.has(s.id));
+    timeoutMs = config.timeoutMs || 9500; // Search up to 10s for additional 1080p
+  }
+
+  const activeScrapers = candidateScrapers.filter(s => {
     if (!config.sources || config.sources.length === 0) return true;
     return config.sources.includes(s.id);
   });
 
-  // 3. Run scrapers with strict 3.5s timeout per scraper to guarantee ultra-fast response
+  // 3. Run scrapers with specified timeout
   const scraperPromises = activeScrapers.map(scraper => {
     return Promise.race([
       scraper.fn(meta),
-      new Promise(resolve => setTimeout(() => resolve([]), 3500))
+      new Promise(resolve => setTimeout(() => resolve([]), timeoutMs))
     ]).catch(err => {
       console.warn(`[Addon] ${scraper.name} error:`, err.message || err);
       return [];
@@ -174,11 +198,14 @@ async function getStreams(type, id, config = {}) {
   });
 
   const durationMs = Date.now() - startTime;
-  console.log(`[Addon] Finished in ${durationMs}ms: found ${uniqueStreams.length} total streams for ${id}`);
+  console.log(`[Addon] Finished in ${durationMs}ms: found ${uniqueStreams.length} total streams for ${id} (stage: ${config.stage || 'all'})`);
 
   const output = { streams: uniqueStreams };
   if (uniqueStreams.length > 0) {
-    setCachedStreams(cacheKey, output);
+    setCachedStreams(stageCacheKey, output);
+    if (!config.stage || config.stage === 'all') {
+      setCachedStreams(fullCacheKey, output);
+    }
   }
 
   return output;
