@@ -8,6 +8,9 @@ const { searchCatalog, getMeta } = require('./catalog');
 const { scrapeVidea } = require('./scrapers/videa');
 const { scrapeIndavideo } = require('./scrapers/indavideo');
 const { scrapeJobbMintATV } = require('./scrapers/jobbmintatv');
+const { scrapeFilmvilag } = require('./scrapers/filmvilag');
+const { scrapeDMDAMedia } = require('./scrapers/dmdamedia');
+const { scrapeMeseFilm } = require('./scrapers/mesefilm');
 const { scrapeFilmezek } = require('./scrapers/filmezek');
 const { scrapeOnlineFilmek } = require('./scrapers/onlinefilmek');
 const { scrapeHDMozi } = require('./scrapers/hdmozi');
@@ -15,9 +18,9 @@ const { scrapeHDMozi } = require('./scrapers/hdmozi');
 function getManifest() {
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.4.0',
+    version: '1.5.0',
     name: 'Hungarian Streams (Magyar Források)',
-    description: 'Magyar szinkronos filmek és sorozatok 1080p & 720p minőségben (Videa, Indavideo, JobbMintATV, Filmezek, OnlineFilmek, HDMozi) azonnali közvetlen indítással és magyar keresővel',
+    description: 'Magyar szinkronos filmek és sorozatok 1080p & 720p minőségben (Videa, Indavideo, JobbMintATV, Filmvilág2, DMDAMedia, MeseFilm, Filmezek, OnlineFilmek, HDMozi) azonnali közvetlen lejátszással és magyar keresővel',
     resources: ['catalog', 'stream', 'meta'],
     types: ['movie', 'series'],
     idPrefixes: ['tt'],
@@ -61,13 +64,16 @@ async function getStreams(type, id) {
     scrapeVidea(meta),
     scrapeIndavideo(meta),
     scrapeJobbMintATV(meta),
+    scrapeFilmvilag(meta),
+    scrapeDMDAMedia(meta),
+    scrapeMeseFilm(meta),
     scrapeFilmezek(meta),
     scrapeOnlineFilmek(meta),
     scrapeHDMozi(meta)
   ]);
 
   const allStreams = [];
-  const sourceNames = ['Videa', 'Indavideo', 'JobbMintATV', 'Filmezek', 'OnlineFilmek', 'HDMozi'];
+  const sourceNames = ['Videa', 'Indavideo', 'JobbMintATV', 'Filmvilag2', 'DMDAMedia', 'MeseFilm', 'Filmezek', 'OnlineFilmek', 'HDMozi'];
 
   results.forEach((res, idx) => {
     if (res.status === 'fulfilled' && Array.isArray(res.value)) {

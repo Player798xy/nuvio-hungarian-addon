@@ -93,18 +93,28 @@ app.get('/stream/:type/:id.json', async (req, res) => {
   }
 });
 
-// Search API for web landing page (supports Hungarian titles)
+// Search API for web landing page (supports Hungarian titles, filters, and movies/series)
 app.get('/api/search', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const query = req.query.q || '';
+  const filterType = req.query.type; // 'movie' or 'series'
   try {
-    const [seriesResults, movieResults] = await Promise.all([
-      searchCatalog('series', query),
-      searchCatalog('movie', query)
+    if (filterType === 'movie') {
+      const results = await searchCatalog('movie', query);
+      return res.json({ results });
+    }
+    if (filterType === 'series') {
+      const results = await searchCatalog('series', query);
+      return res.json({ results });
+    }
+
+    const [movieResults, seriesResults] = await Promise.all([
+      searchCatalog('movie', query),
+      searchCatalog('series', query)
     ]);
     const seen = new Set();
     const combined = [];
-    for (const item of [...seriesResults, ...movieResults]) {
+    for (const item of [...movieResults, ...seriesResults]) {
       if (!seen.has(item.id)) {
         seen.add(item.id);
         combined.push(item);
@@ -126,11 +136,15 @@ app.get('/api/test', async (req, res) => {
   let matchedItem = null;
   if (!id.startsWith('tt')) {
     try {
-      const [series, movies] = await Promise.all([
-        searchCatalog('series', id),
-        searchCatalog('movie', id)
+      const [movies, series] = await Promise.all([
+        searchCatalog('movie', id),
+        searchCatalog('series', id)
       ]);
-      matchedItem = series[0] || movies[0];
+      const cleanId = id.toLowerCase().trim();
+      const exactMovie = movies.find(m => m.name.toLowerCase().includes(cleanId));
+      const exactSeries = series.find(s => s.name.toLowerCase().includes(cleanId));
+
+      matchedItem = exactMovie || exactSeries || movies[0] || series[0];
       if (matchedItem) {
         id = matchedItem.type === 'series' ? `${matchedItem.id}:1:1` : matchedItem.id;
       } else {

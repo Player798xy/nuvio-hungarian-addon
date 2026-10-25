@@ -1,6 +1,6 @@
 /**
  * Hungarian Catalog & Search Engine for Nuvio & Stremio
- * Enables direct searching and browsing for Hungarian titles (e.g. "Magyar népmesék").
+ * Enables direct searching and browsing for Hungarian titles (e.g. "Magyar népmesék", "Bosszúállók").
  */
 
 const { getMediaMeta } = require('./utils/meta');
@@ -60,7 +60,7 @@ async function searchCatalog(type, query) {
         title: m[2].trim()
       }));
 
-      for (const item of links.slice(0, 5)) {
+      for (const item of links.slice(0, 6)) {
         try {
           const pageRes = await fetch(item.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(3000) });
           if (pageRes.ok) {
@@ -70,14 +70,20 @@ async function searchCatalog(type, query) {
 
             if (imdbId && !seenIds.has(imdbId)) {
               seenIds.add(imdbId);
-              // Decorate with Cinemeta metadata for poster/year
+              
               let poster = `https://images.metahub.space/poster/medium/${imdbId}/img`;
               let year = '';
               let desc = `Magyar cím: ${item.title}`;
               let englishName = '';
+              let realType = type; // default to requested type
 
+              // Detect true type by querying Cinemeta with movie or series
               try {
-                const cRes = await fetch(`https://v3-cinemeta.strem.io/meta/${type}/${imdbId}.json`, { signal: AbortSignal.timeout(2500) });
+                let cRes = await fetch(`https://v3-cinemeta.strem.io/meta/${type}/${imdbId}.json`, { signal: AbortSignal.timeout(2000) });
+                if (!cRes.ok) {
+                  const altType = type === 'series' ? 'movie' : 'series';
+                  cRes = await fetch(`https://v3-cinemeta.strem.io/meta/${altType}/${imdbId}.json`, { signal: AbortSignal.timeout(2000) });
+                }
                 if (cRes.ok) {
                   const cData = await cRes.json();
                   const meta = cData?.meta;
@@ -86,9 +92,15 @@ async function searchCatalog(type, query) {
                     if (meta.year) year = meta.year;
                     if (meta.description) desc = meta.description;
                     englishName = meta.name;
+                    if (meta.type) realType = meta.type;
                   }
                 }
               } catch (e) {}
+
+              // If caller specifically requested 'movie' or 'series', filter out mismatches
+              if (type && realType && realType !== type) {
+                continue;
+              }
 
               const displayName = englishName && englishName.toLowerCase() !== item.title.toLowerCase()
                 ? `${item.title} (${englishName})`
@@ -96,7 +108,7 @@ async function searchCatalog(type, query) {
 
               results.push({
                 id: imdbId,
-                type,
+                type: realType,
                 name: displayName,
                 poster,
                 year,
@@ -120,9 +132,11 @@ async function searchCatalog(type, query) {
       for (const item of data.metas || []) {
         if (!seenIds.has(item.id)) {
           seenIds.add(item.id);
+          const itemType = item.type || type;
+          if (type && itemType !== type) continue;
           results.push({
             id: item.id,
-            type: item.type || type,
+            type: itemType,
             name: item.name,
             poster: item.poster,
             year: item.year,
@@ -144,13 +158,19 @@ async function getMeta(type, id) {
   // If standard IMDb id, fetch from Cinemeta and decorate with Hungarian title
   if (id.startsWith('tt')) {
     try {
-      const res = await fetch(`https://v3-cinemeta.strem.io/meta/${type}/${id}.json`, {
-        signal: AbortSignal.timeout(4000)
+      let res = await fetch(`https://v3-cinemeta.strem.io/meta/${type}/${id}.json`, {
+        signal: AbortSignal.timeout(3500)
       });
+      if (!res.ok) {
+        const altType = type === 'series' ? 'movie' : 'series';
+        res = await fetch(`https://v3-cinemeta.strem.io/meta/${altType}/${id}.json`, {
+          signal: AbortSignal.timeout(3500)
+        });
+      }
       if (res.ok) {
         const data = await res.json();
         if (data && data.meta) {
-          const huMeta = await getMediaMeta(type, id);
+          const huMeta = await getMediaMeta(data.meta.type || type, id);
           if (huMeta && huMeta.hungarianTitle && huMeta.hungarianTitle !== data.meta.name) {
             data.meta.name = `${huMeta.hungarianTitle} (${data.meta.name})`;
           }
