@@ -723,6 +723,89 @@
       margin-top: 0.25rem;
     }
 
+    /* Pagination Styles */
+    .pagination-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid #1e293b;
+      flex-wrap: wrap;
+    }
+
+    .page-btn {
+      background: #0f172a;
+      border: 1px solid #2a3a5c;
+      color: #cbd5e1;
+      padding: 0.45rem 0.85rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      background: #1e293b;
+      border-color: #3b82f6;
+      color: #38bdf8;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      border-color: #1e293b;
+    }
+
+    .page-numbers-group {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .page-number-btn {
+      min-width: 34px;
+      height: 34px;
+      padding: 0 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.45rem;
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .page-number-btn:hover {
+      border-color: #38bdf8;
+      color: #f1f5f9;
+      background: #1e293b;
+    }
+
+    .page-number-btn.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: white;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+    }
+
+    .page-info-badge {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-left: 0.5rem;
+      font-weight: 500;
+    }
+
     /* Series View (Nuvio-like Season & Episode Picker) */
     .series-view {
       margin-top: 1.5rem;
@@ -1635,6 +1718,9 @@
       <!-- Catalog Cards Grid -->
       <div id="catalogList" class="catalog-results" style="display: none;"></div>
 
+      <!-- Pagination for Catalog Results -->
+      <div id="catalogPagination" class="pagination-bar" style="display: none;"></div>
+
       <!-- Series Episode Selector View (Nuvio-style) -->
       <div id="seriesView" class="series-view" style="display: none;"></div>
 
@@ -1975,6 +2061,7 @@
 
     function setFilter(type) {
       activeFilter = type;
+      currentCatalogPage = 1;
       document.getElementById('tabAll').className = type === 'all' ? 'filter-btn active' : 'filter-btn';
       document.getElementById('tabLive').className = type === 'tv' ? 'filter-btn active' : 'filter-btn';
       document.getElementById('tabMovies').className = type === 'movie' ? 'filter-btn active' : 'filter-btn';
@@ -1984,7 +2071,114 @@
 
     function quickSearch(title) {
       document.getElementById('testId').value = title;
+      currentCatalogPage = 1;
       runSearch();
+    }
+
+    // Catalog Pagination State
+    let currentCatalogResults = [];
+    let currentCatalogPage = 1;
+    const CATALOG_ITEMS_PER_PAGE = 12;
+
+    function renderCatalogPage(page = 1) {
+      const catalogList = document.getElementById('catalogList');
+      const pagination = document.getElementById('catalogPagination');
+      if (!catalogList) return;
+
+      if (!currentCatalogResults || currentCatalogResults.length === 0) {
+        catalogList.style.display = 'none';
+        if (pagination) pagination.style.display = 'none';
+        return;
+      }
+
+      const totalItems = currentCatalogResults.length;
+      const totalPages = Math.ceil(totalItems / CATALOG_ITEMS_PER_PAGE);
+      currentCatalogPage = Math.max(1, Math.min(page, totalPages));
+
+      const startIndex = (currentCatalogPage - 1) * CATALOG_ITEMS_PER_PAGE;
+      const endIndex = Math.min(startIndex + CATALOG_ITEMS_PER_PAGE, totalItems);
+      const pageSlice = currentCatalogResults.slice(startIndex, endIndex);
+
+      catalogList.innerHTML = '';
+      catalogList.style.display = 'grid';
+
+      pageSlice.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'catalog-card' + (idx === 0 ? ' active' : '');
+        const isTv = item.type === 'tv';
+        const isSeries = item.type === 'series';
+        const badgeText = isTv ? '🔴 Élő TV' : isSeries ? '📺 Sorozat' : '🎬 Film';
+        const badgeClass = isTv ? 'catalog-badge badge-tv' : isSeries ? 'catalog-badge badge-sorozat' : 'catalog-badge badge-film';
+
+        const posterUrl = item.poster || (item.id ? `https://images.metahub.space/poster/medium/${item.id}/img` : NO_POSTER_SVG);
+
+        card.innerHTML = `
+          <span class="${badgeClass}">${badgeText}</span>
+          <div class="poster-container">
+            <img class="catalog-poster" 
+                 src="${posterUrl}" 
+                 alt="" 
+                 loading="lazy" 
+                 onerror="this.onerror=null; this.src='${NO_POSTER_SVG}';">
+          </div>
+          <div class="catalog-info">
+            <div class="catalog-title" title="${item.name}">${item.name}</div>
+            <div class="catalog-year">${item.year || badgeText}</div>
+          </div>
+        `;
+        card.onclick = () => {
+          document.querySelectorAll('.catalog-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          onCatalogItemClick(item);
+        };
+        catalogList.appendChild(card);
+      });
+
+      // Render Pagination Bar with Page Numbers and Next/Prev
+      if (pagination) {
+        if (totalPages > 1) {
+          pagination.style.display = 'flex';
+          let pageBtnsHtml = '';
+          
+          for (let p = 1; p <= totalPages; p++) {
+            if (totalPages <= 7 || p === 1 || p === totalPages || (p >= currentCatalogPage - 1 && p <= currentCatalogPage + 1)) {
+              pageBtnsHtml += `<button type="button" class="page-number-btn ${p === currentCatalogPage ? 'active' : ''}" onclick="goToCatalogPage(${p})">${p}</button>`;
+            } else if (p === currentCatalogPage - 2 || p === currentCatalogPage + 2) {
+              pageBtnsHtml += `<span style="color: #64748b; padding: 0 0.2rem;">...</span>`;
+            }
+          }
+
+          pagination.innerHTML = `
+            <button type="button" class="page-btn" onclick="goToCatalogPage(${currentCatalogPage - 1})" ${currentCatalogPage === 1 ? 'disabled' : ''}>
+              ◀ Előző
+            </button>
+            <div class="page-numbers-group">
+              ${pageBtnsHtml}
+            </div>
+            <button type="button" class="page-btn" onclick="goToCatalogPage(${currentCatalogPage + 1})" ${currentCatalogPage === totalPages ? 'disabled' : ''}>
+              Következő ▶
+            </button>
+            <span class="page-info-badge">
+              ${currentCatalogPage}. / ${totalPages} oldal (${totalItems} db találat)
+            </span>
+          `;
+        } else {
+          pagination.style.display = 'none';
+        }
+      }
+
+      // Automatically handle first result of page
+      if (pageSlice.length > 0) {
+        onCatalogItemClick(pageSlice[0]);
+      }
+    }
+
+    function goToCatalogPage(p) {
+      renderCatalogPage(p);
+      const catalogEl = document.getElementById('catalogList');
+      if (catalogEl) {
+        catalogEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
 
     async function runSearch() {
@@ -1992,12 +2186,14 @@
       if (!rawInput && activeFilter !== 'tv') return;
 
       const catalogList = document.getElementById('catalogList');
+      const pagination = document.getElementById('catalogPagination');
       const seriesView = document.getElementById('seriesView');
       const streamsList = document.getElementById('streamsList');
       const loader = document.getElementById('loadingIndicator');
 
       catalogList.innerHTML = '';
       catalogList.style.display = 'none';
+      if (pagination) pagination.style.display = 'none';
       seriesView.innerHTML = '';
       seriesView.style.display = 'none';
       streamsList.innerHTML = '';
@@ -2017,42 +2213,11 @@
         if (loader) loader.style.display = 'none';
 
         if (results.length > 0) {
-          catalogList.style.display = 'grid';
-          results.slice(0, 30).forEach((item, idx) => {
-            const card = document.createElement('div');
-            card.className = 'catalog-card' + (idx === 0 ? ' active' : '');
-            const isTv = item.type === 'tv';
-            const isSeries = item.type === 'series';
-            const badgeText = isTv ? '🔴 Élő TV' : isSeries ? '📺 Sorozat' : '🎬 Film';
-            const badgeClass = isTv ? 'catalog-badge badge-tv' : isSeries ? 'catalog-badge badge-sorozat' : 'catalog-badge badge-film';
-
-            const posterUrl = item.poster || (item.id ? `https://images.metahub.space/poster/medium/${item.id}/img` : NO_POSTER_SVG);
-
-            card.innerHTML = `
-              <span class="${badgeClass}">${badgeText}</span>
-              <div class="poster-container">
-                <img class="catalog-poster" 
-                     src="${posterUrl}" 
-                     alt="" 
-                     loading="lazy" 
-                     onerror="this.onerror=null; this.src='${NO_POSTER_SVG}';">
-              </div>
-              <div class="catalog-info">
-                <div class="catalog-title" title="${item.name}">${item.name}</div>
-                <div class="catalog-year">${item.year || badgeText}</div>
-              </div>
-            `;
-            card.onclick = () => {
-              document.querySelectorAll('.catalog-card').forEach(c => c.classList.remove('active'));
-              card.classList.add('active');
-              onCatalogItemClick(item);
-            };
-            catalogList.appendChild(card);
-          });
-
-          // Automatically handle first result
-          onCatalogItemClick(results[0]);
+          currentCatalogResults = results;
+          renderCatalogPage(1);
         } else {
+          currentCatalogResults = [];
+          if (pagination) pagination.style.display = 'none';
           await loadStreamsForId(rawInput);
         }
       } catch (err) {
