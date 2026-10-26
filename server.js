@@ -196,7 +196,7 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
 
   try {
     const result = await getStreams(type, id, config);
-    res.setHeader('Cache-Control', 'public, max-age=7200, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(result);
   } catch (err) {
     console.error(`[Server] Error processing stream request for ${type}/${id}:`, err);
@@ -283,6 +283,34 @@ app.get('/api/search', async (req, res) => {
       searchCatalog('movie', query),
       searchCatalog('series', query)
     ]);
+    if (!query) {
+      // Curate flagship items for Page 1 & Page 2 when browsing the default catalog
+      const topPicks = [
+        tvResults.find(x => x.id === 'mediaklikk-live-m4'),      // 1. M4 Sport Élő
+        tvResults.find(x => x.id === 'mediaklikk-live-m1'),      // 2. M1 Híradó Élő
+        seriesResults.find(x => x.id === 'tt0861751'),           // 3. Magyar népmesék
+        movieResults.find(x => x.id === 'tt0179955'),            // 4. Macskafogó (Cat City)
+        seriesResults.find(x => x.id === 'tt0056789'),           // 5. A Tenkes kapitánya
+        tvResults.find(x => x.id === 'mediaklikk-live-duna'),    // 6. Duna TV Élő
+        movieResults.find(x => x.id === 'tt0131636'),            // 7. Vuk
+        seriesResults.find(x => x.id === 'tt8111088'),           // 8. A Mandalóri
+        movieResults.find(x => x.id === 'tt0257290'),            // 9. Üvegtigris
+        seriesResults.find(x => x.id === 'tt0136650'),           // 10. Üzenet a jövőből - A Mézga család
+        movieResults.find(x => x.id === 'tt0121403'),            // 11. Indul a bakterház
+        tvResults.find(x => x.id === 'mediaklikk-live-m2'),      // 12. M2 Gyerek & Petőfi TV Élő
+      ].filter(Boolean);
+
+      const seen = new Set(topPicks.map(x => x.id));
+      const combined = [...topPicks];
+      for (const item of [...tvResults, ...seriesResults, ...movieResults]) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          combined.push(item);
+        }
+      }
+      return res.json({ results: combined });
+    }
+
     const seen = new Set();
     const combined = [];
     for (const item of [...tvResults, ...movieResults, ...seriesResults]) {

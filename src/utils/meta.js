@@ -268,11 +268,64 @@ async function getSeriesEpisodes(imdbId) {
     return seriesEpisodesCache.get(cleanId);
   }
 
+  // Fast-path: Static pre-loaded episodes for A Tenkes kapitánya (tt0056789)
+  if (cleanId === 'tt0056789') {
+    const s1Eps = Object.entries(TENKES_KAPITANYA_EPISODES).map(([epNum, epTitle]) => ({
+      id: `tt0056789:1:${epNum}`,
+      season: 1,
+      episode: parseInt(epNum, 10),
+      name: epTitle,
+      overview: `A Tenkes kapitánya 1. Évad ${epNum}. Rész - ${epTitle}`,
+      thumbnail: 'https://images.metahub.space/poster/medium/tt0056789/img'
+    }));
+    const result = {
+      id: 'tt0056789',
+      name: 'A Tenkes kapitánya',
+      englishName: 'Captain of the Tenkes',
+      year: '1964',
+      poster: 'https://images.metahub.space/poster/medium/tt0056789/img',
+      background: 'https://images.metahub.space/background/medium/tt0056789/img',
+      description: 'Történelmi kalandfilmsorozat a kuruc korból Zenthe Ferenc főszereplésével.',
+      genres: ['Kaland', 'Történelmi', 'Akció'],
+      seasons: { '1': s1Eps }
+    };
+    seriesEpisodesCache.set(cleanId, result);
+    return result;
+  }
+
+  // Fast-path: Static pre-loaded episodes for Magyar népmesék (tt0861751)
+  if (cleanId === 'tt0861751' && magyarNepmesekData) {
+    const seasonsMap = {};
+    for (const [sNum, eps] of Object.entries(magyarNepmesekData)) {
+      seasonsMap[sNum] = eps.map(e => ({
+        id: `tt0861751:${sNum}:${e.ep}`,
+        season: parseInt(sNum, 10),
+        episode: e.ep,
+        name: e.title,
+        overview: `Magyar népmesék ${sNum}. Évad ${e.ep}. Rész (${e.title})`,
+        thumbnail: 'https://images.metahub.space/poster/medium/tt0861751/img'
+      }));
+    }
+    const result = {
+      id: 'tt0861751',
+      name: 'Magyar népmesék',
+      englishName: 'Hungarian Folk Tales',
+      year: '1980–2012',
+      poster: 'https://images.metahub.space/poster/medium/tt0861751/img',
+      background: 'https://images.metahub.space/background/medium/tt0861751/img',
+      description: 'Klasszikus magyar népmesék animációs sorozat Jankovics Marcell rendezésében.',
+      genres: ['Animáció', 'Gyerek', 'Klasszikus'],
+      seasons: seasonsMap
+    };
+    seriesEpisodesCache.set(cleanId, result);
+    return result;
+  }
+
   try {
     const cinemetaUrl = `https://v3-cinemeta.strem.io/meta/series/${cleanId}.json`;
     const res = await fetch(cinemetaUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(8000)
     });
     if (!res.ok) return null;
 

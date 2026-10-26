@@ -16,30 +16,7 @@ const { scrapeOnlineFilmek } = require('./scrapers/onlinefilmek');
 const { scrapeHDMozi } = require('./scrapers/hdmozi');
 const { scrapeMediaKlikk, getLiveChannelStreams, LIVE_CHANNELS } = require('./scrapers/mediaklikk');
 
-// High-speed In-Memory Cache (2 hours TTL for streams)
-const STREAM_CACHE = new Map();
-const CACHE_TTL_MS = 2 * 60 * 60 * 1000;
-const MAX_CACHE_SIZE = 1000;
-
-function getCachedStreams(key) {
-  const entry = STREAM_CACHE.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
-    STREAM_CACHE.delete(key);
-    return null;
-  }
-  return entry.data;
-}
-
-function setCachedStreams(key, data) {
-  if (STREAM_CACHE.size >= MAX_CACHE_SIZE) {
-    const oldestKey = STREAM_CACHE.keys().next().value;
-    STREAM_CACHE.delete(oldestKey);
-  }
-  STREAM_CACHE.set(key, { data, timestamp: Date.now() });
-}
-
-// Registry of all supported Hungarian sources
+// Registry of all supported Hungarian sources (No caching - always fresh live scraper results)
 const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2', 'mediaklikk']);
 
 const ALL_SCRAPERS = [
@@ -67,7 +44,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.6.1',
+    version: '1.6.2',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
@@ -132,30 +109,9 @@ async function getStreams(type, id, config = {}) {
     return { streams: [] };
   }
 
-  // 1. Check in-memory fast cache
   const configSourcesKey = config.sources ? [...config.sources].sort().join(',') : 'all';
-  const configResKey = config.resolutions ? [...config.resolutions].sort().join(',') : (config.onlyHD ? 'hd' : 'all');
-  const timeoutKey = config.timeoutMs || 9500;
-  const fullCacheKey = `${id}:${configSourcesKey}:${configResKey}:${timeoutKey}`;
-  const stageCacheKey = config.stage ? `${fullCacheKey}:${config.stage}` : fullCacheKey;
-
-  // If full cache is hit, return it even if fast stage was requested
-  const cachedFull = getCachedStreams(fullCacheKey);
-  if (cachedFull) {
-    console.log(`[Addon] Full Cache HIT for ${id} (${cachedFull.streams.length} streams, returning in <1ms)`);
-    return cachedFull;
-  }
-
-  if (config.stage && config.stage !== 'all') {
-    const cachedStage = getCachedStreams(stageCacheKey);
-    if (cachedStage) {
-      console.log(`[Addon] Stage Cache HIT for ${id}:${config.stage} (${cachedStage.streams.length} streams)`);
-      return cachedStage;
-    }
-  }
-
   const startTime = Date.now();
-  console.log(`[Addon] Fetching streams for ${type} ${id} (sources: ${configSourcesKey}, stage: ${config.stage || 'all'})`);
+  console.log(`[Addon] Fetching fresh streams for ${type} ${id} (sources: ${configSourcesKey})`);
   const meta = await getMediaMeta(type, id);
   console.log(`[Addon] Resolved: "${meta.englishTitle}" / "${meta.hungarianTitle}" (${meta.year || 'N/A'}) S:${meta.season} E:${meta.episode}`);
 
@@ -270,17 +226,9 @@ async function getStreams(type, id, config = {}) {
   });
 
   const durationMs = Date.now() - startTime;
-  console.log(`[Addon] Finished in ${durationMs}ms: found ${uniqueStreams.length} total streams for ${id} (stage: ${config.stage || 'all'})`);
+  console.log(`[Addon] Finished in ${durationMs}ms: found ${uniqueStreams.length} total streams for ${id}`);
 
-  const output = { streams: uniqueStreams };
-  if (uniqueStreams.length > 0) {
-    setCachedStreams(stageCacheKey, output);
-    if (!config.stage || config.stage === 'all') {
-      setCachedStreams(fullCacheKey, output);
-    }
-  }
-
-  return output;
+  return { streams: uniqueStreams };
 }
 
 module.exports = {
