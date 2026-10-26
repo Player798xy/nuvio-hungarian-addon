@@ -204,6 +204,26 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
   }
 });
 
+app.get('/api/debug-netmozi', async (req, res) => {
+  const { scrapeNetMozi } = require('./src/scrapers/netmozi');
+  const title = req.query.title || 'Shrek';
+  const logs = [];
+  const origLog = console.log;
+  const origWarn = console.warn;
+  console.log = (...a) => { logs.push(a.join(' ')); origLog(...a); };
+  console.warn = (...a) => { logs.push('[WARN] ' + a.join(' ')); origWarn(...a); };
+  try {
+    const streams = await scrapeNetMozi({ hungarianTitle: title, year: 2001 });
+    console.log = origLog;
+    console.warn = origWarn;
+    res.json({ title, count: streams.length, streams, logs });
+  } catch (e) {
+    console.log = origLog;
+    console.warn = origWarn;
+    res.json({ error: e.message, stack: e.stack, logs });
+  }
+});
+
 // Instant 1080p HLS Master Playlist Rewriter for Live TV (starts in 1080p FHD immediately)
 app.get(['/api/live/:streamId.m3u8', '/hls/live/:streamId.m3u8'], async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
