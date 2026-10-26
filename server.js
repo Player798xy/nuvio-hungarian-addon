@@ -411,6 +411,19 @@ app.get('/api/debug-page', async (req, res) => {
     const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
     log('Detail status:', dRes.statusCode, 'len:', dRes.body?.length);
 
+    // Look for sData, scripts, and tokens in dRes.body
+    const sDataMatch = dRes.body.match(/<div[^>]*id=["']sData["'][^>]*>/i);
+    log('sData tag:', sDataMatch ? sDataMatch[0] : 'not found');
+
+    const scripts = [...dRes.body.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)]
+      .map(m => m[1].trim())
+      .filter(s => s.length > 0 && (s.includes('token') || s.includes('csrf') || s.includes('sData') || s.includes('policy') || s.includes('eval')));
+    log('Relevant inline scripts count:', scripts.length);
+    scripts.forEach((s, idx) => log(`Script ${idx}:`, s.slice(0, 300)));
+
+    const allDataAttrs = [...dRes.body.matchAll(/data-[a-zA-Z0-9_-]+=["'][^"']*["']/g)].map(m => m[0]);
+    log('All data attrs count:', allDataAttrs.length, 'sample:', allDataAttrs.slice(0, 15).join(' '));
+
     const attrs = {};
     for (const m of (dRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
       attrs[m[1]] = m[2];
