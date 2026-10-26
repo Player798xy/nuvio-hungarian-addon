@@ -211,19 +211,18 @@ app.get('/api/debug-netmozi', async (req, res) => {
   try {
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
     const body = searchRes.body || '';
-    
-    // Find all occurrences of data-results or data-content or token or results
-    const dataMatches = [...body.matchAll(/data-[a-z0-9-]+="[^"]*"/gi)].map(m => m[0].slice(0, 80));
-    const hasFilmek = body.includes('/filmek/');
-    const hasSorozatok = body.includes('/sorozatok/');
-    const filmekMatches = [...body.matchAll(/href="(\/(filmek|sorozatok)\/[^"]+)"/gi)].map(m => m[1]);
+
+    // Search for body or main content
+    const m = body.match(/<body[^>]*>([\s\S]{0,2000})/i);
+    const m2 = body.match(/id=["']indexListing[^"']*["'][^>]*>/i);
+    const m3 = body.match(/class=["'][^"']*results[^"']*["'][^>]*>/i);
+    const allDivIds = [...body.matchAll(/id=["']([a-zA-Z0-9_-]+)["']/gi)].map(x => x[1]);
 
     res.json({
-      dataAttributesSample: dataMatches.slice(0, 20),
-      hasFilmek,
-      hasSorozatok,
-      filmekMatches: filmekMatches.slice(0, 10),
-      bodyLength: body.length
+      allDivIds: allDivIds.slice(0, 30),
+      bodyTag: m ? m[0] : null,
+      m2: m2 ? m2[0] : null,
+      m3: m3 ? m3[0] : null
     });
   } catch (err) {
     res.json({ error: err.message });
