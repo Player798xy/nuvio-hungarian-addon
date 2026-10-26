@@ -204,6 +204,31 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
   }
 });
 
+app.get('/api/diag-netmozi', async (req, res) => {
+  const { scrapeNetMozi, netmoziTlsRequest, netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
+  const { unpack } = require('./src/utils/linkpayload');
+  const cookieJar = new Map();
+  const title = req.query.title || 'Shrek';
+  const diag = { title };
+  try {
+    const searchUrl = `https://netmozi.com/?search=${encodeURIComponent(title)}`;
+    const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
+    diag.searchStatus = searchRes.statusCode;
+    diag.searchBodyLen = searchRes.body?.length || 0;
+    diag.hasMovieCard = searchRes.body?.includes('movie-card') || false;
+
+    // Use parseCandidates
+    const { parseCandidatesFromHtml } = require('./src/scrapers/netmozi');
+    // Call scrapeNetMozi directly
+    diag.scrapeResult = await scrapeNetMozi(title, req.query.year ? parseInt(req.query.year) : 2001);
+    res.json(diag);
+  } catch (err) {
+    diag.error = err.message;
+    diag.stack = err.stack;
+    res.json(diag);
+  }
+});
+
 // Instant 1080p HLS Master Playlist Rewriter for Live TV (starts in 1080p FHD immediately)
 app.get(['/api/live/:streamId.m3u8', '/hls/live/:streamId.m3u8'], async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
