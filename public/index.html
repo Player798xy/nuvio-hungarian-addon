@@ -2859,6 +2859,13 @@
       const playerUrl = encPlayerUrl ? decodeURIComponent(encPlayerUrl) : '';
       currentModalStreamUrl = url;
 
+      // If URL is an external webpage (e.g. NetMozi web player page), open directly in new tab
+      if (url.includes('netmozi.com') || url.includes('jobbmintatv.hu') || (!url.includes('.m3u8') && !url.includes('.mp4') && !url.includes('.mkv') && !url.includes('videa') && !url.includes('indavideo') && !url.includes('filemoon') && !url.includes('streamruby') && !url.includes('vidmoly') && !url.includes('waaw') && !url.includes('ok.ru'))) {
+        window.open(playerUrl || url, '_blank', 'noopener,noreferrer');
+        showToast('🌐 <strong>NetMozi megnyitva új lapon!</strong><br>A tartalom azonnal megtekinthető a hivatalos lejátszóban.');
+        return;
+      }
+
       const modal = document.getElementById('playerModal');
       const video = document.getElementById('modalVideoPlayer');
       const titleEl = document.getElementById('playerModalTitle');

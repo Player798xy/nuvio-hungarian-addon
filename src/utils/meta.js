@@ -216,7 +216,7 @@ async function getMediaMeta(type, rawId) {
   let episode = null;
   let initialHuTitle = '';
 
-  // 0. Handle NetMozi ID format: netmozi:series:mid:season:episode or netmozi:movie:mid
+  // 0. Handle NetMozi ID format: netmozi:series:mid:season:episode[:title] or netmozi:movie:mid[:title]
   if (id.startsWith('netmozi:')) {
     const parts = id.split(':');
     const itemType = parts[1] || type || 'movie';
@@ -226,10 +226,50 @@ async function getMediaMeta(type, rawId) {
 
     let netmoziTitle = '';
     let netmoziYear = '';
-    try {
-      const { getNetMoziTitle } = require('../scrapers/netmozi');
-      netmoziTitle = getNetMoziTitle(mid);
-    } catch (e) {}
+
+    // Check if title is encoded in ID (e.g. netmozi:series:42579:1:1:Ingatlanvad%C3%A1szok)
+    if (parts[5]) {
+      try {
+        netmoziTitle = decodeURIComponent(parts[5]);
+      } catch (e) {
+        netmoziTitle = parts[5];
+      }
+    }
+
+    // Check in-memory cache
+    if (!netmoziTitle) {
+      try {
+        const { getNetMoziTitle } = require('../scrapers/netmozi');
+        netmoziTitle = getNetMoziTitle(mid);
+      } catch (e) {}
+    }
+
+    // Fallback: Resolve asynchronously from NetMozi if in-memory cache is empty (e.g. cold serverless instance)
+    if (!netmoziTitle && mid) {
+      try {
+        const { getNetMoziSeriesEpisodes, netmoziFetchWithRedirects, netmoziTitleCache } = require('../scrapers/netmozi');
+        if (itemType === 'series') {
+          const seriesData = await getNetMoziSeriesEpisodes(`netmozi:series:${mid}`);
+          if (seriesData && seriesData.name) {
+            netmoziTitle = seriesData.name;
+            netmoziYear = seriesData.year || '';
+            netmoziTitleCache.set(String(mid), netmoziTitle);
+          }
+        } else {
+          const res = await netmoziFetchWithRedirects(`https://netmozi.com/filmek/${mid}/_`);
+          if (res && res.body) {
+            const m = res.body.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/i);
+            if (m) {
+              try {
+                const data = JSON.parse(m[1]);
+                netmoziTitle = data.name || '';
+                netmoziTitleCache.set(String(mid), netmoziTitle);
+              } catch (e) {}
+            }
+          }
+        }
+      } catch (e) {}
+    }
 
     const result = {
       imdbId: id,

@@ -400,6 +400,17 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
     }
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
+      if (targetPageUrl) {
+        streams.push({
+          name: `[HU] NetMozi [720p HD]`,
+          title: `${cleanTitle} [720p HD]\n🇭🇺 NetMozi • Szinkron • Közvetlen Webes Lejátszás`,
+          url: targetPageUrl,
+          playerUrl: targetPageUrl,
+          quality: '720p',
+          height: 720,
+          source: 'netmozi'
+        });
+      }
       return streams;
     }
 
@@ -681,6 +692,16 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
       const cookieJar = new Map();
       const directStreams = await scrapeNetMoziDetailPage(pageUrl, cleanTitle || finalSlug.replace(/-/g, ' '), clientIp, cookieJar);
       if (directStreams.length > 0) return directStreams;
+
+      return [{
+        name: `[HU] NetMozi [720p HD]`,
+        title: `${cleanTitle || finalSlug.replace(/-/g, ' ')}${itemType === 'series' ? ` (${s}. Évad ${e}. Rész)` : ''} [720p HD]\n🇭🇺 NetMozi • Szinkron • Közvetlen Webes Lejátszás`,
+        url: pageUrl,
+        playerUrl: pageUrl,
+        quality: '720p',
+        height: 720,
+        source: 'netmozi'
+      }];
     }
   }
 
@@ -715,6 +736,17 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
     }
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
+      if (targetPageUrl) {
+        streams.push({
+          name: `[HU] NetMozi [720p HD]`,
+          title: `${cleanTitle} [720p HD]\n🇭🇺 NetMozi • Szinkron • Közvetlen Webes Lejátszás`,
+          url: targetPageUrl,
+          playerUrl: targetPageUrl,
+          quality: '720p',
+          height: 720,
+          source: 'netmozi'
+        });
+      }
       return streams;
     }
 
@@ -1012,6 +1044,7 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
     if (yearMatch) year = yearMatch[1];
 
     const seasonsMap = {};
+    const encTitle = encodeURIComponent(title || 'Sorozat');
 
     const progressMatches = [...res.body.matchAll(/data-season=["'](\d+)["'][^>]*?data-episodes=["']([^"']+)["']/gi)];
     for (const pm of progressMatches) {
@@ -1019,7 +1052,7 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
       if (sNum === 0) continue;
       const epNums = pm[2].split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
       seasonsMap[sNum] = epNums.map(eNum => ({
-        id: `netmozi:series:${mid}:${sNum}:${eNum}`,
+        id: `netmozi:series:${mid}:${sNum}:${eNum}:${encTitle}`,
         season: sNum,
         episode: eNum,
         name: `${eNum}. Rész`,
@@ -1036,7 +1069,7 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
         if (!seasonsMap[sNum]) seasonsMap[sNum] = [];
         if (!seasonsMap[sNum].some(e => e.episode === eNum)) {
           seasonsMap[sNum].push({
-            id: `netmozi:series:${mid}:${sNum}:${eNum}`,
+            id: `netmozi:series:${mid}:${sNum}:${eNum}:${encTitle}`,
             season: sNum,
             episode: eNum,
             name: `${eNum}. Rész`,
@@ -1049,7 +1082,7 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
 
     if (Object.keys(seasonsMap).length === 0) {
       seasonsMap['1'] = [{
-        id: `netmozi:series:${mid}:1:1`,
+        id: `netmozi:series:${mid}:1:1:${encTitle}`,
         season: 1,
         episode: 1,
         name: '1. Rész',

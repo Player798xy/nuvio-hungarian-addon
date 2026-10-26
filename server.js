@@ -399,57 +399,6 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
-app.get('/api/debug-page', async (req, res) => {
-  const { netmoziFetchWithRedirects, netmoziTlsRequest } = require('./src/scrapers/netmozi');
-  const { unpack } = require('./src/utils/linkpayload');
-  const cookieJar = new Map();
-  const logs = [];
-  const log = (...args) => logs.push(args.join(' '));
-
-  try {
-    const detailUrl = 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
-    const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
-    log('Detail 1 status:', dRes.statusCode, 'len:', dRes.body?.length);
-
-    // Look for endpoint in dRes.body
-    const pingMatch = (dRes.body || '').match(/["']endpoint["']\s*:\s*["']([^"']+)["']/i);
-    const scriptTokenMatch = (dRes.body || '').match(/["']token["']\s*:\s*["']([^"']+)["']/i);
-    log('pingMatch:', pingMatch ? pingMatch[1] : null, 'scriptToken:', scriptTokenMatch ? scriptTokenMatch[1].slice(0, 30) : null);
-
-    if (pingMatch) {
-      const pingUrl = 'https://netmozi.com' + pingMatch[1].replace(/\\/g, '');
-      log('Calling pingUrl:', pingUrl);
-      const pingRes = await netmoziTlsRequest(pingUrl, {
-        method: 'GET',
-        referer: detailUrl,
-        headers: {
-          'Accept': 'application/json, text/javascript, */*; q=0.01',
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      }, cookieJar);
-      log('Ping status:', pingRes.statusCode, 'body:', pingRes.body);
-
-      // Now reload detailUrl with the session cookies!
-      const dRes2 = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
-      log('Detail 2 status:', dRes2.statusCode, 'len:', dRes2.body?.length);
-
-      const hasLinkLoader = (dRes2.body || '').includes('data-link-loader');
-      log('Detail 2 hasLinkLoader:', hasLinkLoader);
-
-      const attrs2 = {};
-      for (const m of (dRes2.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
-        attrs2[m[1]] = m[2];
-      }
-      log('Attrs 2:', JSON.stringify(attrs2));
-    }
-
-    res.json({ success: true, logs });
-  } catch (e) {
-    log('Error:', e.message, e.stack);
-    res.json({ success: false, logs, error: e.message });
-  }
-});
-
 // Configure Route & Index Page
 app.get(['/configure', '/:config/configure'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

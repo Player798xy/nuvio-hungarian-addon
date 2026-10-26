@@ -60,7 +60,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.7.2',
+    version: '1.7.3',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,

@@ -1,7 +1,7 @@
 # 🇭🇺 Hungarian Streams — Nuvio & Stremio Addon
 
 [![Node.js Version](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org/)
-[![Version](https://img.shields.io/badge/version-1.7.1-blue.svg?style=flat-square)](package.json)
+[![Version](https://img.shields.io/badge/version-1.7.3-blue.svg?style=flat-square)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Deploy on Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://nuvio-hungarian-addon.vercel.app)
 [![Docker Support](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](#-docker--docker-compose)
