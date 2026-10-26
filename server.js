@@ -402,19 +402,23 @@ app.get('/api/test', async (req, res) => {
 app.get('/api/debug-page', async (req, res) => {
   const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
   const cookieJar = new Map();
-  const dRes = await netmoziFetchWithRedirects('https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1', {
+  const dRes = await netmoziFetchWithRedirects('https://netmozi.com/sorozatok/42579/Ox8sJh8wOVxoJR0vD1IxFXgNIxciWzx1LQMIIyEuM1JrMwwBRkYpVQ/s1/e1', {
     referer: 'https://netmozi.com/'
   }, cookieJar);
 
-  const linesWithId = (dRes.body || '').split('\n').filter(l => l.includes('42579'));
-  const allScripts = [...(dRes.body || '').matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[0].slice(0, 300));
+  const loadLinksMatches = [...(dRes.body || '').matchAll(/.{0,100}loadLinks.{0,100}/gi)].map(m => m[0]);
+  const sDataMatches = [...(dRes.body || '').matchAll(/<div id="sData"[^>]*>/gi)].map(m => m[0]);
+  const attrs = {};
+  for (const m of (dRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+    attrs[m[1]] = m[2];
+  }
 
   res.json({
     status: dRes.statusCode,
     len: dRes.body?.length,
-    linesWithId: linesWithId.slice(0, 15),
-    scriptTagsCount: allScripts.length,
-    scripts: allScripts.slice(0, 10)
+    sDataMatches,
+    loadLinksMatches,
+    attrs
   });
 });
 
