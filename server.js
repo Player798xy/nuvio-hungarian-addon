@@ -206,27 +206,23 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
 
 app.get('/api/debug-netmozi', async (req, res) => {
   const { netmoziTlsRequest } = require('./src/scrapers/netmozi');
-  const { resolveContent } = require('./src/utils/linkpayload');
   const cookieJar = new Map();
   const searchUrl = 'https://netmozi.com/?search=' + encodeURIComponent(req.query.title || 'Shrek');
   try {
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
     const body = searchRes.body || '';
 
-    const hasPayload = body.includes('data-content-payload');
-    let resolvedSnippet = null;
-    let cardCount = 0;
-    if (hasPayload) {
-      const resolved = resolveContent(body);
-      const cardBlocks = [...resolved.matchAll(/<div[^>]*class=["']col-12[\s\S]*?(?=<div[^>]*class=["']col-12|$)/gi)];
-      cardCount = cardBlocks.length;
-      resolvedSnippet = resolved.slice(0, 1000);
-    }
+    // Search for any script tags or containers that have json or urls
+    const scripts = [...body.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+    const scriptSnippets = scripts.filter(s => s.includes('results') || s.includes('listing') || s.includes('Shrek') || s.includes('filmek')).map(s => s.slice(0, 300));
+
+    // Also check after pager-wrapper
+    const pagerIdx = body.lastIndexOf('pager-wrapper');
+    const afterPager = pagerIdx !== -1 ? body.slice(pagerIdx, pagerIdx + 2500) : null;
 
     res.json({
-      hasPayload,
-      cardCount,
-      resolvedSnippet
+      scriptSnippets,
+      afterPager
     });
   } catch (err) {
     res.json({ error: err.message });
