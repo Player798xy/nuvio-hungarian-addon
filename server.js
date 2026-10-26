@@ -267,8 +267,8 @@ app.get('/api/diag-netmozi', async (req, res) => {
     diag.steps.push({
       step: 'direct_film_test',
       status: testDirectFilm.statusCode,
-      len: testDirectFilm.body?.length,
-      directAttrs
+      location: testDirectFilm.headers['location'],
+      headers: testDirectFilm.headers
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
