@@ -422,12 +422,22 @@ app.get('/api/debug-page', async (req, res) => {
       const realRes = await netmoziFetchWithRedirects(realUrl, { referer: 'https://netmozi.com/' }, cookieJar);
       log('RealUrl status:', realRes.statusCode, 'len:', realRes.body?.length);
 
-      const hasTabPane = (realRes.body || '').includes('tab-pane');
-      const hasLinkLoader = (realRes.body || '').includes('data-link-loader');
-      log('hasTabPane:', hasTabPane, 'hasLinkLoader:', hasLinkLoader);
+      const tabMatch = realRes.body.match(/<ul[^>]*nav-tabs[^>]*>([\s\S]*?)<\/ul>/i);
+      log('Nav tabs found:', Boolean(tabMatch), 'len:', tabMatch ? tabMatch[0].length : 0);
 
-      const sDataIdx = (realRes.body || '').indexOf('id="sData"');
-      log('Snippet around sData:', (realRes.body || '').slice(Math.max(0, sDataIdx - 100), sDataIdx + 300).replace(/\s+/g, ' '));
+      const videoPlayerMatch = realRes.body.match(/<div[^>]*class=["'][^"']*player[^"']*["'][^>]*>/i);
+      log('Player div found:', Boolean(videoPlayerMatch));
+
+      const hasLogin = realRes.body.includes('Bejelentkezés') || realRes.body.includes('login');
+      const hasGeo = realRes.body.includes('külföld') || realRes.body.includes('ország') || realRes.body.includes('korlátoz');
+      log('hasLogin:', hasLogin, 'hasGeo:', hasGeo);
+
+      const mainMatch = realRes.body.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+      if (mainMatch) {
+        log('Main tag length:', mainMatch[1].length);
+        const headers = [...mainMatch[1].matchAll(/<(h[1-6]|p|div\s+class=["'][^"']+["'])[^>]*>([^<]{3,80})/gi)].map(m => `<${m[1]}>${m[2].trim()}`);
+        log('Main headers sample:', headers.slice(0, 10).join(' | '));
+      }
     }
 
     const allDataAttrs = [...dRes.body.matchAll(/data-[a-zA-Z0-9_-]+=["'][^"']*["']/g)].map(m => m[0]);
