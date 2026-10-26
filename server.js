@@ -402,23 +402,15 @@ app.get('/api/test', async (req, res) => {
 app.get('/api/debug-page', async (req, res) => {
   const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
   const cookieJar = new Map();
-  const dRes = await netmoziFetchWithRedirects('https://netmozi.com/sorozatok/42579/Ox8sJh8wOVxoJR0vD1IxFXgNIxciWzx1LQMIIyEuM1JrMwwBRkYpVQ/s1/e1', {
+  const dRes = await netmoziFetchWithRedirects('https://netmozi.com/sorozatok/42579/OR8KJBwOJRxpGxEiD1ITGHsZfhIaBB4tKwM2PictL1FoLARNQRljGg', {
     referer: 'https://netmozi.com/'
   }, cookieJar);
 
-  const loadLinksMatches = [...(dRes.body || '').matchAll(/.{0,100}loadLinks.{0,100}/gi)].map(m => m[0]);
-  const sDataMatches = [...(dRes.body || '').matchAll(/<div id="sData"[^>]*>/gi)].map(m => m[0]);
-  const attrs = {};
-  for (const m of (dRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
-    attrs[m[1]] = m[2];
-  }
+  const scripts = [...(dRes.body || '').matchAll(/<script[^>]*src=["']([^"']+)["'][^>]*>/gi)].map(m => m[1]);
 
   res.json({
     status: dRes.statusCode,
-    len: dRes.body?.length,
-    sDataMatches,
-    loadLinksMatches,
-    attrs
+    scripts
   });
 });
 
