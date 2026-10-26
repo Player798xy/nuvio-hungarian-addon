@@ -399,6 +399,25 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
+app.get('/api/debug-page', async (req, res) => {
+  const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
+  const cookieJar = new Map();
+  const dRes = await netmoziFetchWithRedirects('https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1', {
+    referer: 'https://netmozi.com/'
+  }, cookieJar);
+  res.json({
+    status: dRes.statusCode,
+    headers: dRes.headers,
+    len: dRes.body?.length,
+    cookies: Array.from(cookieJar.entries()),
+    title: dRes.body?.match(/<title>([^<]+)<\/title>/i)?.[1],
+    hasMovieId: dRes.body?.includes('data-movie-id'),
+    hasToken: dRes.body?.includes('data-token'),
+    hasCsrf: dRes.body?.includes('data-csrf'),
+    snippet: dRes.body?.slice(0, 2000)
+  });
+});
+
 // Configure Route & Index Page
 app.get(['/configure', '/:config/configure'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
