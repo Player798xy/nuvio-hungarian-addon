@@ -264,11 +264,15 @@ app.get('/api/diag-netmozi', async (req, res) => {
     for (const mMatch of (testDirectFilm.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
       directAttrs[mMatch[1]] = mMatch[2];
     }
+    const tvAgent = 'Mozilla/5.0 (SMART-TV; Linux; Kodi) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Kodi/21.0';
+    const testTvAgent = await netmoziTlsRequest('https://netmozi.com/filmek/534/OQ8GJB4ONVloJR0iDGtiFnkgKBYbWxI8FRM9aw', {
+      headers: { 'User-Agent': tvAgent }
+    }, cookieJar);
     diag.steps.push({
-      step: 'direct_film_test',
-      status: testDirectFilm.statusCode,
-      location: testDirectFilm.headers['location'],
-      headers: testDirectFilm.headers
+      step: 'tv_agent_test',
+      status: testTvAgent.statusCode,
+      location: testTvAgent.headers['location'],
+      len: testTvAgent.body?.length
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
