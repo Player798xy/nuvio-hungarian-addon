@@ -260,9 +260,12 @@ app.get('/api/diag-netmozi', async (req, res) => {
     const test1 = await netmoziTlsRequest('https://netmozi.com/adatlap/534/shrek', {}, cookieJar);
     const test2 = await netmoziTlsRequest('https://netmozi.com/adatlap/1207/harmadik-shrek', {}, cookieJar);
     diag.steps.push({
-      step: 'adatlap_test',
-      shrek534: { status: test1.statusCode, location: test1.headers['location'], len: test1.body?.length },
-      shrek1207: { status: test2.statusCode, location: test2.headers['location'], len: test2.body?.length }
+      step: 'adatlap_body_inspect',
+      h1: test1.body?.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[0],
+      h2: test1.body?.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[0],
+      buttons: [...(test1.body || '').matchAll(/<button[^>]*>([\s\S]*?)<\/button>/gi)].map(m => m[0].slice(0, 150)).slice(0, 10),
+      forms: [...(test1.body || '').matchAll(/<form[^>]*action=["']([^"']*)["'][^>]*>/gi)].map(m => m[0]),
+      mainTextSnippet: test1.body?.slice(0, 2000)
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
