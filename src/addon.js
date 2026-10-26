@@ -44,17 +44,44 @@ function getManifest(config = {}) {
 
   const hostUrl = config.hostUrl || 'https://nuvio-hungarian-addon.vercel.app';
 
+  const supportedIdPrefixes = [
+    'tt',
+    'tmdb:',
+    'tvdb:',
+    'kitsu:',
+    'mal:',
+    'anilist:',
+    'anidb:',
+    'tvmaze:',
+    'mediaklikk-live-'
+  ];
+
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.7.0',
+    version: '1.7.1',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
     icon: `${hostUrl}/logo.png`,
     background: `${hostUrl}/logo.png`,
-    resources: ['catalog', 'stream', 'meta'],
-    types: ['movie', 'series', 'channel', 'tv'],
-    idPrefixes: ['tt', 'mediaklikk-live-'],
+    resources: [
+      {
+        name: 'stream',
+        types: ['movie', 'series', 'tv', 'channel'],
+        idPrefixes: supportedIdPrefixes
+      },
+      {
+        name: 'meta',
+        types: ['movie', 'series', 'tv', 'channel'],
+        idPrefixes: ['tt', 'tmdb:', 'mediaklikk-live-']
+      },
+      {
+        name: 'catalog',
+        types: ['movie', 'series', 'tv']
+      }
+    ],
+    types: ['movie', 'series', 'tv', 'channel'],
+    idPrefixes: supportedIdPrefixes,
     catalogs: [
       {
         type: 'movie',
@@ -107,7 +134,7 @@ async function getStreams(type, id, config = {}) {
     return { streams: liveStreams };
   }
 
-  if (!id || !id.startsWith('tt')) {
+  if (!id) {
     return { streams: [] };
   }
 

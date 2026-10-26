@@ -103,29 +103,162 @@ const PRELOADED_HUNGARIAN_TITLES = {
   'tt0848228': { hu: 'Bosszúállók', en: 'The Avengers', year: '2012', runtime: 143 }
 };
 
-async function getMediaMeta(type, id) {
-  // id can be tt1234567 or tt1234567:1:1
-  const parts = id.split(':');
-  const imdbId = parts[0];
-  const season = parts[1] ? parseInt(parts[1], 10) : null;
-  const episode = parts[2] ? parseInt(parts[2], 10) : null;
+async function resolveTmdbToImdb(tmdbId, isSeries = false) {
+  if (!tmdbId) return null;
 
-  const cacheKey = `${type}:${imdbId}`;
+  // 1. Try environment TMDB_API_KEY if configured
+  if (process.env.TMDB_API_KEY) {
+    try {
+      const endpoint = isSeries ? `tv/${tmdbId}` : `movie/${tmdbId}`;
+      const url = `https://api.themoviedb.org/3/${endpoint}/external_ids?api_key=${process.env.TMDB_API_KEY}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.imdb_id) {
+          return { imdbId: data.imdb_id };
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Query Wikidata SPARQL (Fast, unauthenticated, maps TMDB -> IMDb & Hungarian title)
+  try {
+    const prop = isSeries ? 'wdt:P4983' : 'wdt:P4947';
+    const sparql = `SELECT ?imdb ?label WHERE {
+      ?item ${prop} "${tmdbId}" .
+      OPTIONAL { ?item wdt:P345 ?imdb }
+      OPTIONAL { ?item rdfs:label ?label . FILTER(LANG(?label) = "hu") }
+    } LIMIT 1`;
+    const url = 'https://query.wikidata.org/sparql?query=' + encodeURIComponent(sparql) + '&format=json';
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'NuvioAddon/1.0', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const binding = data?.results?.bindings?.[0];
+      const imdbId = binding?.imdb?.value || null;
+      const huTitle = binding?.label?.value || null;
+      return { imdbId, huTitle };
+    }
+  } catch (e) {}
+
+  return null;
+}
+
+async function resolveTvdbToImdb(tvdbId) {
+  if (!tvdbId) return null;
+  try {
+    const sparql = `SELECT ?imdb ?label WHERE {
+      ?item wdt:P4835 "${tvdbId}" .
+      OPTIONAL { ?item wdt:P345 ?imdb }
+      OPTIONAL { ?item rdfs:label ?label . FILTER(LANG(?label) = "hu") }
+    } LIMIT 1`;
+    const url = 'https://query.wikidata.org/sparql?query=' + encodeURIComponent(sparql) + '&format=json';
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'NuvioAddon/1.0', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const binding = data?.results?.bindings?.[0];
+      const imdbId = binding?.imdb?.value || null;
+      const huTitle = binding?.label?.value || null;
+      return { imdbId, huTitle };
+    }
+  } catch (e) {}
+
+  return null;
+}
+
+async function resolveKitsuMeta(kitsuId, episode = null) {
+  try {
+    const url = `https://kitsu.io/api/edge/anime/${kitsuId}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const attrs = data?.data?.attributes;
+      if (attrs) {
+        const canonical = attrs.canonicalTitle || '';
+        const en = attrs.titles?.en || attrs.titles?.en_jp || canonical;
+        const year = (attrs.startDate || '').slice(0, 4);
+        const hu = await resolveHungarianTitle(en);
+        return {
+          imdbId: `kitsu:${kitsuId}`,
+          type: 'series',
+          englishTitle: en,
+          hungarianTitle: hu || en,
+          year,
+          season: 1,
+          episode: episode || 1
+        };
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+async function getMediaMeta(type, rawId) {
+  if (!rawId) return { type, hungarianTitle: '', englishTitle: '' };
+
+  const id = decodeURIComponent(rawId);
+  const cacheKey = `${type}:${id}`;
   if (metaCache.has(cacheKey)) {
     const cached = metaCache.get(cacheKey);
-    let episodeTitle = cached.episodeTitle || '';
-    if (imdbId === 'tt0861751' && season && episode && magyarNepmesekData) {
-      const sEpisodes = magyarNepmesekData[season] || [];
-      const matched = sEpisodes.find(item => item.ep === episode);
-      if (matched && matched.title) episodeTitle = matched.title;
-    } else if (imdbId === 'tt0056789' && episode && TENKES_KAPITANYA_EPISODES[episode]) {
-      episodeTitle = TENKES_KAPITANYA_EPISODES[episode];
+    return cached;
+  }
+
+  let imdbId = null;
+  let season = null;
+  let episode = null;
+  let initialHuTitle = '';
+
+  // 1. Resolve TMDB ID format: tmdb:12345 (movie) or tmdb:12345:season:episode (series)
+  if (id.startsWith('tmdb:')) {
+    const parts = id.split(':');
+    const tmdbId = parts[1];
+    season = parts[2] ? parseInt(parts[2], 10) : null;
+    episode = parts[3] ? parseInt(parts[3], 10) : null;
+    const isSeries = type === 'series' || type === 'tv' || Boolean(season);
+    const resolved = await resolveTmdbToImdb(tmdbId, isSeries);
+    if (resolved) {
+      if (resolved.imdbId) imdbId = resolved.imdbId;
+      if (resolved.huTitle) initialHuTitle = resolved.huTitle;
     }
-    return { ...cached, season, episode, episodeTitle };
+  } else if (id.startsWith('tvdb:')) {
+    // 2. Resolve TVDB ID format: tvdb:12345 or tvdb:12345:season:episode
+    const parts = id.split(':');
+    const tvdbId = parts[1];
+    season = parts[2] ? parseInt(parts[2], 10) : null;
+    episode = parts[3] ? parseInt(parts[3], 10) : null;
+    const resolved = await resolveTvdbToImdb(tvdbId);
+    if (resolved) {
+      if (resolved.imdbId) imdbId = resolved.imdbId;
+      if (resolved.huTitle) initialHuTitle = resolved.huTitle;
+    }
+  } else if (id.startsWith('kitsu:')) {
+    // 3. Resolve Kitsu Anime format: kitsu:1234 or kitsu:1234:episode
+    const parts = id.split(':');
+    const kitsuId = parts[1];
+    episode = parts[2] ? parseInt(parts[2], 10) : null;
+    const resKitsu = await resolveKitsuMeta(kitsuId, episode);
+    if (resKitsu) {
+      metaCache.set(cacheKey, resKitsu);
+      return resKitsu;
+    }
+  } else {
+    // 4. Standard IMDb format: tt1234567 or tt1234567:season:episode
+    const parts = id.split(':');
+    imdbId = parts[0];
+    season = parts[1] ? parseInt(parts[1], 10) : null;
+    episode = parts[2] ? parseInt(parts[2], 10) : null;
   }
 
   // Fast-path: Check static pre-loaded dictionary
-  const preloaded = PRELOADED_HUNGARIAN_TITLES[imdbId];
+  const preloaded = imdbId ? PRELOADED_HUNGARIAN_TITLES[imdbId] : null;
   if (preloaded) {
     let episodeTitle = '';
     if (imdbId === 'tt0861751' && season && episode && magyarNepmesekData) {
@@ -155,33 +288,35 @@ async function getMediaMeta(type, id) {
   let year = '';
   let runtimeMinutes = null;
 
-  // 1. Fetch Cinemeta metadata
-  try {
-    const cinemetaType = type === 'series' || type === 'tv' ? 'series' : 'movie';
-    const cinemetaUrl = `https://v3-cinemeta.strem.io/meta/${cinemetaType}/${imdbId}.json`;
-    const res = await fetch(cinemetaUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      signal: AbortSignal.timeout(5000)
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.meta) {
-        englishTitle = data.meta.name || '';
-        year = (data.meta.year || '').toString().slice(0, 4);
-        if (data.meta.runtime) {
-          const rMatch = data.meta.runtime.toString().match(/(\d+)/);
-          if (rMatch) {
-            runtimeMinutes = parseInt(rMatch[1], 10);
+  // Fetch Cinemeta metadata if we have an IMDb ID
+  if (imdbId) {
+    try {
+      const cinemetaType = type === 'series' || type === 'tv' ? 'series' : 'movie';
+      const cinemetaUrl = `https://v3-cinemeta.strem.io/meta/${cinemetaType}/${imdbId}.json`;
+      const res = await fetch(cinemetaUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.meta) {
+          englishTitle = data.meta.name || '';
+          year = (data.meta.year || '').toString().slice(0, 4);
+          if (data.meta.runtime) {
+            const rMatch = data.meta.runtime.toString().match(/(\d+)/);
+            if (rMatch) {
+              runtimeMinutes = parseInt(rMatch[1], 10);
+            }
           }
         }
       }
+    } catch (err) {
+      console.warn(`[Meta] Cinemeta fetch failed for ${imdbId}:`, err.message);
     }
-  } catch (err) {
-    console.warn(`[Meta] Cinemeta fetch failed for ${imdbId}:`, err.message);
   }
 
-  // 2. Resolve Hungarian title
-  const huTitle = await resolveHungarianTitle(englishTitle, imdbId);
+  // Resolve Hungarian title
+  const huTitle = initialHuTitle || (await resolveHungarianTitle(englishTitle, imdbId));
 
   let episodeTitle = '';
   if (imdbId === 'tt0861751' && season && episode && magyarNepmesekData) {
@@ -193,10 +328,10 @@ async function getMediaMeta(type, id) {
   }
 
   const result = {
-    imdbId,
+    imdbId: imdbId || id,
     type,
-    englishTitle,
-    hungarianTitle: huTitle || englishTitle,
+    englishTitle: englishTitle || huTitle || id,
+    hungarianTitle: huTitle || englishTitle || id,
     year,
     runtimeMinutes,
     season,
