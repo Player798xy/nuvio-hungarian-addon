@@ -205,22 +205,99 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
 });
 
 app.get('/api/diag-netmozi', async (req, res) => {
-  const { scrapeNetMozi, netmoziTlsRequest, netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
-  const { unpack } = require('./src/utils/linkpayload');
+  const { netmoziTlsRequest, netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
+  const { unpack, resolveContent } = require('./src/utils/linkpayload');
   const cookieJar = new Map();
   const title = req.query.title || 'Shrek';
-  const diag = { title };
+  const diag = { title, steps: [] };
+
+  function normalize(str) {
+    return (str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   try {
+    // 1. Search
     const searchUrl = `https://netmozi.com/?search=${encodeURIComponent(title)}`;
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
-    diag.searchStatus = searchRes.statusCode;
-    diag.searchBodyLen = searchRes.body?.length || 0;
-    diag.hasMovieCard = searchRes.body?.includes('movie-card') || false;
+    diag.steps.push({ step: 'search', status: searchRes.statusCode, len: searchRes.body?.length });
 
-    // Use parseCandidates
-    const { parseCandidatesFromHtml } = require('./src/scrapers/netmozi');
-    // Call scrapeNetMozi directly
-    diag.scrapeResult = await scrapeNetMozi(title, req.query.year ? parseInt(req.query.year) : 2001);
+    // 2. Candidates
+    const normTarget = normalize(title);
+    const articleMatches = [...(searchRes.body || '').matchAll(/<article[^>]*class=["'][^"']*movie-card[^"']*["'][\s\S]*?<\/article>/gi)];
+    diag.steps.push({ step: 'movieCardsFound', count: articleMatches.length });
+
+    const candidates = [];
+    for (const match of articleMatches) {
+      const cardStr = match[0];
+      const linkMatch = cardStr.match(/href=["'](\/adatlap\/[^"']+)["']/i);
+      const titleMatch = cardStr.match(/<h3[^>]*class=["']movie-title["'][^>]*>([\s\S]*?)<\/h3>/i);
+      const yearMatch = cardStr.match(/Év:[\s\S]*?([0-9]{4})/i);
+      if (linkMatch && titleMatch) {
+        const itemTitle = titleMatch[1].replace(/<[^>]+>/g, '').replace('(sorozat)', '').trim();
+        candidates.push({ title: itemTitle, link: linkMatch[1], year: yearMatch ? yearMatch[1] : '' });
+      }
+    }
+    diag.steps.push({ step: 'candidates', candidates: candidates.slice(0, 3) });
+
+    if (candidates.length === 0) return res.json(diag);
+    const best = candidates[0];
+
+    // 3. Detail page
+    const targetUrl = 'https://netmozi.com' + best.link;
+    const detailRes = await netmoziFetchWithRedirects(targetUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    diag.steps.push({ step: 'detail', status: detailRes.statusCode, len: detailRes.body?.length, headers: detailRes.headers });
+
+    const attrs = {};
+    for (const mMatch of (detailRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+      attrs[mMatch[1]] = mMatch[2];
+    }
+    diag.steps.push({ step: 'attrs', attrs });
+
+    if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
+      return res.json(diag);
+    }
+
+    // 4. loadLinks
+    const loadLinksUrl = `https://netmozi.com/details/loadLinks/${attrs['data-movie-id']}${attrs['data-csrf']}`;
+    const loadLinksRes = await netmoziTlsRequest(loadLinksUrl, {
+      method: 'POST',
+      body: 'token=' + encodeURIComponent(attrs['data-token']),
+      referer: targetUrl,
+      headers: {
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }, cookieJar);
+    diag.steps.push({ step: 'loadLinks', status: loadLinksRes.statusCode, bodySnippet: loadLinksRes.body?.slice(0, 200) });
+
+    let linksData;
+    try { linksData = JSON.parse(loadLinksRes.body); } catch(e) {}
+    if (!linksData?.success || !linksData?.linkPayload) return res.json(diag);
+
+    const redirectPages = unpack(linksData.linkPayload.value, attrs['data-token']);
+    diag.steps.push({ step: 'redirectPages', redirectPages });
+
+    if (!redirectPages?.[0]) return res.json(diag);
+
+    // 5. mindjart
+    const mindjartUrl = redirectPages[0];
+    const mindjartRes = await netmoziFetchWithRedirects(mindjartUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    diag.steps.push({ step: 'mindjart', status: mindjartRes.statusCode, len: mindjartRes.body?.length });
+
+    const mPayload = (mindjartRes.body || '').match(/<script[^>]*data-link-payload[^>]*data-link-context="([^"]+)"[^>]*>(.*?)<\/script>/s);
+    diag.steps.push({ step: 'payloadFound', found: Boolean(mPayload) });
+
+    if (mPayload) {
+      const routes = unpack(JSON.parse(mPayload[2]).value, mPayload[1]);
+      diag.steps.push({ step: 'routes', count: routes?.length, sample: routes?.slice(0, 5) });
+    }
+
     res.json(diag);
   } catch (err) {
     diag.error = err.message;
