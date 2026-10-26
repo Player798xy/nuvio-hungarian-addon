@@ -165,6 +165,110 @@ function netmoziTlsRequest(targetUrl, options = {}, cookieJar = new Map()) {
 }
 
 /**
+ * Follows HTTP 301/302 redirects automatically (used for details & episode pages)
+ */
+async function netmoziFetchWithRedirects(targetUrl, options = {}, cookieJar = new Map(), maxRedirects = 3) {
+  let currentUrl = targetUrl;
+  let currentOptions = { ...options };
+
+  for (let i = 0; i <= maxRedirects; i++) {
+    const res = await netmoziTlsRequest(currentUrl, currentOptions, cookieJar);
+    if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) && res.headers['location']) {
+      let loc = res.headers['location'];
+      if (!loc.startsWith('http')) {
+        const base = new URL(currentUrl);
+        loc = `${base.protocol}//${base.host}${loc.startsWith('/') ? '' : '/'}${loc}`;
+      }
+      currentOptions.referer = currentUrl;
+      currentOptions.method = 'GET';
+      delete currentOptions.body;
+      currentUrl = loc;
+      continue;
+    }
+    return res;
+  }
+  return { statusCode: 0, headers: {}, body: '' };
+}
+
+/**
+ * Parses search candidates from either Modern SSR HTML (<article class="movie-card">)
+ * or Classic AJAX HTML (<div class="col-12">).
+ */
+function parseCandidatesFromHtml(html, isSeries, normTarget, targetYear) {
+  const candidates = [];
+
+  // Check 1: Modern SSR Cards (<article class="movie-card" ...>)
+  const articleMatches = [...html.matchAll(/<article[^>]*class=["'][^"']*movie-card[^"']*["'][\s\S]*?<\/article>/gi)];
+  for (const match of articleMatches) {
+    const cardStr = match[0];
+    const linkMatch = cardStr.match(/href=["'](\/adatlap\/[^"']+)["']/i);
+    const titleMatch = cardStr.match(/<h3[^>]*class=["']movie-title["'][^>]*>([\s\S]*?)<\/h3>/i);
+    const yearMatch = cardStr.match(/Év:[\s\S]*?([0-9]{4})/i);
+    const itemIsSeries = cardStr.includes('(sorozat)') || cardStr.includes('/sorozatok/') || cardStr.includes('évad');
+
+    if (linkMatch && titleMatch) {
+      const itemTitle = titleMatch[1].replace(/<[^>]+>/g, '').replace('(sorozat)', '').trim();
+      const itemYear = yearMatch ? yearMatch[1] : '';
+      const itemLink = linkMatch[1];
+
+      // Type filter
+      if (isSeries && !itemIsSeries) continue;
+      if (!isSeries && itemIsSeries) continue;
+
+      const normItem = normalize(itemTitle);
+      const matchScore = normItem === normTarget ? 100 : (normItem.includes(normTarget) || normTarget.includes(normItem) ? 75 : 0);
+      const yearScore = (targetYear && itemYear && String(targetYear) === String(itemYear)) ? 20 : 0;
+
+      if (matchScore > 0) {
+        candidates.push({
+          title: itemTitle,
+          year: itemYear,
+          link: itemLink,
+          score: matchScore + yearScore
+        });
+      }
+    }
+  }
+
+  if (candidates.length > 0) return candidates;
+
+  // Check 2: Classic Cards (<div class="col-12" ...)
+  const cardBlocks = [...html.matchAll(/<div[^>]*class=["']col-12[\s\S]*?(?=<div[^>]*class=["']col-12|$)/gi)];
+  for (const c of cardBlocks) {
+    const cardStr = c[0];
+    const titleMatch = cardStr.match(/class=["']col_name["'][^>]*>([\s\S]*?)<\/div>/i);
+    const linkMatch = cardStr.match(/href=["']([^"']+)["'][^>]*class=["']col_a["']/i);
+    const yearMatch = cardStr.match(/Év:[\s\S]*?([0-9]{4})/i);
+    const itemIsSeries = cardStr.includes('(sorozat)') || (linkMatch && linkMatch[1].includes('/sorozatok/'));
+
+    if (titleMatch && linkMatch) {
+      const itemTitle = titleMatch[1].replace(/<[^>]+>/g, '').replace('(sorozat)', '').trim();
+      const itemYear = yearMatch ? yearMatch[1] : '';
+      const itemLink = linkMatch[1];
+
+      // Type filter
+      if (isSeries && !itemIsSeries) continue;
+      if (!isSeries && itemIsSeries) continue;
+
+      const normItem = normalize(itemTitle);
+      const matchScore = normItem === normTarget ? 100 : (normItem.includes(normTarget) || normTarget.includes(normItem) ? 75 : 0);
+      const yearScore = (targetYear && itemYear && String(targetYear) === String(itemYear)) ? 20 : 0;
+
+      if (matchScore > 0) {
+        candidates.push({
+          title: itemTitle,
+          year: itemYear,
+          link: itemLink,
+          score: matchScore + yearScore
+        });
+      }
+    }
+  }
+
+  return candidates;
+}
+
+/**
  * Searches and scrapes NetMozi for a specific title candidate.
  */
 async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, episode) {
@@ -179,89 +283,53 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
     if (!searchRes.body) return streams;
 
-    // Step 2: Extract data-results-url and data-results-token
-    const m = searchRes.body.match(/data-results-url="([^"]+)"\s+data-results-token="([^"]+)"/);
-    if (!m) return streams;
+    // Step 2: Extract Candidates (Modern SSR mode or Classic AJAX mode)
+    let candidates = parseCandidatesFromHtml(searchRes.body, isSeries, normTarget, targetYear);
 
-    const resultsUrl = 'https://netmozi.com' + m[1];
-    const resultsToken = m[2];
+    // If no candidates found in initial HTML, check if classic async search is used (data-results-url)
+    if (candidates.length === 0) {
+      const m = searchRes.body.match(/data-results-url="([^"]+)"\s+data-results-token="([^"]+)"/);
+      if (m) {
+        const resultsUrl = 'https://netmozi.com' + m[1];
+        const resultsToken = m[2];
 
-    const resultsRes = await netmoziTlsRequest(resultsUrl, {
-      method: 'POST',
-      body: 'token=' + encodeURIComponent(resultsToken),
-      referer: searchUrl,
-      headers: {
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    }, cookieJar);
+        const resultsRes = await netmoziTlsRequest(resultsUrl, {
+          method: 'POST',
+          body: 'token=' + encodeURIComponent(resultsToken),
+          referer: searchUrl,
+          headers: {
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        }, cookieJar);
 
-    let data;
-    try {
-      data = JSON.parse(resultsRes.body);
-    } catch (e) {
-      return streams;
-    }
-
-    if (!data.success) return streams;
-
-    // Step 3: Resolve Content Payload
-    const classicHtml = data.html?.classic || '';
-    const resolvedHtml = resolveContent(classicHtml);
-
-    // Step 4: Parse matched cards
-    const cardBlocks = [...resolvedHtml.matchAll(/<div[^>]*class=["']col-12[\s\S]*?(?=<div[^>]*class=["']col-12|$)/gi)];
-    const candidates = [];
-
-    for (const c of cardBlocks) {
-      const cardStr = c[0];
-      const titleMatch = cardStr.match(/class=["']col_name["'][^>]*>([\s\S]*?)<\/div>/i);
-      const linkMatch = cardStr.match(/href=["']([^"']+)["'][^>]*class=["']col_a["']/i);
-      const yearMatch = cardStr.match(/Év:[\s\S]*?([0-9]{4})/i);
-      const itemIsSeries = cardStr.includes('(sorozat)') || (linkMatch && linkMatch[1].includes('/sorozatok/'));
-
-      if (titleMatch && linkMatch) {
-        const itemTitle = titleMatch[1].replace(/<[^>]+>/g, '').replace('(sorozat)', '').trim();
-        const itemYear = yearMatch ? yearMatch[1] : '';
-        const itemLink = linkMatch[1];
-
-        // Type filter: don't match movie if series requested and vice-versa
-        if (isSeries && !itemIsSeries) continue;
-        if (!isSeries && itemIsSeries) continue;
-
-        const normItem = normalize(itemTitle);
-        const matchScore = normItem === normTarget ? 100 : (normItem.includes(normTarget) || normTarget.includes(normItem) ? 75 : 0);
-        const yearScore = (targetYear && itemYear && String(targetYear) === String(itemYear)) ? 20 : 0;
-
-        if (matchScore > 0) {
-          candidates.push({
-            title: itemTitle,
-            year: itemYear,
-            link: itemLink,
-            score: matchScore + yearScore
-          });
-        }
+        try {
+          const data = JSON.parse(resultsRes.body);
+          if (data && data.success) {
+            const classicHtml = data.html?.classic || '';
+            const resolvedHtml = resolveContent(classicHtml);
+            candidates = parseCandidatesFromHtml(resolvedHtml, isSeries, normTarget, targetYear);
+          }
+        } catch (e) {}
       }
     }
 
-    candidates.sort((a, b) => b.score - a.score);
     if (candidates.length === 0) return streams;
 
+    candidates.sort((a, b) => b.score - a.score);
     const best = candidates[0];
     console.log(`[NetMozi] Best match: "${best.title}" (${best.year}) -> ${best.link}`);
 
-    // Step 5: Fetch details/episode page
-    let targetPageUrl;
+    // Step 3: Fetch details/episode page with automatic 301/302 redirect following
+    let targetPageUrl = best.link.startsWith('http') ? best.link : (`https://netmozi.com${best.link}`);
     if (isSeries) {
-      targetPageUrl = `https://netmozi.com${best.link}/s${season}/e${episode}`;
-    } else {
-      targetPageUrl = `https://netmozi.com${best.link}`;
+      targetPageUrl += `/s${season}/e${episode}`;
     }
 
-    const detailPageRes = await netmoziTlsRequest(targetPageUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    const detailPageRes = await netmoziFetchWithRedirects(targetPageUrl, { referer: 'https://netmozi.com/' }, cookieJar);
     if (!detailPageRes.body) return streams;
 
-    // Step 6: Extract data-movie-id, data-token, data-csrf
+    // Step 4: Extract data-movie-id, data-token, data-csrf
     const attrs = {};
     for (const mMatch of detailPageRes.body.matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
       attrs[mMatch[1]] = mMatch[2];
@@ -271,7 +339,7 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
       return streams;
     }
 
-    // Step 7: Load Links via AJAX
+    // Step 5: Load Links via AJAX
     const loadLinksUrl = `https://netmozi.com/details/loadLinks/${attrs['data-movie-id']}${attrs['data-csrf']}`;
     const loadLinksRes = await netmoziTlsRequest(loadLinksUrl, {
       method: 'POST',
@@ -297,9 +365,9 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
     const redirectPages = unpack(linksData.linkPayload.value, attrs['data-token']);
     if (!Array.isArray(redirectPages) || redirectPages.length === 0) return streams;
 
-    // Step 8: Fetch Mindjart redirect page
+    // Step 6: Fetch Mindjart redirect page
     const mindjartUrl = redirectPages[0];
-    const mindjartRes = await netmoziTlsRequest(mindjartUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    const mindjartRes = await netmoziFetchWithRedirects(mindjartUrl, { referer: 'https://netmozi.com/' }, cookieJar);
 
     const mPayload = mindjartRes.body.match(/<script[^>]*data-link-payload[^>]*data-link-context="([^"]+)"[^>]*>(.*?)<\/script>/s);
     if (!mPayload) return streams;
@@ -313,7 +381,7 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
 
     if (!Array.isArray(routes) || routes.length === 0) return streams;
 
-    // Step 9: Resolve Host Routes
+    // Step 7: Resolve Host Routes
     const seenUrls = new Set();
     const streamingRoutes = routes.filter(r => !r.startsWith('////diablo') && !r.startsWith('////torrent'));
     const routesToResolve = streamingRoutes.slice(0, 8);
@@ -483,5 +551,6 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
 
 module.exports = {
   scrapeNetMozi,
-  netmoziTlsRequest
+  netmoziTlsRequest,
+  netmoziFetchWithRedirects
 };
