@@ -257,11 +257,12 @@ app.get('/api/diag-netmozi', async (req, res) => {
     for (const mMatch of (detailRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
       attrs[mMatch[1]] = mMatch[2];
     }
+    const test1 = await netmoziTlsRequest('https://netmozi.com/adatlap/534/shrek', {}, cookieJar);
+    const test2 = await netmoziTlsRequest('https://netmozi.com/adatlap/1207/harmadik-shrek', {}, cookieJar);
     diag.steps.push({
-      step: 'attrs',
-      allLinks: [...(detailRes.body || '').matchAll(/href=["']([^"']*(?:filmek|sorozatok|online|nez|play)[^"']*)["']/gi)].map(m => m[1]),
-      anyAdatlapLinks: [...(detailRes.body || '').matchAll(/href=["'](\/(?:filmek|sorozatok)\/[^"']+)["']/gi)].map(m => m[1]),
-      allHref: [...(detailRes.body || '').matchAll(/href=["']([^"']+)["']/gi)].map(m => m[1]).slice(0, 20)
+      step: 'adatlap_test',
+      shrek534: { status: test1.statusCode, location: test1.headers['location'], len: test1.body?.length },
+      shrek1207: { status: test2.statusCode, location: test2.headers['location'], len: test2.body?.length }
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
