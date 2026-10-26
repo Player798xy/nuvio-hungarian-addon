@@ -400,18 +400,65 @@ app.get('/api/test', async (req, res) => {
 });
 
 app.get('/api/debug-page', async (req, res) => {
-  const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
+  const { netmoziFetchWithRedirects, netmoziTlsRequest } = require('./src/scrapers/netmozi');
+  const { unpack } = require('./src/utils/linkpayload');
   const cookieJar = new Map();
-  const dRes = await netmoziFetchWithRedirects('https://netmozi.com/sorozatok/42579/OR8KJBwOJRxpGxEiD1ITGHsZfhIaBB4tKwM2PictL1FoLARNQRljGg', {
-    referer: 'https://netmozi.com/'
-  }, cookieJar);
+  const logs = [];
+  const log = (...args) => logs.push(args.join(' '));
 
-  const scripts = [...(dRes.body || '').matchAll(/<script[^>]*src=["']([^"']+)["'][^>]*>/gi)].map(m => m[1]);
+  try {
+    const detailUrl = 'https://netmozi.com/adatlap/42579/ingatlanvadaszok/s1/e1';
+    const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    log('Detail status:', dRes.statusCode, 'len:', dRes.body?.length);
 
-  res.json({
-    status: dRes.statusCode,
-    scripts
-  });
+    const attrs = {};
+    for (const m of (dRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+      attrs[m[1]] = m[2];
+    }
+    log('Attrs:', JSON.stringify(attrs));
+
+    if (attrs['data-movie-id'] && attrs['data-token'] && attrs['data-csrf']) {
+      const loadLinksUrl = `https://netmozi.com/details/loadLinks/${attrs['data-movie-id']}${attrs['data-csrf']}`;
+      const llRes = await netmoziTlsRequest(loadLinksUrl, {
+        method: 'POST',
+        body: 'token=' + encodeURIComponent(attrs['data-token']),
+        referer: detailUrl,
+        headers: {
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }, cookieJar);
+      log('LoadLinks status:', llRes.statusCode, 'body:', llRes.body?.slice(0, 150));
+
+      const linksData = JSON.parse(llRes.body);
+      const redirectPages = unpack(linksData.linkPayload.value, attrs['data-token']);
+      log('RedirectPages:', JSON.stringify(redirectPages));
+
+      if (redirectPages && redirectPages.length > 0) {
+        const mindjartRes = await netmoziFetchWithRedirects(redirectPages[0], { referer: 'https://netmozi.com/' }, cookieJar);
+        log('Mindjart status:', mindjartRes.statusCode, 'len:', mindjartRes.body?.length);
+
+        const mPayload = mindjartRes.body.match(/<script[^>]*data-link-payload[^>]*data-link-context="([^"]+)"[^>]*>(.*?)<\/script>/s);
+        log('Mindjart mPayload found:', Boolean(mPayload));
+
+        if (mPayload) {
+          const routes = unpack(JSON.parse(mPayload[2]).value, mPayload[1]);
+          log('Routes count:', routes?.length, 'routes snippet:', JSON.stringify(routes?.slice(0, 3)));
+
+          if (routes && routes.length > 0) {
+            const fullRoute = routes[0].startsWith('http') ? routes[0] : ('https://mindjart.megnezed.com' + routes[0]);
+            const routeRes = await netmoziTlsRequest(fullRoute, { referer: redirectPages[0] }, cookieJar);
+            log('Route 0 status:', routeRes.statusCode, 'location:', routeRes.headers['location']);
+          }
+        }
+      }
+    }
+
+    res.json({ success: true, logs });
+  } catch (e) {
+    log('Error:', e.message, e.stack);
+    res.json({ success: false, logs, error: e.message });
+  }
 });
 
 // Configure Route & Index Page
