@@ -399,29 +399,6 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
-app.get('/api/debug-episodes', async (req, res) => {
-  const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
-  const cookieJar = new Map();
-  const dRes = await netmoziFetchWithRedirects('https://netmozi.com/adatlap/42579/ingatlanvadaszok', { referer: 'https://netmozi.com/' }, cookieJar);
-  
-  const hasSeason1 = (dRes.body || '').includes('season_1') || (dRes.body || '').includes('data-season="1"');
-  const hasSeason2 = (dRes.body || '').includes('season_2') || (dRes.body || '').includes('data-season="2"');
-  const allDataSeasons = [...(dRes.body || '').matchAll(/data-season=["']([^"']+)["']/g)].map(m => m[1]);
-  const allDataEpisodes = [...(dRes.body || '').matchAll(/data-episode=["']([^"']+)["']/g)].map(m => m[1]);
-  const epDep = [...(dRes.body || '').matchAll(/data-episodes=["']([^"']+)["']/g)].map(m => m[1]);
-
-  res.json({
-    status: dRes.statusCode,
-    len: dRes.body?.length,
-    hasSeason1,
-    hasSeason2,
-    allDataSeasons: [...new Set(allDataSeasons)],
-    allDataEpisodes: [...new Set(allDataEpisodes)],
-    epDep,
-    lastUrl: dRes.headers['location'] || 'none'
-  });
-});
-
 // Configure Route & Index Page
 app.get(['/configure', '/:config/configure'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

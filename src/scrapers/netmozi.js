@@ -1083,6 +1083,66 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
       seasonsMapSets[s].add(e);
     }
 
+    const totalParsedEps = Object.values(seasonsMapSets).reduce((sum, set) => sum + set.size, 0);
+
+    // If datacenter IP returned a stub (fewer than 3 episodes), enrich with TVMaze or synthesized range
+    if (totalParsedEps < 3 && title) {
+      try {
+        const tvMazeSearch = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(title)}`, {
+          signal: AbortSignal.timeout(3000)
+        }).then(r => r.json());
+
+        if (Array.isArray(tvMazeSearch) && tvMazeSearch.length > 0 && tvMazeSearch[0]?.show?.id) {
+          const tvShow = tvMazeSearch[0].show;
+          const tvEps = await fetch(`https://api.tvmaze.com/shows/${tvShow.id}/episodes`, {
+            signal: AbortSignal.timeout(3500)
+          }).then(r => r.json());
+
+          if (Array.isArray(tvEps) && tvEps.length > 0) {
+            if (!poster && (tvShow.image?.original || tvShow.image?.medium)) {
+              poster = tvShow.image.original || tvShow.image.medium;
+            }
+            if (!description && tvShow.summary) {
+              description = tvShow.summary.replace(/<[^>]+>/g, '').trim();
+            }
+
+            // Clear stub so we have exact episode structure
+            for (const k in seasonsMapSets) delete seasonsMapSets[k];
+
+            for (const ep of tvEps) {
+              if (!ep.season || !ep.number) continue;
+              const sNum = ep.season;
+              const eNum = ep.number;
+              if (!seasonsMapSets[sNum]) seasonsMapSets[sNum] = new Set();
+              seasonsMapSets[sNum].add(eNum);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // If still <= 1 episode, check if we found a max season/episode indicator and synthesize range
+    const totalAfterTvMaze = Object.values(seasonsMapSets).reduce((sum, set) => sum + set.size, 0);
+    if (totalAfterTvMaze <= 1) {
+      let maxS = 1;
+      let maxE = 1;
+      for (const s in seasonsMapSets) {
+        if (Number(s) > maxS) maxS = Number(s);
+        for (const e of seasonsMapSets[s]) {
+          if (e > maxE) maxE = e;
+        }
+      }
+      if (maxE > 1 || maxS > 1) {
+        for (let s = 1; s <= maxS; s++) {
+          if (!seasonsMapSets[s]) seasonsMapSets[s] = new Set();
+          const targetMax = (s === maxS) ? maxE : Math.max(maxE, 10);
+          for (let e = 1; e <= targetMax; e++) {
+            seasonsMapSets[s].add(e);
+          }
+        }
+      }
+    }
+
     const seasonsMap = {};
     const sortedSeasons = Object.keys(seasonsMapSets).map(Number).sort((a, b) => a - b);
     for (const sNum of sortedSeasons) {
