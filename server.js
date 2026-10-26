@@ -261,8 +261,9 @@ app.get('/api/diag-netmozi', async (req, res) => {
       step: 'attrs',
       attrs,
       movieIdSnippet: (detailRes.body || '').match(/[\s\S]{0,100}data-movie-id[\s\S]{0,300}/)?.[0],
-      anyTokens: [...(detailRes.body || '').matchAll(/(?:token|csrf|loadLinks)[^"'\s<>]{0,50}/gi)].map(m => m[0]).slice(0, 10),
-      scriptTagsCount: [...(detailRes.body || '').matchAll(/<script[\s\S]*?<\/script>/gi)].length
+      tokenScripts: [...(detailRes.body || '').matchAll(/<script[^>]*>([\s\S]*?(?:token|Token|csrf|mid)[\s\S]*?)<\/script>/gi)].map(m => m[0].slice(0, 300)).slice(0, 5),
+      linksContainer: (detailRes.body || '').match(/<div[^>]*id=["'](?:links|linkek|loadLinks|linksContainer)["'][\s\S]{0,300}/i)?.[0] || 'no links container',
+      loadLinksDiv: (detailRes.body || '').match(/[\s\S]{0,100}details\/loadLinks[\s\S]{0,200}/)?.[0] || 'no loadLinks mention'
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
