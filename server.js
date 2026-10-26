@@ -411,19 +411,23 @@ app.get('/api/debug-page', async (req, res) => {
     const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
     log('Detail status:', dRes.statusCode, 'len:', dRes.body?.length);
 
-    // Look for sData, scripts, and tokens in dRes.body
-    const sDataMatch = dRes.body.match(/<div[^>]*id=["']sData["'][^>]*>/i);
-    log('sData tag:', sDataMatch ? sDataMatch[0] : 'not found');
+    // Extract sData urlName
+    const sDataMid = dRes.body.match(/data-mid=["']([^"']+)["']/i);
+    const sDataUrlName = dRes.body.match(/data-urlName=["']([^"']+)["']/i);
+    log('sData mid:', sDataMid ? sDataMid[1] : null, 'urlName:', sDataUrlName ? sDataUrlName[1] : null);
 
-    const scripts = [...dRes.body.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)]
-      .map(m => m[1].trim())
-      .filter(s => s.length > 0 && (s.includes('token') || s.includes('csrf') || s.includes('sData') || s.includes('policy') || s.includes('eval')));
-    log('Relevant inline scripts count:', scripts.length);
-    scripts.forEach((s, idx) => log(`Script ${idx} (full):`, s));
+    if (sDataMid && sDataUrlName) {
+      const realUrl = `https://netmozi.com/sorozatok/${sDataMid[1]}/${sDataUrlName[1]}/s1/e1`;
+      log('Fetching realUrl:', realUrl);
+      const realRes = await netmoziFetchWithRedirects(realUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+      log('RealUrl status:', realRes.statusCode, 'len:', realRes.body?.length);
 
-    // Also look for any csrf tokens in meta tags or script tags or cookies
-    const metaCsrf = dRes.body.match(/<meta[^>]*csrf[^>]*content=["']([^"']+)["']/i) || dRes.body.match(/csrfToken\s*=\s*["']([^"']+)["']/i);
-    log('metaCsrf:', metaCsrf ? metaCsrf[1] : 'none');
+      const realAttrs = {};
+      for (const m of (realRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+        realAttrs[m[1]] = m[2];
+      }
+      log('RealAttrs:', JSON.stringify(realAttrs));
+    }
 
     const allDataAttrs = [...dRes.body.matchAll(/data-[a-zA-Z0-9_-]+=["'][^"']*["']/g)].map(m => m[0]);
     log('All data attrs count:', allDataAttrs.length, 'sample:', allDataAttrs.slice(0, 15).join(' '));
