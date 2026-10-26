@@ -2579,7 +2579,7 @@
         });
 
         // Filter based on selected resolutions
-        const filteredStreams = allKnownStreams.filter(s => {
+        let filteredStreams = allKnownStreams.filter(s => {
           const h = s.height || 0;
           if (selectedResolutions.includes('1080p') && (h >= 1080 || (s.name && s.name.includes('1080')))) return true;
           if (selectedResolutions.includes('720p') && ((h >= 720 && h < 1080) || (s.name && s.name.includes('720')))) return true;
@@ -2587,6 +2587,13 @@
           if (selectedResolutions.includes('360p') && (h < 480 || (s.name && (s.name.includes('360') || s.name.includes('240'))))) return true;
           return selectedResolutions.length === 0;
         });
+
+        // Fallback: If filteredStreams is empty but streams exist (e.g. only 720p available on NetMozi/Videa), show them!
+        let resolutionFallbackActive = false;
+        if (filteredStreams.length === 0 && allKnownStreams.length > 0) {
+          filteredStreams = allKnownStreams;
+          resolutionFallbackActive = true;
+        }
 
         const has1080p = filteredStreams.some(s => (s.height >= 1080) || (s.name && s.name.includes('1080')));
 
@@ -2724,6 +2731,11 @@
         });
 
         streamsList.innerHTML = `
+          ${resolutionFallbackActive ? `
+            <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid #d97706; color: #fde68a; padding: 0.6rem 0.9rem; border-radius: 0.5rem; margin-bottom: 0.8rem; font-size: 0.85rem;">
+              💡 <strong>Figyelem:</strong> Ebből a tartalomból nem létezik 1080p FHD forrás, ezért automatikusan betöltöttük a legjobb elérhető <strong>720p HD</strong> minőséget!
+            </div>
+          ` : ''}
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; margin-top: 1rem; flex-wrap: wrap; gap: 0.5rem;">
             <div style="font-weight: 700; color: #38bdf8; font-size: 1.05rem;">
               ✅ Elérhető források (${displayedStreams.length} db): ${titleLabel || id}

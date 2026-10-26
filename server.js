@@ -362,6 +362,20 @@ app.get('/api/test', async (req, res) => {
 
       matchedItem = exactMovie || exactSeries || movies[0] || series[0];
       if (matchedItem) {
+        if (matchedItem.name && matchedItem.id.startsWith('netmozi:')) {
+          const mid = matchedItem.id.split(':')[2];
+          if (mid) {
+            try {
+              const { netmoziTitleCache, netmoziSlugCache } = require('./src/scrapers/netmozi');
+              netmoziTitleCache.set(mid, matchedItem.name);
+              if (matchedItem.netmoziLink) {
+                const slugMatch = matchedItem.netmoziLink.match(/\/(?:sorozatok|adatlap|film)\/\d+\/([^/?#]+)/);
+                if (slugMatch) netmoziSlugCache.set(mid, slugMatch[1]);
+              }
+            } catch (e) {}
+          }
+        }
+
         if (matchedItem.type === 'series') {
           id = matchedItem.id.match(/:\d+:\d+$/) ? matchedItem.id : `${matchedItem.id}:1:1`;
         } else {
@@ -382,79 +396,6 @@ app.get('/api/test', async (req, res) => {
     res.json({ ...result, queryId: id, matchedItem, durationMs });
   } catch (err) {
     res.status(500).json({ error: err.message, streams: [] });
-  }
-});
-
-// Debug endpoint for NetMozi troubleshooting
-app.get('/api/debug-netmozi', async (req, res) => {
-  const logs = [];
-  const log = (...args) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
-
-  try {
-    const { scrapeNetMozi, netmoziFetchWithRedirects, netmoziTlsRequest } = require('./src/scrapers/netmozi');
-    log('Starting NetMozi debug...');
-    
-    // Test step 1: Search
-    const searchUrl = 'https://netmozi.com/?search=ingatlanvadaszok';
-    const sRes = await netmoziTlsRequest(searchUrl);
-    log('Search status:', sRes.statusCode, 'body len:', sRes.body?.length);
-
-    // Test step 2: Details page
-    const detailUrl = 'https://netmozi.com/sorozatok/42579/_/s1/e1';
-    const cookieJar = new Map();
-    const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
-    log('Detail status:', dRes.statusCode, 'body len:', dRes.body?.length);
-
-    const attrs = {};
-    for (const mMatch of (dRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
-      attrs[mMatch[1]] = mMatch[2];
-    }
-    log('Attrs extracted:', attrs);
-
-    // Test step 3: LoadLinks
-    if (attrs['data-movie-id'] && attrs['data-token'] && attrs['data-csrf']) {
-      const loadLinksUrl = `https://netmozi.com/details/loadLinks/${attrs['data-movie-id']}${attrs['data-csrf']}`;
-      const llRes = await netmoziTlsRequest(loadLinksUrl, {
-        method: 'POST',
-        body: 'token=' + encodeURIComponent(attrs['data-token']),
-        referer: detailUrl,
-        headers: {
-          'Accept': 'application/json, text/javascript, */*; q=0.01',
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      }, cookieJar);
-      log('LoadLinks status:', llRes.statusCode, 'body snippet:', llRes.body?.slice(0, 200));
-
-      const { unpack } = require('./src/utils/linkpayload');
-      const linksData = JSON.parse(llRes.body);
-      const redirectPages = unpack(linksData.linkPayload.value, attrs['data-token']);
-      log('Redirect pages:', redirectPages);
-
-      if (redirectPages && redirectPages.length > 0) {
-        const mindjartRes = await netmoziFetchWithRedirects(redirectPages[0], { referer: 'https://netmozi.com/' }, cookieJar);
-        log('Mindjart status:', mindjartRes.statusCode, 'body len:', mindjartRes.body?.length);
-        const mPayload = mindjartRes.body.match(/<script[^>]*data-link-payload[^>]*data-link-context="([^"]+)"[^>]*>(.*?)<\/script>/s);
-        log('Mindjart payload found:', Boolean(mPayload));
-        if (mPayload) {
-          const routes = unpack(JSON.parse(mPayload[2]).value, mPayload[1]);
-          log('Routes found count:', routes?.length);
-          if (routes && routes.length > 0) {
-            const firstRoute = routes[0];
-            const fullRoute = firstRoute.startsWith('http') ? firstRoute : ('https://mindjart.megnezed.com' + firstRoute);
-            const rRes = await netmoziTlsRequest(fullRoute, { referer: redirectPages[0] }, cookieJar);
-            log('First route status:', rRes.statusCode, 'headers:', rRes.headers);
-          }
-        }
-      }
-    }
-
-    const streams = await scrapeNetMozi('Ingatlanvadászok', null, 1, 1);
-    log('Final scrapeNetMozi streams:', streams.length);
-
-    res.json({ success: true, logs, streams });
-  } catch (err) {
-    log('Debug error:', err.message, err.stack);
-    res.status(500).json({ success: false, logs, error: err.message });
   }
 });
 

@@ -13,9 +13,14 @@ const { extractIndavideoStreams } = require('./indavideo');
 const { extractOkRuStreams } = require('./filmezek');
 
 const netmoziTitleCache = new Map();
+const netmoziSlugCache = new Map();
 
 function getNetMoziTitle(mid) {
   return netmoziTitleCache.get(String(mid)) || '';
+}
+
+function getNetMoziSlug(mid) {
+  return netmoziSlugCache.get(String(mid)) || '';
 }
 
 function normalize(str) {
@@ -621,11 +626,12 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
     const mid = parts[2] || '';
     const s = parts[3] ? parseInt(parts[3], 10) : (targetSeason || 1);
     const e = parts[4] ? parseInt(parts[4], 10) : (targetEpisode || 1);
+    const slug = getNetMoziSlug(mid);
 
-    if (mid) {
+    if (mid && slug) {
       let pageUrl = itemType === 'series'
-        ? `https://netmozi.com/sorozatok/${mid}/_/s${s}/e${e}`
-        : `https://netmozi.com/adatlap/${mid}/_`;
+        ? `https://netmozi.com/sorozatok/${mid}/${slug}/s${s}/e${e}`
+        : `https://netmozi.com/adatlap/${mid}/${slug}`;
       
       const cookieJar = new Map();
       const directStreams = await scrapeNetMoziDetailPage(pageUrl, cleanTitle || 'NetMozi Média', clientIp, cookieJar);
@@ -904,6 +910,12 @@ async function searchNetMozi(query, type = null) {
       if (mid && c.title) {
         netmoziTitleCache.set(String(mid), c.title);
       }
+      if (mid && c.link) {
+        const slugMatch = c.link.match(/\/(?:sorozatok|adatlap|film)\/\d+\/([^/?#]+)/);
+        if (slugMatch) {
+          netmoziSlugCache.set(String(mid), slugMatch[1]);
+        }
+      }
       return {
         id: `netmozi:${itemType}:${mid}`,
         name: c.title,
@@ -1024,7 +1036,9 @@ module.exports = {
   searchNetMozi,
   getNetMoziSeriesEpisodes,
   getNetMoziTitle,
+  getNetMoziSlug,
   netmoziTitleCache,
+  netmoziSlugCache,
   netmoziTlsRequest,
   netmoziFetchWithRedirects
 };
