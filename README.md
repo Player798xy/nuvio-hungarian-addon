@@ -65,7 +65,9 @@ Minden forrás **valós idejű, élő scraperrel** működik (nincs memóriát f
 
 ## 🚀 Önkiszolgáló Üzemeltetés (Self-Hosting Guide)
 
-Ha szeretnéd saját szervereden, helyi hálózatodon vagy privát felhődben futtatni az addont:
+Az addon futtatható a nyilvános felhőben (Vercel) vagy közvetlenül a saját otthoni hálózatodon / szervereden (Raspberry Pi, Home Assistant, Linux/Windows PC, Docker).
+
+> 💡 **Tipp:** Ha otthoni magyar internetkapcsolaton (vagy magyarországi szerveren) self-hosztolod az addont, a **NetMozi** és az összes szigorúan geo-blokkolt magyar forrás is 100%-ban korlátozásmentesen működik a TV-den és mobilodon, mivel a weboldalak lakossági magyar IP-címről érkező kérésekként azonosítják!
 
 ### 1. Docker & Docker Compose (Ajánlott)
 
@@ -73,7 +75,7 @@ A tároló tartalmaz előre konfigurált `Dockerfile`-t és `docker-compose.yml`
 
 1. **Klónozd a tárolót:**
    ```bash
-   git clone https://github.com/krisz9947/nuvio-hungarian-addon.git
+   git clone https://github.com/Player798xy/nuvio-hungarian-addon.git
    cd nuvio-hungarian-addon
    ```
 
@@ -101,7 +103,7 @@ A tároló tartalmaz előre konfigurált `Dockerfile`-t és `docker-compose.yml`
 
 1. **Függőségek telepítése:**
    ```bash
-   git clone https://github.com/krisz9947/nuvio-hungarian-addon.git
+   git clone https://github.com/Player798xy/nuvio-hungarian-addon.git
    cd nuvio-hungarian-addon
    npm install
    ```
