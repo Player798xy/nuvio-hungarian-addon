@@ -626,15 +626,16 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
     const mid = parts[2] || '';
     const s = parts[3] ? parseInt(parts[3], 10) : (targetSeason || 1);
     const e = parts[4] ? parseInt(parts[4], 10) : (targetEpisode || 1);
-    const slug = getNetMoziSlug(mid);
+    const title = cleanTitle || getNetMoziTitle(mid) || '';
+    const slug = getNetMoziSlug(mid) || (title ? normalize(title).replace(/\s+/g, '-') : '') || 'film';
 
-    if (mid && slug) {
+    if (mid) {
       let pageUrl = itemType === 'series'
         ? `https://netmozi.com/sorozatok/${mid}/${slug}/s${s}/e${e}`
         : `https://netmozi.com/adatlap/${mid}/${slug}`;
       
       const cookieJar = new Map();
-      const directStreams = await scrapeNetMoziDetailPage(pageUrl, cleanTitle || 'NetMozi Média', clientIp, cookieJar);
+      const directStreams = await scrapeNetMoziDetailPage(pageUrl, title || 'NetMozi Média', clientIp, cookieJar);
       if (directStreams.length > 0) return directStreams;
     }
   }
@@ -942,7 +943,9 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
   const cookieJar = new Map();
 
   try {
-    const targetUrl = `https://netmozi.com/sorozatok/${mid}/_`;
+    const titleHint = getNetMoziTitle(mid);
+    const slug = getNetMoziSlug(mid) || (titleHint ? normalize(titleHint).replace(/\s+/g, '-') : '') || 'sorozat';
+    const targetUrl = `https://netmozi.com/sorozatok/${mid}/${slug}`;
     const res = await netmoziFetchWithRedirects(targetUrl, { referer: 'https://netmozi.com/' }, cookieJar);
     if (!res.body) return null;
 
