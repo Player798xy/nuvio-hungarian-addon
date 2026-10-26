@@ -643,19 +643,27 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
     let s = targetSeason;
     let e = targetEpisode;
 
-    if (parts.length >= 6) {
-      slug = parts[3];
-      s = parseInt(parts[4], 10);
-      e = parseInt(parts[5], 10);
-    } else if (parts.length === 5) {
-      if (/^\d+$/.test(parts[3])) {
+    if (parts.length >= 5) {
+      if (/^\d+$/.test(parts[3]) && /^\d+$/.test(parts[4])) {
+        // netmozi:series:mid:season:episode[:title]
         s = parseInt(parts[3], 10);
         e = parseInt(parts[4], 10);
+        if (parts[5]) {
+          try { cleanTitle = cleanTitle || decodeURIComponent(parts[5]); } catch (err) {}
+        }
+      } else {
+        // netmozi:series:mid:slug:season:episode
+        slug = parts[3];
+        s = parseInt(parts[4], 10);
+        e = parts[5] ? parseInt(parts[5], 10) : 1;
+      }
+    } else if (parts.length === 4) {
+      if (/^\d+$/.test(parts[3])) {
+        s = parseInt(parts[3], 10);
+        e = 1;
       } else {
         slug = parts[3];
       }
-    } else if (parts.length === 4) {
-      slug = parts[3];
     }
 
     s = s || 1;
