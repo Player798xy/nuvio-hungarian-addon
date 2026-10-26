@@ -1765,6 +1765,7 @@
     const AVAILABLE_SOURCES = [
       { id: 'videa', name: 'Videa.hu', desc: '1080p / 720p Direct MP4 (FCode Noembed bypass)', fast: true },
       { id: 'mediaklikk', name: 'MédiaKlikk (MTVA)', desc: 'Élő TV (M1, M2, M4 Sport, Duna) & HLS VOD archívum', fast: true },
+      { id: 'netmozi', name: 'NetMozi.com', desc: 'NetMozi (Kodi forrás) 1080p & 720p filmek/sorozatok', fast: true },
       { id: 'indavideo', name: 'Indavideo.hu', desc: 'Közvetlen MP4 CDN tokenekkel', fast: true },
       { id: 'jobbmintatv', name: 'JobbMintATV', desc: 'Videa & OK.ru 1080p streamek', fast: true },
       { id: 'filmvilag2', name: 'Filmvilág2', desc: 'Videa 1080p / 720p források', fast: true },
@@ -1776,7 +1777,7 @@
     ];
 
     // State
-    let selectedSources = ['videa', 'mediaklikk', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+    let selectedSources = ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2'];
     let selectedResolutions = ['1080p', '720p', '480p'];
     let selectedTimeoutSec = 10;
     let currentStreamQualityFilter = 'all';
@@ -1971,11 +1972,11 @@
 
     function applyPreset(preset) {
       if (preset === 'fast') {
-        selectedSources = ['videa', 'mediaklikk', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+        selectedSources = ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2'];
       } else if (preset === 'all') {
         selectedSources = AVAILABLE_SOURCES.map(s => s.id);
       } else if (preset === 'kids') {
-        selectedSources = ['mesefilm', 'mediaklikk', 'videa', 'indavideo', 'jobbmintatv'];
+        selectedSources = ['mesefilm', 'mediaklikk', 'videa', 'netmozi', 'indavideo', 'jobbmintatv'];
       }
       renderSourcesGrid();
       updateManifestUrl();
@@ -1983,16 +1984,16 @@
     }
 
     function highlightActivePreset() {
-      const isFast = selectedSources.length === 5 && ['videa', 'mediaklikk', 'indavideo', 'jobbmintatv', 'filmvilag2'].every(s => selectedSources.includes(s));
+      const isFast = selectedSources.length === 6 && ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2'].every(s => selectedSources.includes(s));
       const isAll = selectedSources.length === AVAILABLE_SOURCES.length;
-      const isKids = selectedSources.length === 5 && ['mesefilm', 'mediaklikk', 'videa', 'indavideo', 'jobbmintatv'].every(s => selectedSources.includes(s));
+      const isKids = selectedSources.length === 6 && ['mesefilm', 'mediaklikk', 'videa', 'netmozi', 'indavideo', 'jobbmintatv'].every(s => selectedSources.includes(s));
 
       document.getElementById('btnPresetFast').className = 'preset-btn' + (isFast ? ' active' : '');
       document.getElementById('btnPresetAll').className = 'preset-btn' + (isAll ? ' active' : '');
       document.getElementById('btnPresetKids').className = 'preset-btn' + (isKids ? ' active' : '');
 
       const speedBadge = document.getElementById('speedBadge');
-      if (selectedSources.length <= 5) {
+      if (selectedSources.length <= 6) {
         speedBadge.textContent = '⚡ Szupergyors mód (~500ms - 1s)';
         speedBadge.style.color = '#34d399';
         speedBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
@@ -2570,8 +2571,8 @@
           const heightA = a.height || 0;
           const heightB = b.height || 0;
           if (heightB !== heightA) return heightB - heightA;
-          const isDirectA = a.source === 'videa' || a.source === 'indavideo' || a.source === 'jobbmintatv';
-          const isDirectB = b.source === 'videa' || b.source === 'indavideo' || b.source === 'jobbmintatv';
+          const isDirectA = a.source === 'videa' || a.source === 'indavideo' || a.source === 'jobbmintatv' || a.source === 'netmozi';
+          const isDirectB = b.source === 'videa' || b.source === 'indavideo' || b.source === 'jobbmintatv' || b.source === 'netmozi';
           if (isDirectA && !isDirectB) return -1;
           if (isDirectB && !isDirectA) return 1;
           return 0;

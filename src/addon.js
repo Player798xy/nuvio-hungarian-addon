@@ -15,9 +15,10 @@ const { scrapeFilmezek } = require('./scrapers/filmezek');
 const { scrapeOnlineFilmek } = require('./scrapers/onlinefilmek');
 const { scrapeHDMozi } = require('./scrapers/hdmozi');
 const { scrapeMediaKlikk, getLiveChannelStreams, LIVE_CHANNELS } = require('./scrapers/mediaklikk');
+const { scrapeNetMozi } = require('./scrapers/netmozi');
 
 // Registry of all supported Hungarian sources (No caching - always fresh live scraper results)
-const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2', 'mediaklikk']);
+const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2', 'mediaklikk', 'netmozi']);
 
 const ALL_SCRAPERS = [
   { id: 'videa', name: 'Videa', fn: scrapeVidea, fast: true },
@@ -25,6 +26,7 @@ const ALL_SCRAPERS = [
   { id: 'jobbmintatv', name: 'JobbMintATV', fn: scrapeJobbMintATV, fast: true },
   { id: 'filmvilag2', name: 'Filmvilag2', fn: scrapeFilmvilag, fast: true },
   { id: 'mediaklikk', name: 'MédiaKlikk', fn: scrapeMediaKlikk, fast: true },
+  { id: 'netmozi', name: 'NetMozi', fn: scrapeNetMozi, fast: true },
   { id: 'dmdamedia', name: 'DMDAMedia', fn: scrapeDMDAMedia, fast: false },
   { id: 'mesefilm', name: 'MeseFilm', fn: scrapeMeseFilm, fast: true },
   { id: 'filmezek', name: 'Filmezek', fn: scrapeFilmezek, fast: false },
@@ -34,7 +36,7 @@ const ALL_SCRAPERS = [
 
 function getManifest(config = {}) {
   let name = 'Hungarian Streams (Magyar Források)';
-  let desc = 'Magyar szinkronos filmek és sorozatok 1080p & 720p minőségben (Videa, Indavideo, JobbMintATV, Filmvilág2, DMDAMedia, MeseFilm...) szupergyors közvetlen indítással és magyar keresővel';
+  let desc = 'Magyar szinkronos filmek és sorozatok 1080p & 720p minőségben (NetMozi, Videa, Indavideo, JobbMintATV, Filmvilág2, DMDAMedia...) szupergyors közvetlen indítással és magyar keresővel';
   
   if (config.sources && Array.isArray(config.sources) && config.sources.length > 0) {
     name = `Hungarian Streams [${config.sources.length} forrás]`;
@@ -44,7 +46,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.6.2',
+    version: '1.7.0',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
