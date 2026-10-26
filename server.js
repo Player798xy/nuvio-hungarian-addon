@@ -205,22 +205,52 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
 });
 
 app.get('/api/debug-netmozi', async (req, res) => {
-  const { scrapeNetMozi } = require('./src/scrapers/netmozi');
-  const title = req.query.title || 'Shrek';
-  const logs = [];
-  const origLog = console.log;
-  const origWarn = console.warn;
-  console.log = (...a) => { logs.push(a.join(' ')); origLog(...a); };
-  console.warn = (...a) => { logs.push('[WARN] ' + a.join(' ')); origWarn(...a); };
+  const tls = require('tls');
+  const crypto = require('crypto');
+  const { URL } = require('url');
+
+  const targetUrl = 'https://netmozi.com/?search=' + encodeURIComponent(req.query.title || 'Shrek');
+  const parsed = new URL(targetUrl);
+  const host = parsed.hostname;
+  const start = Date.now();
+
   try {
-    const streams = await scrapeNetMozi({ hungarianTitle: title, year: 2001 });
-    console.log = origLog;
-    console.warn = origWarn;
-    res.json({ title, count: streams.length, streams, logs });
-  } catch (e) {
-    console.log = origLog;
-    console.warn = origWarn;
-    res.json({ error: e.message, stack: e.stack, logs });
+    const info = await new Promise((resolve, reject) => {
+      const socket = tls.connect({
+        host: host,
+        port: 443,
+        servername: host,
+        secureOptions: crypto.constants.SSL_OP_NO_TICKET,
+        rejectUnauthorized: false
+      }, () => {
+        let reqHeaders = `GET ${parsed.pathname}${parsed.search} HTTP/1.1\r\n` +
+          `Host: ${host}\r\n` +
+          `User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n` +
+          `Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n` +
+          `Connection: close\r\n\r\n`;
+        socket.write(reqHeaders);
+      });
+
+      const chunks = [];
+      socket.on('data', d => chunks.push(d));
+      socket.on('end', () => {
+        const fullBuf = Buffer.concat(chunks);
+        resolve({
+          tookMs: Date.now() - start,
+          totalBytes: fullBuf.length,
+          preview: fullBuf.slice(0, 1000).toString('latin1')
+        });
+      });
+      socket.on('error', err => reject(err));
+      socket.setTimeout(6000, () => {
+        socket.destroy();
+        reject(new Error('TLS Timeout after ' + (Date.now() - start) + 'ms'));
+      });
+    });
+
+    res.json(info);
+  } catch (err) {
+    res.json({ error: err.message, tookMs: Date.now() - start });
   }
 });
 
