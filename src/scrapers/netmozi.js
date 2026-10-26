@@ -482,5 +482,6 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
 }
 
 module.exports = {
-  scrapeNetMozi
+  scrapeNetMozi,
+  netmoziTlsRequest
 };

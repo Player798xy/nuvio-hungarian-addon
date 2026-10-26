@@ -205,14 +205,21 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
 });
 
 app.get('/api/debug-netmozi', async (req, res) => {
-  const { scrapeNetMozi } = require('./src/scrapers/netmozi');
-  const title = req.query.title || 'Shrek';
-  const start = Date.now();
+  const { netmoziTlsRequest } = require('./src/scrapers/netmozi');
+  const cookieJar = new Map();
+  const searchUrl = 'https://netmozi.com/?search=' + encodeURIComponent(req.query.title || 'Shrek');
   try {
-    const streams = await scrapeNetMozi(title, req.query.year || null);
-    res.json({ tookMs: Date.now() - start, count: streams.length, streams });
+    const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
+    res.json({
+      status: searchRes.statusCode,
+      headers: searchRes.headers,
+      bodyLength: searchRes.body?.length,
+      hasDataResultsUrl: searchRes.body?.includes('data-results-url'),
+      matchResults: searchRes.body?.match(/data-results-url="([^"]+)"\s+data-results-token="([^"]+)"/),
+      bodySnippet: searchRes.body?.slice(0, 1000)
+    });
   } catch (err) {
-    res.json({ error: err.message, stack: err.stack, tookMs: Date.now() - start });
+    res.json({ error: err.message, stack: err.stack });
   }
 });
 
