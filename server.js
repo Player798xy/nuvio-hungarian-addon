@@ -257,7 +257,13 @@ app.get('/api/diag-netmozi', async (req, res) => {
     for (const mMatch of (detailRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
       attrs[mMatch[1]] = mMatch[2];
     }
-    diag.steps.push({ step: 'attrs', attrs });
+    diag.steps.push({
+      step: 'attrs',
+      attrs,
+      movieIdSnippet: (detailRes.body || '').match(/[\s\S]{0,100}data-movie-id[\s\S]{0,300}/)?.[0],
+      anyTokens: [...(detailRes.body || '').matchAll(/(?:token|csrf|loadLinks)[^"'\s<>]{0,50}/gi)].map(m => m[0]).slice(0, 10),
+      scriptTagsCount: [...(detailRes.body || '').matchAll(/<script[\s\S]*?<\/script>/gi)].length
+    });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
       return res.json(diag);
