@@ -1020,9 +1020,13 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
 
   try {
     const titleHint = getNetMoziTitle(mid);
-    const slug = getNetMoziSlug(mid) || (titleHint ? normalize(titleHint).replace(/\s+/g, '-') : '') || 'sorozat';
-    const targetUrl = `https://netmozi.com/sorozatok/${mid}/${slug}`;
-    const res = await netmoziFetchWithRedirects(targetUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    const slug = getNetMoziSlug(mid) || (titleHint ? normalize(titleHint).replace(/\s+/g, '-') : '') || '_';
+    
+    // Prefer /adatlap/ which contains the complete series index without redirecting to a single episode
+    let res = await netmoziFetchWithRedirects(`https://netmozi.com/adatlap/${mid}/${slug}`, { referer: 'https://netmozi.com/' }, cookieJar);
+    if (!res.body || res.body.length < 500) {
+      res = await netmoziFetchWithRedirects(`https://netmozi.com/sorozatok/${mid}/${slug}`, { referer: 'https://netmozi.com/' }, cookieJar);
+    }
     if (!res.body) return null;
 
     let title = 'NetMozi Sorozat';
@@ -1043,15 +1047,47 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
     const yearMatch = res.body.match(/Év:[\s\S]*?([0-9]{4})/i);
     if (yearMatch) year = yearMatch[1];
 
-    const seasonsMap = {};
     const encTitle = encodeURIComponent(title || 'Sorozat');
+    const seasonsMapSets = {};
 
-    const progressMatches = [...res.body.matchAll(/data-season=["'](\d+)["'][^>]*?data-episodes=["']([^"']+)["']/gi)];
-    for (const pm of progressMatches) {
-      const sNum = parseInt(pm[1], 10);
-      if (sNum === 0) continue;
-      const epNums = pm[2].split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
-      seasonsMap[sNum] = epNums.map(eNum => ({
+    // Method 1: href="#season_X_episode_Y" or id="tab_sXeY"
+    const tabRegex = /(?:href=["']#season_(\d+)_episode_(\d+)["']|id=["']tab_s(\d+)e(\d+)["'])/gi;
+    for (const m of res.body.matchAll(tabRegex)) {
+      const s = parseInt(m[1] || m[3], 10);
+      const e = parseInt(m[2] || m[4], 10);
+      if (!s || !e || e === 0 || s === 0) continue;
+      if (!seasonsMapSets[s]) seasonsMapSets[s] = new Set();
+      seasonsMapSets[s].add(e);
+    }
+
+    // Method 2: data-episodes (progress summary)
+    const depMatches = [
+      ...res.body.matchAll(/data-season=["'](\d+)["'][^>]*?data-episodes=["']([^"']+)["']/gi),
+      ...res.body.matchAll(/data-episodes=["']([^"']+)["'][^>]*?data-season=["'](\d+)["']/gi)
+    ];
+    for (const dm of depMatches) {
+      const s = parseInt(dm[1] || dm[2], 10);
+      const epStr = dm[2] && dm[2].includes(',') ? dm[2] : dm[1];
+      if (!s || s === 0 || !epStr) continue;
+      if (!seasonsMapSets[s]) seasonsMapSets[s] = new Set();
+      epStr.split(',').map(n => parseInt(n.trim(), 10)).filter(n => n > 0).forEach(n => seasonsMapSets[s].add(n));
+    }
+
+    // Method 3: any tag with data-episode and data-season in either order
+    const eitherRegex = /<[^>]+(?:data-episode=["'](\d+)["'][^>]*?data-season=["'](\d+)["']|data-season=["'](\d+)["'][^>]*?data-episode=["'](\d+)["'])[^>]*>/gi;
+    for (const em of res.body.matchAll(eitherRegex)) {
+      const e = parseInt(em[1] || em[4], 10);
+      const s = parseInt(em[2] || em[3], 10);
+      if (!s || !e || e === 0 || s === 0) continue;
+      if (!seasonsMapSets[s]) seasonsMapSets[s] = new Set();
+      seasonsMapSets[s].add(e);
+    }
+
+    const seasonsMap = {};
+    const sortedSeasons = Object.keys(seasonsMapSets).map(Number).sort((a, b) => a - b);
+    for (const sNum of sortedSeasons) {
+      const sortedEps = [...seasonsMapSets[sNum]].sort((a, b) => a - b);
+      seasonsMap[sNum] = sortedEps.map(eNum => ({
         id: `netmozi:series:${mid}:${sNum}:${eNum}:${encTitle}`,
         season: sNum,
         episode: eNum,
@@ -1059,25 +1095,6 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
         overview: `${title} - ${sNum}. Évad ${eNum}. Rész`,
         thumbnail: poster
       }));
-    }
-
-    if (Object.keys(seasonsMap).length === 0) {
-      const tabMatches = [...res.body.matchAll(/data-season=["'](\d+)["'][^>]*?data-episode=["'](\d+)["']/gi)];
-      for (const tm of tabMatches) {
-        const sNum = parseInt(tm[1], 10);
-        const eNum = parseInt(tm[2], 10);
-        if (!seasonsMap[sNum]) seasonsMap[sNum] = [];
-        if (!seasonsMap[sNum].some(e => e.episode === eNum)) {
-          seasonsMap[sNum].push({
-            id: `netmozi:series:${mid}:${sNum}:${eNum}:${encTitle}`,
-            season: sNum,
-            episode: eNum,
-            name: `${eNum}. Rész`,
-            overview: `${title} - ${sNum}. Évad ${eNum}. Rész`,
-            thumbnail: poster
-          });
-        }
-      }
     }
 
     if (Object.keys(seasonsMap).length === 0) {
