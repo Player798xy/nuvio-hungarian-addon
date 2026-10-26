@@ -422,11 +422,12 @@ app.get('/api/debug-page', async (req, res) => {
       const realRes = await netmoziFetchWithRedirects(realUrl, { referer: 'https://netmozi.com/' }, cookieJar);
       log('RealUrl status:', realRes.statusCode, 'len:', realRes.body?.length);
 
-      const realAttrs = {};
-      for (const m of (realRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
-        realAttrs[m[1]] = m[2];
-      }
-      log('RealAttrs:', JSON.stringify(realAttrs));
+      const hasTabPane = (realRes.body || '').includes('tab-pane');
+      const hasLinkLoader = (realRes.body || '').includes('data-link-loader');
+      log('hasTabPane:', hasTabPane, 'hasLinkLoader:', hasLinkLoader);
+
+      const sDataIdx = (realRes.body || '').indexOf('id="sData"');
+      log('Snippet around sData:', (realRes.body || '').slice(Math.max(0, sDataIdx - 100), sDataIdx + 300).replace(/\s+/g, ' '));
     }
 
     const allDataAttrs = [...dRes.body.matchAll(/data-[a-zA-Z0-9_-]+=["'][^"']*["']/g)].map(m => m[0]);
