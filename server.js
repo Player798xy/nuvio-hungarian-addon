@@ -212,8 +212,8 @@ app.get('/api/debug-netmozi', async (req, res) => {
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
     const body = searchRes.body || '';
 
-    const idx = body.indexOf('results-count');
-    const snippet = idx !== -1 ? body.slice(idx - 100, idx + 1500) : null;
+    const idx = body.indexOf('id="classicView"');
+    const snippet = idx !== -1 ? body.slice(idx, idx + 2000) : null;
 
     res.json({ snippet });
   } catch (err) {
