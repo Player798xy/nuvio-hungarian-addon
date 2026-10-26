@@ -225,6 +225,7 @@ async function getMediaMeta(type, rawId) {
     episode = parts[4] ? parseInt(parts[4], 10) : (itemType === 'series' ? 1 : null);
 
     let netmoziTitle = '';
+    let netmoziYear = '';
     try {
       const { getNetMoziTitle } = require('../scrapers/netmozi');
       netmoziTitle = getNetMoziTitle(mid);
