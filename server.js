@@ -408,8 +408,8 @@ app.get('/api/debug-page', async (req, res) => {
 
   try {
     const detailUrl = 'https://netmozi.com/adatlap/42579/ingatlanvadaszok/s1/e1';
-    const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
-    log('Detail status:', dRes.statusCode, 'len:', dRes.body?.length);
+    const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/', debug: true }, cookieJar);
+    log('Detail status:', dRes.statusCode, 'len:', dRes.body?.length, 'TE:', dRes.headers['transfer-encoding'], 'CL:', dRes.headers['content-length']);
 
     // Extract sData urlName
     const sDataMid = dRes.body.match(/data-mid=["']([^"']+)["']/i);

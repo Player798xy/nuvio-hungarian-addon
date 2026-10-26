@@ -177,6 +177,10 @@ function netmoziTlsRequest(targetUrl, options = {}, cookieJar = new Map()) {
         bodyStr = rawBody.toString('utf8');
       }
 
+      if (options.debug) {
+        console.log(`[NetMozi TLS Debug] rawBody: ${rawBody.length}, decoded: ${bodyStr.length}, TE: ${headers['transfer-encoding']}, CL: ${headers['content-length']}`);
+      }
+
       resolve({ statusCode, headers, body: bodyStr });
     });
 
