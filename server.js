@@ -259,19 +259,11 @@ app.get('/api/diag-netmozi', async (req, res) => {
     }
     const test1 = await netmoziTlsRequest('https://netmozi.com/adatlap/534/shrek', {}, cookieJar);
     const test2 = await netmoziTlsRequest('https://netmozi.com/adatlap/1207/harmadik-shrek', {}, cookieJar);
-    // Test with Hungarian IP headers
-    const testHuIp = await netmoziTlsRequest('https://netmozi.com/adatlap/534/shrek', {
-      headers: {
-        'X-Forwarded-For': '185.112.156.1',
-        'X-Real-IP': '185.112.156.1',
-        'CF-Connecting-IP': '185.112.156.1'
-      }
-    }, cookieJar);
     diag.steps.push({
-      step: 'hu_ip_test',
-      status: testHuIp.statusCode,
-      location: testHuIp.headers['location'],
-      len: testHuIp.body?.length
+      step: 'adatlap_title_test',
+      title534: test1.body?.match(/<title>([^<]+)<\/title>/i)?.[1],
+      h1534: test1.body?.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1],
+      hasShrek: test1.body?.includes('Shrek')
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
