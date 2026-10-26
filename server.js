@@ -401,37 +401,20 @@ app.get('/api/test', async (req, res) => {
 
 app.get('/api/debug-page', async (req, res) => {
   const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
-  const { unpack, resolveContent } = require('./src/utils/linkpayload');
   const cookieJar = new Map();
   const dRes = await netmoziFetchWithRedirects('https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1', {
     referer: 'https://netmozi.com/'
   }, cookieJar);
 
-  const scriptMatches = [...(dRes.body || '').matchAll(/<script[^>]*data-content-payload[^>]*data-content-context="([^"]+)"[^>]*>(.*?)<\/script>/gs)];
-  const payloads = scriptMatches.map(m => {
-    try {
-      const parsed = JSON.parse(m[2]);
-      const unpacked = unpack(parsed.value, m[1]);
-      return {
-        contextHeader: Buffer.from(m[1].split('.')[0], 'base64').toString('utf8'),
-        unpackedType: typeof unpacked,
-        isArray: Array.isArray(unpacked),
-        len: Array.isArray(unpacked) ? unpacked.length : 0,
-        snippet: JSON.stringify(unpacked).slice(0, 500)
-      };
-    } catch (e) {
-      return { error: e.message };
-    }
-  });
-
-  const buttonMatches = [...(dRes.body || '').matchAll(/data-[a-z0-9-]+="[^"]*"/gi)].map(m => m[0]);
+  const linesWithId = (dRes.body || '').split('\n').filter(l => l.includes('42579'));
+  const allScripts = [...(dRes.body || '').matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[0].slice(0, 300));
 
   res.json({
     status: dRes.statusCode,
     len: dRes.body?.length,
-    scriptPayloadCount: scriptMatches.length,
-    payloads,
-    buttonMatches: buttonMatches.slice(0, 30)
+    linesWithId: linesWithId.slice(0, 15),
+    scriptTagsCount: allScripts.length,
+    scripts: allScripts.slice(0, 10)
   });
 });
 
