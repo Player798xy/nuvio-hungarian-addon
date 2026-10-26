@@ -210,16 +210,26 @@ app.get('/api/debug-netmozi', async (req, res) => {
   const searchUrl = 'https://netmozi.com/?search=' + encodeURIComponent(req.query.title || 'Shrek');
   try {
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
+    const body = searchRes.body || '';
+    const titleMatch = body.match(/<title>([^<]+)<\/title>/i);
+    const hasIndexListing = body.includes('indexListingAccess');
+    const hasSearch = body.includes('search');
+    const hasCloudflare = body.includes('challenge') || body.includes('cf-chl') || body.includes('turnstile');
+    const indexListingIdx = body.indexOf('indexListingAccess');
+    const indexListingSnippet = indexListingIdx !== -1 ? body.slice(indexListingIdx - 50, indexListingIdx + 300) : null;
+    const bodyLength = body.length;
+
     res.json({
-      status: searchRes.statusCode,
-      headers: searchRes.headers,
-      bodyLength: searchRes.body?.length,
-      hasDataResultsUrl: searchRes.body?.includes('data-results-url'),
-      matchResults: searchRes.body?.match(/data-results-url="([^"]+)"\s+data-results-token="([^"]+)"/),
-      bodySnippet: searchRes.body?.slice(0, 1000)
+      title: titleMatch ? titleMatch[1] : null,
+      hasIndexListing,
+      indexListingSnippet,
+      hasCloudflare,
+      hasSearch,
+      bodyLength,
+      first500: body.slice(0, 500)
     });
   } catch (err) {
-    res.json({ error: err.message, stack: err.stack });
+    res.json({ error: err.message });
   }
 });
 
