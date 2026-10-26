@@ -212,18 +212,10 @@ app.get('/api/debug-netmozi', async (req, res) => {
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
     const body = searchRes.body || '';
 
-    // Search for body or main content
-    const m = body.match(/<body[^>]*>([\s\S]{0,2000})/i);
-    const m2 = body.match(/id=["']indexListing[^"']*["'][^>]*>/i);
-    const m3 = body.match(/class=["'][^"']*results[^"']*["'][^>]*>/i);
-    const allDivIds = [...body.matchAll(/id=["']([a-zA-Z0-9_-]+)["']/gi)].map(x => x[1]);
+    const idx = body.indexOf('results-count');
+    const snippet = idx !== -1 ? body.slice(idx - 100, idx + 1500) : null;
 
-    res.json({
-      allDivIds: allDivIds.slice(0, 30),
-      bodyTag: m ? m[0] : null,
-      m2: m2 ? m2[0] : null,
-      m3: m3 ? m3[0] : null
-    });
+    res.json({ snippet });
   } catch (err) {
     res.json({ error: err.message });
   }
