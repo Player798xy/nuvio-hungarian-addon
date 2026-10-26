@@ -211,22 +211,19 @@ app.get('/api/debug-netmozi', async (req, res) => {
   try {
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
     const body = searchRes.body || '';
-    const titleMatch = body.match(/<title>([^<]+)<\/title>/i);
-    const hasIndexListing = body.includes('indexListingAccess');
-    const hasSearch = body.includes('search');
-    const hasCloudflare = body.includes('challenge') || body.includes('cf-chl') || body.includes('turnstile');
-    const indexListingIdx = body.indexOf('indexListingAccess');
-    const indexListingSnippet = indexListingIdx !== -1 ? body.slice(indexListingIdx - 50, indexListingIdx + 300) : null;
-    const bodyLength = body.length;
+    
+    // Find all occurrences of data-results or data-content or token or results
+    const dataMatches = [...body.matchAll(/data-[a-z0-9-]+="[^"]*"/gi)].map(m => m[0].slice(0, 80));
+    const hasFilmek = body.includes('/filmek/');
+    const hasSorozatok = body.includes('/sorozatok/');
+    const filmekMatches = [...body.matchAll(/href="(\/(filmek|sorozatok)\/[^"]+)"/gi)].map(m => m[1]);
 
     res.json({
-      title: titleMatch ? titleMatch[1] : null,
-      hasIndexListing,
-      indexListingSnippet,
-      hasCloudflare,
-      hasSearch,
-      bodyLength,
-      first500: body.slice(0, 500)
+      dataAttributesSample: dataMatches.slice(0, 20),
+      hasFilmek,
+      hasSorozatok,
+      filmekMatches: filmekMatches.slice(0, 10),
+      bodyLength: body.length
     });
   } catch (err) {
     res.json({ error: err.message });
