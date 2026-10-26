@@ -212,17 +212,10 @@ app.get('/api/debug-netmozi', async (req, res) => {
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
     const body = searchRes.body || '';
 
-    // Search for any script tags or containers that have json or urls
-    const scripts = [...body.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
-    const scriptSnippets = scripts.filter(s => s.includes('results') || s.includes('listing') || s.includes('Shrek') || s.includes('filmek')).map(s => s.slice(0, 300));
-
-    // Also check after pager-wrapper
-    const pagerIdx = body.lastIndexOf('pager-wrapper');
-    const afterPager = pagerIdx !== -1 ? body.slice(pagerIdx, pagerIdx + 2500) : null;
+    const scriptMatch = body.match(/<script[^>]*>([\s\S]*?\{"token"[\s\S]*?)<\/script>/i);
 
     res.json({
-      scriptSnippets,
-      afterPager
+      scriptTag: scriptMatch ? scriptMatch[0] : null
     });
   } catch (err) {
     res.json({ error: err.message });
