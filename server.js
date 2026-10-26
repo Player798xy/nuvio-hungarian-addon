@@ -421,9 +421,7 @@ app.get('/api/debug-page', async (req, res) => {
       log('Fetching realUrl:', realUrl);
       const realRes = await netmoziFetchWithRedirects(realUrl, { referer: 'https://netmozi.com/' }, cookieJar);
       log('RealUrl status:', realRes.statusCode, 'len:', realRes.body?.length);
-
-      const tabMatch = realRes.body.match(/<ul[^>]*nav-tabs[^>]*>([\s\S]*?)<\/ul>/i);
-      log('Nav tabs found:', Boolean(tabMatch), 'len:', tabMatch ? tabMatch[0].length : 0);
+      log('RealUrl last 500 chars:', (realRes.body || '').slice(-500).replace(/\s+/g, ' '));
 
       const videoPlayerMatch = realRes.body.match(/<div[^>]*class=["'][^"']*player[^"']*["'][^>]*>/i);
       log('Player div found:', Boolean(videoPlayerMatch));
