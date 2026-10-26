@@ -83,8 +83,21 @@ function netmoziTlsRequest(targetUrl, options = {}, cookieJar = new Map()) {
       if (options.referer) {
         reqHeaders += `Referer: ${options.referer}\r\n`;
       }
-      if (options.headers?.['X-Requested-With']) {
-        reqHeaders += `X-Requested-With: ${options.headers['X-Requested-With']}\r\n`;
+      if (options.headers) {
+        for (const [hk, hv] of Object.entries(options.headers)) {
+          const lhk = hk.toLowerCase();
+          if (!['host', 'user-agent', 'accept', 'connection', 'referer', 'cookie', 'content-type', 'content-length'].includes(lhk)) {
+            reqHeaders += `${hk}: ${hv}\r\n`;
+          }
+        }
+      }
+
+      const hasXff = options.headers && Object.keys(options.headers).some(k => k.toLowerCase() === 'x-forwarded-for');
+      if (!hasXff) {
+        const huIp = options.clientIp || '185.112.156.1';
+        reqHeaders += `X-Forwarded-For: ${huIp}\r\n`;
+        reqHeaders += `Client-IP: ${huIp}\r\n`;
+        reqHeaders += `X-Real-IP: ${huIp}\r\n`;
       }
 
       if (cookieJar && cookieJar.size > 0) {
@@ -271,16 +284,17 @@ function parseCandidatesFromHtml(html, isSeries, normTarget, targetYear) {
 /**
  * Searches and scrapes NetMozi for a specific title candidate.
  */
-async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, episode) {
+async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, episode, clientIp = null) {
   const streams = [];
   const cookieJar = new Map();
+  const reqOpts = { clientIp };
 
   try {
     const normTarget = normalize(cleanTitle);
 
     // Step 1: Initial Search Request
     const searchUrl = `https://netmozi.com/?search=${encodeURIComponent(cleanTitle)}`;
-    const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
+    const searchRes = await netmoziTlsRequest(searchUrl, reqOpts, cookieJar);
     if (!searchRes.body) return streams;
 
     // Step 2: Extract Candidates (Modern SSR mode or Classic AJAX mode)
@@ -297,6 +311,7 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
           method: 'POST',
           body: 'token=' + encodeURIComponent(resultsToken),
           referer: searchUrl,
+          clientIp,
           headers: {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'X-Requested-With': 'XMLHttpRequest'
@@ -326,7 +341,7 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
       targetPageUrl += `/s${season}/e${episode}`;
     }
 
-    const detailPageRes = await netmoziFetchWithRedirects(targetPageUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    const detailPageRes = await netmoziFetchWithRedirects(targetPageUrl, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
     if (!detailPageRes.body) return streams;
 
     // Step 4: Extract data-movie-id, data-token, data-csrf
@@ -345,6 +360,7 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
       method: 'POST',
       body: 'token=' + encodeURIComponent(attrs['data-token']),
       referer: targetPageUrl,
+      clientIp,
       headers: {
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'X-Requested-With': 'XMLHttpRequest'
@@ -367,7 +383,7 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
 
     // Step 6: Fetch Mindjart redirect page
     const mindjartUrl = redirectPages[0];
-    const mindjartRes = await netmoziFetchWithRedirects(mindjartUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    const mindjartRes = await netmoziFetchWithRedirects(mindjartUrl, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
 
     const mPayload = mindjartRes.body.match(/<script[^>]*data-link-payload[^>]*data-link-context="([^"]+)"[^>]*>(.*?)<\/script>/s);
     if (!mPayload) return streams;
@@ -389,7 +405,7 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
     await Promise.all(routesToResolve.map(async (route) => {
       const fullRouteUrl = route.startsWith('http') ? route : ('https://mindjart.megnezed.com' + route);
       try {
-        const routeRes = await netmoziTlsRequest(fullRouteUrl, { referer: mindjartUrl }, cookieJar);
+        const routeRes = await netmoziTlsRequest(fullRouteUrl, { referer: mindjartUrl, clientIp }, cookieJar);
         const loc = routeRes.headers['location'];
         if (!loc || seenUrls.has(loc)) return;
         seenUrls.add(loc);
@@ -522,6 +538,7 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
   let targetSeason = season;
   let targetEpisode = episode;
   let englishTitle = '';
+  let clientIp = null;
 
   if (typeof metaOrTitle === 'object' && metaOrTitle !== null) {
     cleanTitle = metaOrTitle.hungarianTitle || metaOrTitle.englishTitle || '';
@@ -529,6 +546,7 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
     targetYear = metaOrTitle.year || null;
     targetSeason = metaOrTitle.season || null;
     targetEpisode = metaOrTitle.episode || null;
+    clientIp = metaOrTitle.clientIp || null;
   } else {
     cleanTitle = (metaOrTitle || '').trim();
   }
@@ -538,12 +556,12 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
   const isSeries = Boolean(targetSeason && targetEpisode);
 
   // Search Hungarian title first
-  let streams = await searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, targetSeason, targetEpisode);
+  let streams = await searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, targetSeason, targetEpisode, clientIp);
 
   // If no streams found and englishTitle is different, try searching English title
   if (streams.length === 0 && englishTitle && normalize(englishTitle) !== normalize(cleanTitle)) {
     console.log(`[NetMozi] Fallback search with English title: "${englishTitle}"`);
-    streams = await searchAndScrapeNetMozi(englishTitle, targetYear, isSeries, targetSeason, targetEpisode);
+    streams = await searchAndScrapeNetMozi(englishTitle, targetYear, isSeries, targetSeason, targetEpisode, clientIp);
   }
 
   return streams;
