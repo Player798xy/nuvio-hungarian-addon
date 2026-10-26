@@ -407,79 +407,40 @@ app.get('/api/debug-page', async (req, res) => {
   const log = (...args) => logs.push(args.join(' '));
 
   try {
-    const detailUrl = 'https://netmozi.com/adatlap/42579/ingatlanvadaszok/s1/e1';
-    const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/', debug: true }, cookieJar);
-    log('Detail status:', dRes.statusCode, 'len:', dRes.body?.length, 'TE:', dRes.headers['transfer-encoding'], 'CL:', dRes.headers['content-length']);
+    const detailUrl = 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
+    const dRes = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+    log('Detail 1 status:', dRes.statusCode, 'len:', dRes.body?.length);
 
-    // Extract sData urlName
-    const sDataMid = dRes.body.match(/data-mid=["']([^"']+)["']/i);
-    const sDataUrlName = dRes.body.match(/data-urlName=["']([^"']+)["']/i);
-    log('sData mid:', sDataMid ? sDataMid[1] : null, 'urlName:', sDataUrlName ? sDataUrlName[1] : null);
+    // Look for endpoint in dRes.body
+    const pingMatch = (dRes.body || '').match(/["']endpoint["']\s*:\s*["']([^"']+)["']/i);
+    const scriptTokenMatch = (dRes.body || '').match(/["']token["']\s*:\s*["']([^"']+)["']/i);
+    log('pingMatch:', pingMatch ? pingMatch[1] : null, 'scriptToken:', scriptTokenMatch ? scriptTokenMatch[1].slice(0, 30) : null);
 
-    if (sDataMid && sDataUrlName) {
-      const realUrl = `https://netmozi.com/sorozatok/${sDataMid[1]}/${sDataUrlName[1]}/s1/e1`;
-      log('Fetching realUrl:', realUrl);
-      const realRes = await netmoziFetchWithRedirects(realUrl, { referer: 'https://netmozi.com/' }, cookieJar);
-      log('RealUrl status:', realRes.statusCode, 'len:', realRes.body?.length);
-      log('RealUrl last 500 chars:', (realRes.body || '').slice(-500).replace(/\s+/g, ' '));
-
-      const videoPlayerMatch = realRes.body.match(/<div[^>]*class=["'][^"']*player[^"']*["'][^>]*>/i);
-      log('Player div found:', Boolean(videoPlayerMatch));
-
-      const hasLogin = realRes.body.includes('Bejelentkezés') || realRes.body.includes('login');
-      const hasGeo = realRes.body.includes('külföld') || realRes.body.includes('ország') || realRes.body.includes('korlátoz');
-      log('hasLogin:', hasLogin, 'hasGeo:', hasGeo);
-
-      const bodyMatch = realRes.body.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-      if (bodyMatch) {
-        log('Body text sample:', bodyMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 500));
-      }
-    }
-
-    const allDataAttrs = [...dRes.body.matchAll(/data-[a-zA-Z0-9_-]+=["'][^"']*["']/g)].map(m => m[0]);
-    log('All data attrs count:', allDataAttrs.length, 'sample:', allDataAttrs.slice(0, 15).join(' '));
-
-    const attrs = {};
-    for (const m of (dRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
-      attrs[m[1]] = m[2];
-    }
-    log('Attrs:', JSON.stringify(attrs));
-
-    if (attrs['data-movie-id'] && attrs['data-token'] && attrs['data-csrf']) {
-      const loadLinksUrl = `https://netmozi.com/details/loadLinks/${attrs['data-movie-id']}${attrs['data-csrf']}`;
-      const llRes = await netmoziTlsRequest(loadLinksUrl, {
-        method: 'POST',
-        body: 'token=' + encodeURIComponent(attrs['data-token']),
+    if (pingMatch) {
+      const pingUrl = 'https://netmozi.com' + pingMatch[1].replace(/\\/g, '');
+      log('Calling pingUrl:', pingUrl);
+      const pingRes = await netmoziTlsRequest(pingUrl, {
+        method: 'GET',
         referer: detailUrl,
         headers: {
           'Accept': 'application/json, text/javascript, */*; q=0.01',
           'X-Requested-With': 'XMLHttpRequest'
         }
       }, cookieJar);
-      log('LoadLinks status:', llRes.statusCode, 'body:', llRes.body?.slice(0, 150));
+      log('Ping status:', pingRes.statusCode, 'body:', pingRes.body);
 
-      const linksData = JSON.parse(llRes.body);
-      const redirectPages = unpack(linksData.linkPayload.value, attrs['data-token']);
-      log('RedirectPages:', JSON.stringify(redirectPages));
+      // Now reload detailUrl with the session cookies!
+      const dRes2 = await netmoziFetchWithRedirects(detailUrl, { referer: 'https://netmozi.com/' }, cookieJar);
+      log('Detail 2 status:', dRes2.statusCode, 'len:', dRes2.body?.length);
 
-      if (redirectPages && redirectPages.length > 0) {
-        const mindjartRes = await netmoziFetchWithRedirects(redirectPages[0], { referer: 'https://netmozi.com/' }, cookieJar);
-        log('Mindjart status:', mindjartRes.statusCode, 'len:', mindjartRes.body?.length);
+      const hasLinkLoader = (dRes2.body || '').includes('data-link-loader');
+      log('Detail 2 hasLinkLoader:', hasLinkLoader);
 
-        const mPayload = mindjartRes.body.match(/<script[^>]*data-link-payload[^>]*data-link-context="([^"]+)"[^>]*>(.*?)<\/script>/s);
-        log('Mindjart mPayload found:', Boolean(mPayload));
-
-        if (mPayload) {
-          const routes = unpack(JSON.parse(mPayload[2]).value, mPayload[1]);
-          log('Routes count:', routes?.length, 'routes snippet:', JSON.stringify(routes?.slice(0, 3)));
-
-          if (routes && routes.length > 0) {
-            const fullRoute = routes[0].startsWith('http') ? routes[0] : ('https://mindjart.megnezed.com' + routes[0]);
-            const routeRes = await netmoziTlsRequest(fullRoute, { referer: redirectPages[0] }, cookieJar);
-            log('Route 0 status:', routeRes.statusCode, 'location:', routeRes.headers['location']);
-          }
-        }
+      const attrs2 = {};
+      for (const m of (dRes2.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+        attrs2[m[1]] = m[2];
       }
+      log('Attrs 2:', JSON.stringify(attrs2));
     }
 
     res.json({ success: true, logs });
