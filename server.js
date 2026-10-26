@@ -259,11 +259,17 @@ app.get('/api/diag-netmozi', async (req, res) => {
     }
     const test1 = await netmoziTlsRequest('https://netmozi.com/adatlap/534/shrek', {}, cookieJar);
     const test2 = await netmoziTlsRequest('https://netmozi.com/adatlap/1207/harmadik-shrek', {}, cookieJar);
-    const allButtons = [...(test1.body || '').matchAll(/<(?:button|a)[^>]*class=["'][^"']*(?:btn|play|watch|stream|link|view|action)[^"']*["'][^>]*>([\s\S]*?)<\/(?:button|a)>/gi)].map(m => m[0].replace(/\s+/g, ' '));
+    const testKodiUrl = `https://netmozi.com/?page=1&type=&order=1&search=${encodeURIComponent(title)}`;
+    const kodiRes = await netmoziTlsRequest(testKodiUrl, {}, cookieJar);
+    const mKodi = (kodiRes.body || '').match(/data-results-url="([^"]+)"\s+data-results-token="([^"]+)"/);
     diag.steps.push({
-      step: 'watch_buttons_in_page',
-      count: allButtons.length,
-      buttons: allButtons.slice(0, 15)
+      step: 'kodi_params_test',
+      status: kodiRes.statusCode,
+      len: kodiRes.body?.length,
+      hasIndexListing: (kodiRes.body || '').includes('indexListingAccess'),
+      hasMovieCard: (kodiRes.body || '').includes('movie-card'),
+      resultsUrl: mKodi ? mKodi[1] : null,
+      resultsToken: mKodi ? mKodi[2] : null
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
