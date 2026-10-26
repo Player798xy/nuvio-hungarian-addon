@@ -216,6 +216,62 @@ async function getMediaMeta(type, rawId) {
   let episode = null;
   let initialHuTitle = '';
 
+  // 0. Handle NetMozi ID format: netmozi:series:mid:season:episode or netmozi:movie:mid
+  if (id.startsWith('netmozi:')) {
+    const parts = id.split(':');
+    const itemType = parts[1] || type || 'movie';
+    const mid = parts[2] || '';
+    season = parts[3] ? parseInt(parts[3], 10) : (itemType === 'series' ? 1 : null);
+    episode = parts[4] ? parseInt(parts[4], 10) : (itemType === 'series' ? 1 : null);
+
+    let netmoziTitle = '';
+    let netmoziYear = '';
+    try {
+      const { getNetMoziSeriesEpisodes } = require('../scrapers/netmozi');
+      if (itemType === 'series') {
+        const epData = await getNetMoziSeriesEpisodes(id);
+        if (epData) {
+          netmoziTitle = epData.name;
+          netmoziYear = epData.year;
+        }
+      }
+    } catch (e) {}
+
+    const result = {
+      imdbId: id,
+      type: itemType,
+      englishTitle: netmoziTitle || 'NetMozi Média',
+      hungarianTitle: netmoziTitle || 'NetMozi Média',
+      year: netmoziYear,
+      season,
+      episode,
+      episodeTitle: season && episode ? `${episode}. Rész` : ''
+    };
+    metaCache.set(cacheKey, result);
+    return result;
+  }
+
+  // Handle synthetic title IDs: title:Some+Title:season:episode or title:Some+Title
+  if (id.startsWith('title:')) {
+    const parts = id.split(':');
+    const rawTitle = decodeURIComponent(parts[1] || '').trim();
+    season = parts[2] ? parseInt(parts[2], 10) : (type === 'series' ? 1 : null);
+    episode = parts[3] ? parseInt(parts[3], 10) : (type === 'series' ? 1 : null);
+
+    const result = {
+      imdbId: id,
+      type: type || (season ? 'series' : 'movie'),
+      englishTitle: rawTitle,
+      hungarianTitle: rawTitle,
+      year: '',
+      season,
+      episode,
+      episodeTitle: season && episode ? `${episode}. Rész` : ''
+    };
+    metaCache.set(cacheKey, result);
+    return result;
+  }
+
   // 1. Resolve TMDB ID format: tmdb:12345 (movie) or tmdb:12345:season:episode (series)
   if (id.startsWith('tmdb:')) {
     const parts = id.split(':');
@@ -249,6 +305,25 @@ async function getMediaMeta(type, rawId) {
       metaCache.set(cacheKey, resKitsu);
       return resKitsu;
     }
+  } else if (!id.startsWith('tt')) {
+    // Raw title string fallback (e.g. "ingatlanvadaszok" or "ingatlanvadaszok:1:1")
+    const parts = id.split(':');
+    const rawTitle = decodeURIComponent(parts[0] || '').trim();
+    season = parts[1] ? parseInt(parts[1], 10) : (type === 'series' ? 1 : null);
+    episode = parts[2] ? parseInt(parts[2], 10) : (type === 'series' ? 1 : null);
+
+    const result = {
+      imdbId: id,
+      type: type || (season ? 'series' : 'movie'),
+      englishTitle: rawTitle,
+      hungarianTitle: rawTitle,
+      year: '',
+      season,
+      episode,
+      episodeTitle: season && episode ? `${episode}. Rész` : ''
+    };
+    metaCache.set(cacheKey, result);
+    return result;
   } else {
     // 4. Standard IMDb format: tt1234567 or tt1234567:season:episode
     const parts = id.split(':');
@@ -398,6 +473,17 @@ const seriesEpisodesCache = new Map();
 
 async function getSeriesEpisodes(imdbId) {
   if (!imdbId) return null;
+
+  // Handle NetMozi series
+  if (imdbId.startsWith('netmozi:')) {
+    try {
+      const { getNetMoziSeriesEpisodes } = require('../scrapers/netmozi');
+      return await getNetMoziSeriesEpisodes(imdbId);
+    } catch (e) {
+      return null;
+    }
+  }
+
   const cleanId = imdbId.split(':')[0];
   if (seriesEpisodesCache.has(cleanId)) {
     return seriesEpisodesCache.get(cleanId);

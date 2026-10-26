@@ -5,6 +5,7 @@
 
 const { getMediaMeta } = require('./utils/meta');
 const { LIVE_CHANNELS } = require('./scrapers/mediaklikk');
+const { searchNetMozi, getNetMoziSeriesEpisodes } = require('./scrapers/netmozi');
 
 function normalize(str) {
   return (str || '')
@@ -365,6 +366,17 @@ async function searchCatalog(type, query, catalogId = null) {
     }
   }
 
+  // 3. Search NetMozi catalog for Hungarian titles
+  try {
+    const netmoziItems = await searchNetMozi(cleanQuery, type);
+    for (const item of netmoziItems) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        results.push(item);
+      }
+    }
+  } catch (e) {}
+
   return results;
 }
 
@@ -389,6 +401,45 @@ async function getMeta(type, id) {
             defaultVideoId: channel.id,
             isLive: true
           }
+        }
+      };
+    }
+  }
+
+  // Handle NetMozi items
+  if (id.startsWith('netmozi:')) {
+    if (id.startsWith('netmozi:series:')) {
+      const epData = await getNetMoziSeriesEpisodes(id);
+      if (epData) {
+        return {
+          meta: {
+            id: epData.id,
+            type: 'series',
+            name: epData.name,
+            poster: epData.poster,
+            background: epData.background,
+            description: epData.description,
+            releaseInfo: epData.year,
+            genres: epData.genres,
+            videos: Object.values(epData.seasons || {}).flat().map(e => ({
+              id: e.id,
+              title: e.name,
+              name: e.name,
+              season: e.season,
+              episode: e.episode,
+              overview: e.overview,
+              thumbnail: e.thumbnail
+            }))
+          }
+        };
+      }
+    } else {
+      return {
+        meta: {
+          id,
+          type: 'movie',
+          name: 'NetMozi Film',
+          description: 'NetMozi magyar szinkronos film'
         }
       };
     }

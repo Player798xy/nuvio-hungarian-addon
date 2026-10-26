@@ -350,7 +350,7 @@ app.get('/api/test', async (req, res) => {
   }
 
   let matchedItem = null;
-  if (!id.startsWith('tt')) {
+  if (!id.startsWith('tt') && !id.startsWith('tmdb:') && !id.startsWith('tvdb:') && !id.startsWith('kitsu:') && !id.startsWith('netmozi:') && !id.startsWith('title:')) {
     try {
       const [movies, series] = await Promise.all([
         searchCatalog('movie', id),
@@ -362,12 +362,12 @@ app.get('/api/test', async (req, res) => {
 
       matchedItem = exactMovie || exactSeries || movies[0] || series[0];
       if (matchedItem) {
-        id = matchedItem.type === 'series' ? `${matchedItem.id}:1:1` : matchedItem.id;
+        id = matchedItem.type === 'series' ? (matchedItem.id.includes(':') ? matchedItem.id : `${matchedItem.id}:1:1`) : matchedItem.id;
       } else {
-        return res.json({ streams: [], resolvedTitle: null });
+        id = `title:${id}:1:1`;
       }
     } catch (e) {
-      return res.status(500).json({ error: e.message, streams: [] });
+      id = `title:${id}:1:1`;
     }
   }
 
