@@ -419,7 +419,11 @@ app.get('/api/debug-page', async (req, res) => {
       .map(m => m[1].trim())
       .filter(s => s.length > 0 && (s.includes('token') || s.includes('csrf') || s.includes('sData') || s.includes('policy') || s.includes('eval')));
     log('Relevant inline scripts count:', scripts.length);
-    scripts.forEach((s, idx) => log(`Script ${idx}:`, s.slice(0, 300)));
+    scripts.forEach((s, idx) => log(`Script ${idx} (full):`, s));
+
+    // Also look for any csrf tokens in meta tags or script tags or cookies
+    const metaCsrf = dRes.body.match(/<meta[^>]*csrf[^>]*content=["']([^"']+)["']/i) || dRes.body.match(/csrfToken\s*=\s*["']([^"']+)["']/i);
+    log('metaCsrf:', metaCsrf ? metaCsrf[1] : 'none');
 
     const allDataAttrs = [...dRes.body.matchAll(/data-[a-zA-Z0-9_-]+=["'][^"']*["']/g)].map(m => m[0]);
     log('All data attrs count:', allDataAttrs.length, 'sample:', allDataAttrs.slice(0, 15).join(' '));
