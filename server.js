@@ -259,13 +259,13 @@ app.get('/api/diag-netmozi', async (req, res) => {
     }
     const test1 = await netmoziTlsRequest('https://netmozi.com/adatlap/534/shrek', {}, cookieJar);
     const test2 = await netmoziTlsRequest('https://netmozi.com/adatlap/1207/harmadik-shrek', {}, cookieJar);
-    const allDataAttrs = [...(test1.body || '').matchAll(/(data-[a-z0-9-]+)="([^"]+)"/gi)].map(m => `${m[1]}="${m[2].slice(0, 50)}"`);
+    const occurrences534 = [...(test1.body || '').matchAll(/.{0,50}534.{0,50}/g)].map(m => m[0]);
+    const filmlinks = [...(test1.body || '').matchAll(/href=["']([^"']+)["']/gi)].map(m => m[1]).filter(h => h.includes('film') || h.includes('watch') || h.includes('online') || h.includes('link'));
     diag.steps.push({
-      step: 'all_data_attrs_534',
-      attrsCount: allDataAttrs.length,
-      sampleAttrs: allDataAttrs.slice(0, 20),
-      hasToken: (test1.body || '').includes('data-token'),
-      hasCsrf: (test1.body || '').includes('data-csrf')
+      step: 'search_534_in_page',
+      count: occurrences534.length,
+      sample534: occurrences534.slice(0, 10),
+      filmLinks: filmlinks.slice(0, 15)
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
