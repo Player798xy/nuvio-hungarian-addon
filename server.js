@@ -432,11 +432,9 @@ app.get('/api/debug-page', async (req, res) => {
       const hasGeo = realRes.body.includes('külföld') || realRes.body.includes('ország') || realRes.body.includes('korlátoz');
       log('hasLogin:', hasLogin, 'hasGeo:', hasGeo);
 
-      const mainMatch = realRes.body.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
-      if (mainMatch) {
-        log('Main tag length:', mainMatch[1].length);
-        const headers = [...mainMatch[1].matchAll(/<(h[1-6]|p|div\s+class=["'][^"']+["'])[^>]*>([^<]{3,80})/gi)].map(m => `<${m[1]}>${m[2].trim()}`);
-        log('Main headers sample:', headers.slice(0, 10).join(' | '));
+      const bodyMatch = realRes.body.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      if (bodyMatch) {
+        log('Body text sample:', bodyMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 500));
       }
     }
 
