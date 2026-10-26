@@ -225,16 +225,9 @@ async function getMediaMeta(type, rawId) {
     episode = parts[4] ? parseInt(parts[4], 10) : (itemType === 'series' ? 1 : null);
 
     let netmoziTitle = '';
-    let netmoziYear = '';
     try {
-      const { getNetMoziSeriesEpisodes } = require('../scrapers/netmozi');
-      if (itemType === 'series') {
-        const epData = await getNetMoziSeriesEpisodes(id);
-        if (epData) {
-          netmoziTitle = epData.name;
-          netmoziYear = epData.year;
-        }
-      }
+      const { getNetMoziTitle } = require('../scrapers/netmozi');
+      netmoziTitle = getNetMoziTitle(mid);
     } catch (e) {}
 
     const result = {

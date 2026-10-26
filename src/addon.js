@@ -171,7 +171,7 @@ async function getStreams(type, id, config = {}) {
   const fastPromises = fastScrapers.map(scraper => {
     return Promise.race([
       scraper.fn(meta),
-      new Promise(resolve => setTimeout(() => resolve([]), 6500))
+      new Promise(resolve => setTimeout(() => resolve([]), 8500))
     ]).catch(err => {
       console.warn(`[Addon] ${scraper.name} error:`, err.message || err);
       return [];

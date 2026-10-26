@@ -12,6 +12,12 @@ const { extractVideaStreams } = require('./videa');
 const { extractIndavideoStreams } = require('./indavideo');
 const { extractOkRuStreams } = require('./filmezek');
 
+const netmoziTitleCache = new Map();
+
+function getNetMoziTitle(mid) {
+  return netmoziTitleCache.get(String(mid)) || '';
+}
+
 function normalize(str) {
   return (str || '')
     .toLowerCase()
@@ -895,6 +901,9 @@ async function searchNetMozi(query, type = null) {
     return (filtered.length > 0 ? filtered : candidates).map(c => {
       const mid = c.mid || (c.link.match(/\d+/) ? c.link.match(/\d+/)[0] : '');
       const itemType = c.isSeries ? 'series' : 'movie';
+      if (mid && c.title) {
+        netmoziTitleCache.set(String(mid), c.title);
+      }
       return {
         id: `netmozi:${itemType}:${mid}`,
         name: c.title,
@@ -989,6 +998,10 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
       }];
     }
 
+    if (mid && title) {
+      netmoziTitleCache.set(String(mid), title);
+    }
+
     return {
       id: `netmozi:series:${mid}`,
       name: title,
@@ -1010,6 +1023,8 @@ module.exports = {
   scrapeNetMoziDetailPage,
   searchNetMozi,
   getNetMoziSeriesEpisodes,
+  getNetMoziTitle,
+  netmoziTitleCache,
   netmoziTlsRequest,
   netmoziFetchWithRedirects
 };

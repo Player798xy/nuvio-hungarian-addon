@@ -362,7 +362,11 @@ app.get('/api/test', async (req, res) => {
 
       matchedItem = exactMovie || exactSeries || movies[0] || series[0];
       if (matchedItem) {
-        id = matchedItem.type === 'series' ? (matchedItem.id.includes(':') ? matchedItem.id : `${matchedItem.id}:1:1`) : matchedItem.id;
+        if (matchedItem.type === 'series') {
+          id = matchedItem.id.match(/:\d+:\d+$/) ? matchedItem.id : `${matchedItem.id}:1:1`;
+        } else {
+          id = matchedItem.id;
+        }
       } else {
         id = `title:${id}:1:1`;
       }
