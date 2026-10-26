@@ -259,17 +259,16 @@ app.get('/api/diag-netmozi', async (req, res) => {
     }
     const test1 = await netmoziTlsRequest('https://netmozi.com/adatlap/534/shrek', {}, cookieJar);
     const test2 = await netmoziTlsRequest('https://netmozi.com/adatlap/1207/harmadik-shrek', {}, cookieJar);
-    const testKodiUrl = `https://netmozi.com/?page=1&type=&order=1&search=${encodeURIComponent(title)}`;
-    const kodiRes = await netmoziTlsRequest(testKodiUrl, {}, cookieJar);
-    const mKodi = (kodiRes.body || '').match(/data-results-url="([^"]+)"\s+data-results-token="([^"]+)"/);
+    const testDirectFilm = await netmoziTlsRequest('https://netmozi.com/filmek/534/OQ8GJB4ONVloJR0iDGtiFnkgKBYbWxI8FRM9aw', { referer: 'https://netmozi.com/' }, cookieJar);
+    const directAttrs = {};
+    for (const mMatch of (testDirectFilm.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+      directAttrs[mMatch[1]] = mMatch[2];
+    }
     diag.steps.push({
-      step: 'kodi_params_test',
-      status: kodiRes.statusCode,
-      len: kodiRes.body?.length,
-      hasIndexListing: (kodiRes.body || '').includes('indexListingAccess'),
-      hasMovieCard: (kodiRes.body || '').includes('movie-card'),
-      resultsUrl: mKodi ? mKodi[1] : null,
-      resultsToken: mKodi ? mKodi[2] : null
+      step: 'direct_film_test',
+      status: testDirectFilm.statusCode,
+      len: testDirectFilm.body?.length,
+      directAttrs
     });
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
