@@ -619,23 +619,63 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
     cleanTitle = (metaOrTitle || '').trim();
   }
 
-  // Fast-path: If ID is directly a NetMozi identifier (e.g. netmozi:series:42579:1:1)
+  // Fast-path: If ID is directly a NetMozi identifier (e.g. netmozi:series:42579:1:1 or netmozi:series:42579:slug:1:1)
   if (imdbId && imdbId.startsWith('netmozi:')) {
     const parts = imdbId.split(':');
     const itemType = parts[1] || 'movie';
     const mid = parts[2] || '';
-    const s = parts[3] ? parseInt(parts[3], 10) : (targetSeason || 1);
-    const e = parts[4] ? parseInt(parts[4], 10) : (targetEpisode || 1);
-    const title = cleanTitle || getNetMoziTitle(mid) || '';
-    const slug = getNetMoziSlug(mid) || (title ? normalize(title).replace(/\s+/g, '-') : '') || 'film';
+    let slug = '';
+    let s = targetSeason;
+    let e = targetEpisode;
+
+    if (parts.length >= 6) {
+      slug = parts[3];
+      s = parseInt(parts[4], 10);
+      e = parseInt(parts[5], 10);
+    } else if (parts.length === 5) {
+      if (/^\d+$/.test(parts[3])) {
+        s = parseInt(parts[3], 10);
+        e = parseInt(parts[4], 10);
+      } else {
+        slug = parts[3];
+      }
+    } else if (parts.length === 4) {
+      slug = parts[3];
+    }
+
+    s = s || 1;
+    e = e || 1;
+
+    if (!slug) {
+      slug = getNetMoziSlug(mid);
+    }
+
+    if (!slug && cleanTitle && cleanTitle !== 'NetMozi Média') {
+      slug = normalize(cleanTitle).replace(/\s+/g, '-');
+    }
 
     if (mid) {
-      let pageUrl = itemType === 'series'
-        ? `https://netmozi.com/sorozatok/${mid}/${slug}/s${s}/e${e}`
-        : `https://netmozi.com/adatlap/${mid}/${slug}`;
+      if (!slug || slug === 'film' || slug === 'sorozat') {
+        try {
+          const redirectCheck = await netmoziTlsRequest(`https://netmozi.com/${itemType === 'series' ? 'sorozatok' : 'adatlap'}/${mid}`);
+          const loc = redirectCheck.headers['location'];
+          if (loc) {
+            const mSlug = loc.match(/\/(?:sorozatok|adatlap|film)\/\d+\/([^/?#]+)/);
+            if (mSlug) {
+              slug = mSlug[1];
+              netmoziSlugCache.set(String(mid), slug);
+            }
+          }
+        } catch (err) {}
+      }
+
+      const finalSlug = slug || (cleanTitle && cleanTitle !== 'NetMozi Média' ? normalize(cleanTitle).replace(/\s+/g, '-') : 'film');
+      const pageUrl = itemType === 'series'
+        ? `https://netmozi.com/sorozatok/${mid}/${finalSlug}/s${s}/e${e}`
+        : `https://netmozi.com/adatlap/${mid}/${finalSlug}`;
       
       const cookieJar = new Map();
-      const directStreams = await scrapeNetMoziDetailPage(pageUrl, title || 'NetMozi Média', clientIp, cookieJar);
+      const directStreams = await scrapeNetMoziDetailPage(pageUrl, cleanTitle || finalSlug.replace(/-/g, ' '), clientIp, cookieJar);
       if (directStreams.length > 0) return directStreams;
     }
   }
@@ -972,6 +1012,7 @@ async function getNetMoziSeriesEpisodes(netmoziId) {
     const progressMatches = [...res.body.matchAll(/data-season=["'](\d+)["'][^>]*?data-episodes=["']([^"']+)["']/gi)];
     for (const pm of progressMatches) {
       const sNum = parseInt(pm[1], 10);
+      if (sNum === 0) continue;
       const epNums = pm[2].split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
       seasonsMap[sNum] = epNums.map(eNum => ({
         id: `netmozi:series:${mid}:${sNum}:${eNum}`,
