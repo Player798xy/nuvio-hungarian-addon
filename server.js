@@ -206,16 +206,28 @@ app.get(['/stream/:type/:id.json', '/:config/stream/:type/:id.json'], async (req
 
 app.get('/api/debug-netmozi', async (req, res) => {
   const { netmoziTlsRequest } = require('./src/scrapers/netmozi');
+  const { resolveContent } = require('./src/utils/linkpayload');
   const cookieJar = new Map();
   const searchUrl = 'https://netmozi.com/?search=' + encodeURIComponent(req.query.title || 'Shrek');
   try {
     const searchRes = await netmoziTlsRequest(searchUrl, {}, cookieJar);
     const body = searchRes.body || '';
 
-    const idx = body.indexOf('id="classicView"');
-    const snippet = idx !== -1 ? body.slice(idx, idx + 2000) : null;
+    const hasPayload = body.includes('data-content-payload');
+    let resolvedSnippet = null;
+    let cardCount = 0;
+    if (hasPayload) {
+      const resolved = resolveContent(body);
+      const cardBlocks = [...resolved.matchAll(/<div[^>]*class=["']col-12[\s\S]*?(?=<div[^>]*class=["']col-12|$)/gi)];
+      cardCount = cardBlocks.length;
+      resolvedSnippet = resolved.slice(0, 1000);
+    }
 
-    res.json({ snippet });
+    res.json({
+      hasPayload,
+      cardCount,
+      resolvedSnippet
+    });
   } catch (err) {
     res.json({ error: err.message });
   }
