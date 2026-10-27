@@ -3,8 +3,7 @@
  * Uses DooPlay search and AJAX player options to resolve video sources.
  */
 
-const { extractVideaStreams } = require('./videa');
-const { extractOkRuStreams } = require('./filmezek');
+const { extractOkRuStreams, resolveVideaEmbed } = require('./filmezek');
 
 function normalize(str) {
   return (str || '')
@@ -234,15 +233,12 @@ async function scrapeOnlineFilmek(meta) {
         if (!embedUrl) continue;
 
         // 1. Check if Videa embed -> decode to direct MP4
-        const videaMatch = embedUrl.match(/videa\.hu\/player\?v=([A-Za-z0-9]{16})/);
-        if (videaMatch) {
-          const vcode = videaMatch[1];
-          const vData = await extractVideaStreams(vcode);
-          const vStreams = vData?.sources || [];
-          for (const vs of vStreams) {
+        if (embedUrl.includes('videa.hu')) {
+          const vSources = await resolveVideaEmbed(embedUrl);
+          for (const vs of vSources) {
             const qualLabel = vs.height >= 1080 ? '1080p FHD' : vs.height >= 720 ? '720p HD' : `${vs.height}p`;
             streams.push({
-              name: `[HU] OnlineFilmek ${qualLabel}`,
+              name: `[HU] OnlineFilmek (Videa) ${qualLabel}`,
               title: `${postTitle || hu}\n🇭🇺 OnlineFilmekIngyen (Videa) • ${qualLabel} • Szinkron`,
               url: vs.url,
               quality: vs.height >= 1080 ? '1080p' : vs.height >= 720 ? '720p' : '480p',
@@ -250,7 +246,7 @@ async function scrapeOnlineFilmek(meta) {
               source: 'onlinefilmek'
             });
           }
-          continue;
+          if (vSources.length > 0) continue;
         }
 
         // 2. Check if OK.ru embed -> decode to direct MP4/HLS
