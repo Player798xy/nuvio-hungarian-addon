@@ -401,6 +401,58 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
+// Debug endpoint for HDMozi / RPM scraper diagnostics
+app.get('/api/debug-hdmozi', async (req, res) => {
+  const steps = [];
+  const title = req.query.title || 'Kutya csillagkép';
+  try {
+    // Step 1: hdmozi.hu direct search connectivity
+    const t0 = Date.now();
+    const sResp = await fetch(`https://hdmozi.hu/?s=${encodeURIComponent(title)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+    const sText = await sResp.text();
+    steps.push({
+      step: 'search_hdmozi',
+      status: sResp.status,
+      durationMs: Date.now() - t0,
+      bodyLength: sText.length,
+      sample: sText.slice(0, 300)
+    });
+
+    // Step 2: rpmshare connectivity
+    const t1 = Date.now();
+    const rpmResp = await fetch('https://rpmshare.rpmstream.live', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      signal: AbortSignal.timeout(5000)
+    });
+    steps.push({
+      step: 'rpmshare_ping',
+      status: rpmResp.status,
+      durationMs: Date.now() - t1
+    });
+
+    // Step 3: Run scrapeHDMozi directly
+    const { scrapeHDMozi } = require('./src/scrapers/hdmozi');
+    const t2 = Date.now();
+    const streams = await scrapeHDMozi({ hungarianTitle: title, type: 'movie' });
+    steps.push({
+      step: 'scrapeHDMozi',
+      streamsCount: streams.length,
+      durationMs: Date.now() - t2,
+      streams
+    });
+
+    res.json({ ok: true, steps });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message, stack: err.stack, steps });
+  }
+});
+
 // Configure Route & Index Page
 app.get(['/configure', '/:config/configure'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
