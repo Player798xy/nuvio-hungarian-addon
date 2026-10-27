@@ -245,24 +245,38 @@ app.get(['/api/live/:streamId.m3u8', '/hls/live/:streamId.m3u8'], async (req, re
 // Debug endpoint to diagnose NetMozi on Vercel
 app.get('/api/debug-netmozi', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
+  const { netmoziFetchWithRedirects, netmoziTlsRequest } = require('./src/scrapers/netmozi');
   const cookieJar = new Map();
   const pageUrl = 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
   const pageRes = await netmoziFetchWithRedirects(pageUrl, {}, cookieJar);
   
-  // Find interesting parts in 46KB body
   const body = pageRes.body;
-  const sData = body.match(/<div[^>]*id="sData"[^>]*>/i);
+  const sDataMid = body.match(/data-mid="(\d+)"/i);
   const browserState = body.match(/id="netmozi-browser-state">([^<]+)</i);
-  const linksBtn = body.match(/class="[^"]*details_links_btn[^"]*"[^>]*href="([^"]+)"/i);
-  const allDivs = [...body.matchAll(/<div[^>]*data-([^=>\s]+)=["']([^"']+)["'][^>]*>/gi)].slice(0, 15).map(m => m[0]);
   
+  let loadRes = null;
+  if (sDataMid && browserState) {
+    const bs = JSON.parse(browserState[1]);
+    const csrfMatch = bs.endpoint.match(/(\?c=[a-f0-9]+)/);
+    const csrf = csrfMatch ? csrfMatch[1] : '';
+    const loadUrl = `https://netmozi.com/details/loadLinks/${sDataMid[1]}${csrf}`;
+    
+    loadRes = await netmoziTlsRequest(loadUrl, {
+      method: 'POST',
+      body: 'token=' + encodeURIComponent(bs.token),
+      referer: pageUrl,
+      headers: {
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }, cookieJar);
+  }
+
   res.json({
-    len: body.length,
-    sData: sData ? sData[0] : null,
-    browserState: browserState ? JSON.parse(browserState[1]) : null,
-    linksBtn: linksBtn ? linksBtn[1] : null,
-    allDivs
+    sDataMid: sDataMid ? sDataMid[1] : null,
+    loadStatus: loadRes ? loadRes.statusCode : null,
+    loadBodyLen: loadRes ? loadRes.body.length : null,
+    loadBodyPreview: loadRes ? loadRes.body.slice(0, 300) : null
   });
 });
 
