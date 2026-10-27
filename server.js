@@ -401,6 +401,46 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
+/**
+ * Fast cross-lingual title resolution via Wikipedia API (e.g. "wild robot" -> "A vad robot")
+ */
+async function resolveTitleToHungarian(title) {
+  if (!title) return title;
+  const clean = title.trim();
+  try {
+    // 1. Direct langlinks
+    const searchTitle = clean.replace(/ /g, '_');
+    const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${encodeURIComponent(searchTitle)}&lllang=hu&format=json`;
+    const res = await fetch(wikiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(2000) });
+    if (res.ok) {
+      const data = await res.json();
+      const page = Object.values(data.query?.pages || {})[0];
+      const hu = page?.langlinks?.[0]?.['*'];
+      if (hu) return hu.replace(/\s*\([^)]+\)\s*$/g, '').trim();
+    }
+
+    // 2. Opensearch -> langlinks
+    const osUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(clean)}&limit=1&format=json`;
+    const osRes = await fetch(osUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(2000) });
+    if (osRes.ok) {
+      const osData = await osRes.json();
+      const exactTitle = osData?.[1]?.[0];
+      if (exactTitle) {
+        const wikiUrl2 = `https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${encodeURIComponent(exactTitle.replace(/ /g, '_'))}&lllang=hu&format=json`;
+        const res2 = await fetch(wikiUrl2, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(2000) });
+        if (res2.ok) {
+          const data2 = await res2.json();
+          const page2 = Object.values(data2.query?.pages || {})[0];
+          const hu2 = page2?.langlinks?.[0]?.['*'];
+          if (hu2) return hu2.replace(/\s*\([^)]+\)\s*$/g, '').trim();
+        }
+      }
+    }
+  } catch (e) {}
+
+  return title;
+}
+
 // Provider Diagnostic / Tester Endpoint
 app.get('/api/provider-test', async (req, res) => {
   const providerId = (req.query.provider || '').toLowerCase().trim();
@@ -421,35 +461,47 @@ app.get('/api/provider-test', async (req, res) => {
 
   const t0 = Date.now();
   try {
-    let meta = {
-      hungarianTitle: rawTitle,
-      englishTitle: rawTitle,
+    let resolvedHu = rawTitle;
+    let resolvedEn = rawTitle;
+    let imdbId = rawTitle.startsWith('tt') ? rawTitle : null;
+
+    // Fast title resolution for English/Hungarian variants
+    if (!rawTitle.startsWith('tt')) {
+      // A. Fast Wikipedia cross-lingual lookup (~100-300ms)
+      try {
+        const huWiki = await resolveTitleToHungarian(rawTitle);
+        if (huWiki && huWiki.toLowerCase() !== rawTitle.toLowerCase()) {
+          resolvedHu = huWiki;
+          resolvedEn = rawTitle;
+        }
+      } catch (e) {}
+
+      // B. Catalog lookup if still identical
+      if (resolvedHu === rawTitle) {
+        try {
+          const candidates = await searchCatalog(type === 'series' ? 'series' : 'movie', rawTitle);
+          if (candidates && candidates.length > 0) {
+            const top = candidates[0];
+            if (top.id && top.id.startsWith('tt')) {
+              imdbId = top.id;
+              const resolvedMeta = await getMediaMeta(type, top.id);
+              if (resolvedMeta?.hungarianTitle) resolvedHu = resolvedMeta.hungarianTitle;
+              if (resolvedMeta?.englishTitle) resolvedEn = resolvedMeta.englishTitle;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    const meta = {
+      hungarianTitle: resolvedHu,
+      englishTitle: resolvedEn,
+      imdbId,
       type: type,
       season: season,
       episode: episode,
       clientIp
     };
-
-    // If query is not an IMDb ID (e.g. 'wild robot', 'The Wild Robot', 'dune'), resolve through catalog & metadata
-    if (!rawTitle.startsWith('tt')) {
-      try {
-        const candidates = await searchCatalog(type === 'series' ? 'series' : 'movie', rawTitle);
-        if (candidates && candidates.length > 0) {
-          const top = candidates[0];
-          if (top.id && top.id.startsWith('tt')) {
-            const resolvedMeta = await getMediaMeta(type, top.id);
-            if (resolvedMeta && (resolvedMeta.hungarianTitle || resolvedMeta.englishTitle)) {
-              meta = {
-                ...resolvedMeta,
-                season: season || resolvedMeta.season,
-                episode: episode || resolvedMeta.episode,
-                clientIp
-              };
-            }
-          }
-        }
-      } catch (e) {}
-    }
 
     const streams = await Promise.race([
       scraper.fn(meta),
@@ -461,7 +513,7 @@ app.get('/api/provider-test', async (req, res) => {
       ok: true,
       provider: scraper.id,
       name: scraper.name,
-      title: meta.hungarianTitle || rawTitle,
+      title: resolvedHu || rawTitle,
       query: rawTitle,
       count: (streams || []).length,
       durationMs,
