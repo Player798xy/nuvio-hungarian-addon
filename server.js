@@ -351,13 +351,41 @@ app.get('/api/debug-netmozi', async (req, res) => {
     }
     log.attrs = attrs;
 
-    // Check for captcha or cloudflare
-    log.isCloudflare = detailRes.body?.includes('cf-browser-verification') || detailRes.body?.includes('Just a moment...');
-    log.hasBrowserState = detailRes.body?.includes('id="netmozi-browser-state"');
-    if (log.hasBrowserState) {
-      const bState = detailRes.body.match(/<script[^>]*id="netmozi-browser-state"[^>]*>([\s\S]*?)<\/script>/);
-      if (bState) {
-        try { log.browserState = JSON.parse(bState[1]); } catch (e) { log.browserState = bState[1]; }
+    // Check for browser state handshake
+    if ((!attrs['data-token'] || !attrs['data-csrf']) && detailRes.body?.includes('id="netmozi-browser-state"')) {
+      const bStateMatch = detailRes.body.match(/<script[^>]*id="netmozi-browser-state"[^>]*>([\s\S]*?)<\/script>/);
+      if (bStateMatch) {
+        try {
+          const bState = JSON.parse(bStateMatch[1]);
+          log.browserState = bState;
+          if (bState.endpoint) {
+            const pingUrl = 'https://netmozi.com' + bState.endpoint;
+            const pingRes = await netmoziTlsRequest(pingUrl, {
+              method: 'POST',
+              body: 'mirror=' + encodeURIComponent(bState.token || ''),
+              referer: url,
+              clientIp,
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json, text/javascript, */*; q=0.01',
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            }, cookieJar);
+            log.pingStatus = pingRes.statusCode;
+            log.pingBody = pingRes.body;
+
+            // Re-fetch page with cookies
+            const page2Res = await netmoziFetchWithRedirects(url, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
+            log.page2Status = page2Res.statusCode;
+            log.page2BodyLength = page2Res.body?.length || 0;
+            for (const mMatch of (page2Res.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+              attrs[mMatch[1]] = mMatch[2];
+            }
+            log.attrsAfterHandshake = attrs;
+          }
+        } catch (e) {
+          log.handshakeError = e.message;
+        }
       }
     }
 
