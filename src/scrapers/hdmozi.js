@@ -311,20 +311,24 @@ async function extractRpmIdFromHdmozi(hdmoziUrl) {
 async function scrapeHDMozi(meta) {
   const streams = [];
   try {
-    const title = meta.hungarianTitle || meta.englishTitle;
-    if (!title) return streams;
+    const rawTitle = (meta.hungarianTitle || meta.englishTitle || '').replace(/\+/g, ' ').trim();
+    if (!rawTitle) return streams;
+    const title = rawTitle;
 
     const isSeries = Boolean(meta.season && meta.episode);
     const mediaInfo = {
-      title,
+      title: rawTitle,
       type: isSeries ? 'series' : (meta.type || 'movie'),
       year: meta.year ? parseInt(meta.year, 10) : null
     };
 
     let hdmoziUrl = await resolveHdmoziUrl(mediaInfo, meta.season, meta.episode);
-    if (!hdmoziUrl && meta.englishTitle && meta.englishTitle !== title) {
-      mediaInfo.title = meta.englishTitle;
-      hdmoziUrl = await resolveHdmoziUrl(mediaInfo, meta.season, meta.episode);
+    if (!hdmoziUrl && meta.englishTitle) {
+      const engTitle = meta.englishTitle.replace(/\+/g, ' ').trim();
+      if (engTitle !== rawTitle) {
+        mediaInfo.title = engTitle;
+        hdmoziUrl = await resolveHdmoziUrl(mediaInfo, meta.season, meta.episode);
+      }
     }
 
     if (!hdmoziUrl) return streams;

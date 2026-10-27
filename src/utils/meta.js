@@ -293,7 +293,7 @@ async function getMediaMeta(type, rawId) {
   // Handle synthetic title IDs: title:Some+Title:season:episode or title:Some+Title
   if (id.startsWith('title:')) {
     const parts = id.split(':');
-    const rawTitle = decodeURIComponent(parts[1] || '').trim();
+    const rawTitle = decodeURIComponent(parts[1] || '').replace(/\+/g, ' ').trim();
     season = parts[2] ? parseInt(parts[2], 10) : (type === 'series' ? 1 : null);
     episode = parts[3] ? parseInt(parts[3], 10) : (type === 'series' ? 1 : null);
 
