@@ -60,7 +60,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.7.5',
+    version: '1.7.6',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
@@ -171,7 +171,7 @@ async function getStreams(type, id, config = {}) {
   const fastPromises = fastScrapers.map(scraper => {
     return Promise.race([
       scraper.fn(meta),
-      new Promise(resolve => setTimeout(() => resolve([]), 8500))
+      new Promise(resolve => setTimeout(() => resolve([]), Math.max(12000, timeoutMs)))
     ]).catch(err => {
       console.warn(`[Addon] ${scraper.name} error:`, err.message || err);
       return [];

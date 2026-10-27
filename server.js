@@ -401,6 +401,65 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
+// Provider Diagnostic / Tester Endpoint
+app.get('/api/provider-test', async (req, res) => {
+  const providerId = (req.query.provider || '').toLowerCase().trim();
+  const rawTitle = (req.query.title || 'A vad robot').trim();
+  const type = req.query.type || 'movie';
+  const season = req.query.season ? parseInt(req.query.season, 10) : null;
+  const episode = req.query.episode ? parseInt(req.query.episode, 10) : null;
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+
+  const scraper = ALL_SCRAPERS.find(s => s.id === providerId);
+  if (!scraper) {
+    return res.status(400).json({
+      ok: false,
+      error: `Ismeretlen szolgáltató: ${providerId}`,
+      available: ALL_SCRAPERS.map(s => s.id)
+    });
+  }
+
+  const t0 = Date.now();
+  try {
+    const meta = {
+      hungarianTitle: rawTitle,
+      englishTitle: rawTitle,
+      type: type,
+      season: season,
+      episode: episode,
+      clientIp
+    };
+
+    const streams = await Promise.race([
+      scraper.fn(meta),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Időtúllépés (15s)')), 15000))
+    ]);
+
+    const durationMs = Date.now() - t0;
+    res.json({
+      ok: true,
+      provider: scraper.id,
+      name: scraper.name,
+      title: rawTitle,
+      count: (streams || []).length,
+      durationMs,
+      streams: streams || []
+    });
+  } catch (err) {
+    const durationMs = Date.now() - t0;
+    res.json({
+      ok: false,
+      provider: scraper.id,
+      name: scraper.name,
+      title: rawTitle,
+      count: 0,
+      durationMs,
+      error: err.message,
+      streams: []
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({

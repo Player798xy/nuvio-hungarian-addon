@@ -1,6 +1,6 @@
 {
   "name": "nuvio-hungarian-addon",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "description": "Nuvio & Stremio addon for Hungarian streaming sources (NetMozi, Videa, Indavideo, JobbMintATV, Filmvilág2, DMDAMedia, MeseFilm, Filmezek, OnlineFilmek, HDMozi) with 1080p & 720p support and Hungarian search catalog",
   "main": "server.js",
   "scripts": {

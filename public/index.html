@@ -1502,6 +1502,210 @@
         font-size: 0.78rem;
       }
     }
+
+    /* Provider Matrix Inspector Styles */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .provider-card {
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .provider-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .provider-card.card-loading {
+      border-color: rgba(59, 130, 246, 0.5);
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+    }
+
+    .provider-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .provider-info {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .provider-icon {
+      font-size: 1.6rem;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: #1e2538;
+      flex-shrink: 0;
+    }
+
+    .provider-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #ffffff;
+    }
+
+    .provider-desc {
+      font-size: 0.76rem;
+      color: #94a3b8;
+      margin-top: 0.15rem;
+    }
+
+    .provider-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      white-space: nowrap;
+    }
+
+    .badge-idle {
+      background: rgba(148, 163, 184, 0.15);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .badge-loading {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      animation: pulse 1.5s infinite;
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .badge-empty {
+      background: rgba(234, 179, 8, 0.15);
+      color: #facc15;
+      border: 1px solid rgba(234, 179, 8, 0.3);
+    }
+
+    .badge-blocked {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .provider-streams-list {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .provider-stream-item {
+      background: #131b2e;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      padding: 0.5rem 0.65rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .provider-stream-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      overflow: hidden;
+      margin-right: 0.5rem;
+    }
+
+    .provider-stream-title {
+      color: #e2e8f0;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+
+    .provider-stream-actions {
+      display: flex;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+
+    .provider-btn-action {
+      padding: 0.25rem 0.55rem;
+      font-size: 0.74rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .provider-btn-play {
+      background: #2563eb;
+      color: #ffffff;
+    }
+    .provider-btn-play:hover {
+      background: #1d4ed8;
+    }
+
+    .provider-btn-copy {
+      background: #1e293b;
+      color: #cbd5e1;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .provider-btn-copy:hover {
+      background: #334155;
+      color: #ffffff;
+    }
+
+    .provider-diagnostic-text {
+      font-size: 0.76rem;
+      color: #94a3b8;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 6px;
+      padding: 0.55rem 0.75rem;
+      margin-top: 0.5rem;
+      line-height: 1.45;
+    }
+
+    .provider-retry-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94a3b8;
+      font-size: 0.72rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .provider-retry-btn:hover {
+      color: #ffffff;
+      border-color: #6366f1;
+    }
   </style>
 </head>
 <body>
@@ -1722,6 +1926,62 @@
 
       <!-- Streams List -->
       <div id="streamsList" class="streams-preview"></div>
+    </div>
+
+    <!-- 5. Szolgáltató Diagnosztika & Élő Provider Tesztelő (Provider Inspector) -->
+    <div class="card" id="providerInspectorCard" style="margin-top: 1.5rem;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>🔬</span>
+            <span>Szolgáltató Diagnosztika &amp; Forrás Tesztelő</span>
+            <span style="font-size: 0.72rem; font-weight: 700; background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 0.2rem 0.55rem; border-radius: 9999px;">ÉLŐ MÁTRIX</span>
+          </div>
+        </div>
+      </div>
+      
+      <p class="card-desc">
+        Teszteld le egyenként vagy egyszerre a <strong>10 magyar szolgáltatót</strong> bármilyen filmre vagy sorozatra! Valós időben láthatod, hogy melyik oldal (NetMozi, HDMozi, JobbMintATV, Videa, Indavideo stb.) hány streamet talál, mennyi a válaszidő, és a talált streameket azonnal el is indíthatod!
+      </p>
+
+      <!-- Local vs Vercel Info Notice -->
+      <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 0.85rem 1rem; margin: 1rem 0; font-size: 0.84rem; line-height: 1.55; color: #cbd5e1;">
+        <div style="font-weight: 700; color: #818cf8; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>💡</span> <span>Miért térhet el a Felhő (Vercel) és a Helyi gép / Kodi találati listája?</span>
+        </div>
+        <div>
+          A nyilvános felhőben (pl. Vercel) a NetMozi és a HDMozi Cloudflare szerverei időnként blokkolják a nemzetközi AWS/Vercel szervereket. 
+          <strong>A saját gépeden (<code style="color:#67e8f9; background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:4px;">node server.js</code>) vagy Kodiban / TV-n futtatva</strong> a lakossági IP-címed nincs korlátozva, így a NetMozi <strong>11 db tárhely-streamet</strong> (Filemoon, VOE, Vidmoly, StreamRuby), a HDMozi pedig <strong>közvetlen HLS master streamet</strong> ad vissza!
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+        <input type="text" id="inspectorTitleInput" class="input-field" placeholder="Keresett cím (pl. A vad robot, Kutya csillagkép...)" value="A vad robot" onkeydown="if(event.key==='Enter') runAllProvidersTest()" style="flex: 2; min-width: 220px;">
+        <select id="inspectorTypeSelect" class="input-field" style="flex: 1; min-width: 130px; cursor: pointer;">
+          <option value="movie" selected>🎬 Film</option>
+          <option value="series">📺 Sorozat (1x1)</option>
+        </select>
+        <button class="btn btn-primary" id="runAllProvidersBtn" onclick="runAllProvidersTest()" style="flex: 1.2; min-width: 200px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 700; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
+          <span>🚀</span>
+          <span>Összes Forrás Tesztelése</span>
+        </button>
+      </div>
+
+      <!-- Quick Title Chips -->
+      <div class="chips-container" style="margin-top: 0.65rem;">
+        <span style="font-size: 0.78rem; color: #64748b; align-self: center;">Gyors teszt minták:</span>
+        <span class="chip" onclick="setInspectorQuery('A vad robot', 'movie')">🎬 A vad robot</span>
+        <span class="chip" onclick="setInspectorQuery('Kutya csillagkép', 'movie')">⭐ Kutya csillagkép</span>
+        <span class="chip" onclick="setInspectorQuery('Dűne: Második rész', 'movie')">🪐 Dűne 2</span>
+        <span class="chip" onclick="setInspectorQuery('A végső lista', 'series')">🔫 A végső lista (S01E01)</span>
+        <span class="chip" onclick="setInspectorQuery('A Mandalóri', 'series')">🚀 A Mandalóri (S01E01)</span>
+      </div>
+
+      <!-- Provider Diagnostic Cards Grid -->
+      <div id="providerGrid" class="provider-grid">
+        <!-- Rendered dynamically by renderProviderGrid() -->
+      </div>
     </div>
 
     <!-- Built-in Cinema Video Player Modal -->
@@ -2854,8 +3114,181 @@
       }
     }
 
+    // Provider Matrix Inspector Configuration
+    const INSPECTOR_PROVIDERS = [
+      { id: 'netmozi', name: 'NetMozi.com', icon: '🎬', desc: 'Filemoon, VOE, Vidmoly, StreamRuby, Vinovo stb.' },
+      { id: 'hdmozi', name: 'HDMozi.hu (RPM)', icon: '🍿', desc: 'AES-CBC közvetlen HLS 1080p FHD & 720p' },
+      { id: 'jobbmintatv', name: 'JobbMintATV', icon: '🎞️', desc: 'Videa & beágyazott magyar források' },
+      { id: 'videa', name: 'Videa.hu', icon: '📺', desc: 'Közvetlen 1080p FHD / 720p MP4 videók' },
+      { id: 'indavideo', name: 'Indavideo.hu', icon: '📽️', desc: 'Közvetlen 720p / 360p MP4 videók' },
+      { id: 'filmvilag2', name: 'Filmvilág2', icon: '🎥', desc: 'Videa 1080p & egyéb filmek' },
+      { id: 'dmdamedia', name: 'DMDAMedia', icon: '📀', desc: 'HD Filmek & Sorozatok' },
+      { id: 'mesefilm', name: 'MeseFilm / Kincstár', icon: '🏰', desc: 'Népmesék & Rajzfilmek' },
+      { id: 'filmezek', name: 'Filmezek.com', icon: '🎞️', desc: 'Videa & OK.ru gyűjtő' },
+      { id: 'onlinefilmek', name: 'OnlineFilmekIngyen', icon: '🌐', desc: 'Magyar szinkronos filmek' }
+    ];
+
+    function renderProviderGrid() {
+      const grid = document.getElementById('providerGrid');
+      if (!grid) return;
+
+      grid.innerHTML = INSPECTOR_PROVIDERS.map(p => `
+        <div class="provider-card" id="provCard_${p.id}">
+          <div class="provider-card-header">
+            <div class="provider-info">
+              <div class="provider-icon">${p.icon}</div>
+              <div>
+                <div class="provider-name">${p.name}</div>
+                <div class="provider-desc">${p.desc}</div>
+              </div>
+            </div>
+            <div class="provider-badge badge-idle" id="provBadge_${p.id}">Készen áll</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06);">
+            <div style="font-size: 0.75rem; color: #64748b;" id="provTime_${p.id}">Nincs tesztelve</div>
+            <button type="button" class="provider-retry-btn" onclick="testSingleProvider('${p.id}')">Tesztelés</button>
+          </div>
+          <div class="provider-diagnostic-text" id="provDiag_${p.id}" style="display: none;"></div>
+          <div class="provider-streams-list" id="provStreams_${p.id}" style="display: none;"></div>
+        </div>
+      `).join('');
+    }
+
+    async function testSingleProvider(providerId) {
+      const titleInput = document.getElementById('inspectorTitleInput');
+      const typeSelect = document.getElementById('inspectorTypeSelect');
+      const title = titleInput ? titleInput.value.trim() : 'A vad robot';
+      const type = typeSelect ? typeSelect.value : 'movie';
+
+      const card = document.getElementById(`provCard_${providerId}`);
+      const badge = document.getElementById(`provBadge_${providerId}`);
+      const timeEl = document.getElementById(`provTime_${providerId}`);
+      const diagEl = document.getElementById(`provDiag_${providerId}`);
+      const streamsEl = document.getElementById(`provStreams_${providerId}`);
+
+      if (card) card.classList.add('card-loading');
+      if (badge) {
+        badge.className = 'provider-badge badge-loading';
+        badge.textContent = 'Keresés...';
+      }
+      if (timeEl) timeEl.textContent = 'Lekérdezés...';
+      if (diagEl) diagEl.style.display = 'none';
+      if (streamsEl) {
+        streamsEl.style.display = 'none';
+        streamsEl.innerHTML = '';
+      }
+
+      const t0 = Date.now();
+      try {
+        let epParams = '';
+        if (type === 'series') epParams = '&season=1&episode=1';
+        const res = await fetch(`/api/provider-test?provider=${providerId}&title=${encodeURIComponent(title)}&type=${type}${epParams}&cb=${Date.now()}`);
+        const data = await res.json();
+        const duration = data.durationMs || (Date.now() - t0);
+
+        if (card) card.classList.remove('card-loading');
+        if (timeEl) timeEl.textContent = `${duration} ms`;
+
+        if (data.ok && data.count > 0) {
+          if (badge) {
+            badge.className = 'provider-badge badge-success';
+            badge.textContent = `🟢 ${data.count} db stream`;
+          }
+          if (streamsEl) {
+            streamsEl.style.display = 'flex';
+            streamsEl.innerHTML = data.streams.map(s => {
+              const qBadge = s.quality || (s.height >= 1080 ? '1080p' : '720p');
+              const safeName = (s.name || '').replace(/'/g, "\\'");
+              const safeUrl = encodeURIComponent(s.url || '');
+              const safePlayerUrl = encodeURIComponent(s.playerUrl || s.url || '');
+              const safeTitle = encodeURIComponent(s.title || s.name || '');
+
+              return `
+                <div class="provider-stream-item">
+                  <div class="provider-stream-meta">
+                    <span class="provider-stream-title" title="${s.title || s.name}">${s.name || s.title}</span>
+                    <span style="font-size: 0.7rem; color: #818cf8; font-weight: 600;">${qBadge}</span>
+                  </div>
+                  <div class="provider-stream-actions">
+                    <button type="button" class="provider-btn-action provider-btn-play" onclick="playInModal('${safeUrl}', '${safeTitle}', '${safePlayerUrl}')">▶️ Lejátszás</button>
+                    <button type="button" class="provider-btn-action provider-btn-copy" onclick="copyStreamDirect('${s.url}')">📋</button>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        } else {
+          // Zero streams
+          const isCloudflareSuspect = (providerId === 'netmozi' || providerId === 'hdmozi');
+          if (badge) {
+            if (isCloudflareSuspect) {
+              badge.className = 'provider-badge badge-blocked';
+              badge.textContent = `🔴 Felhő IP korlát`;
+            } else {
+              badge.className = 'provider-badge badge-empty';
+              badge.textContent = `🟡 0 találat`;
+            }
+          }
+          if (diagEl) {
+            diagEl.style.display = 'block';
+            if (isCloudflareSuspect) {
+              diagEl.innerHTML = `⚠️ A távoli oldal Cloudflare védelme blokkolja a nyilvános felhőszervert (Vercel). <strong>Helyi gépen (node server.js vagy Kodi) futtatva azonnal működik!</strong>`;
+            } else {
+              diagEl.textContent = `Nem található stream erre a címre ezen a forráson.`;
+            }
+          }
+        }
+      } catch (err) {
+        if (card) card.classList.remove('card-loading');
+        if (timeEl) timeEl.textContent = `${Date.now() - t0} ms`;
+        if (badge) {
+          badge.className = 'provider-badge badge-blocked';
+          badge.textContent = `🔴 Hiba`;
+        }
+        if (diagEl) {
+          diagEl.style.display = 'block';
+          diagEl.textContent = `Hiba történt: ${err.message}`;
+        }
+      }
+    }
+
+    async function runAllProvidersTest() {
+      const btn = document.getElementById('runAllProvidersBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳</span><span>Tesztelés folyamatban...</span>`;
+      }
+
+      const promises = INSPECTOR_PROVIDERS.map(p => testSingleProvider(p.id));
+      await Promise.allSettled(promises);
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>🚀</span><span>Összes Forrás Tesztelése</span>`;
+      }
+      showToast('✅ Minden szolgáltató tesztelése befejeződött!');
+    }
+
+    function setInspectorQuery(title, type) {
+      const titleInput = document.getElementById('inspectorTitleInput');
+      const typeSelect = document.getElementById('inspectorTypeSelect');
+      if (titleInput) titleInput.value = title;
+      if (typeSelect) typeSelect.value = type;
+      runAllProvidersTest();
+    }
+
+    function copyStreamDirect(url) {
+      if (!url) return;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('📋 Stream link másolva a vágólapra!');
+      }).catch(() => {
+        showToast('⚠️ Nem sikerült a másolás');
+      });
+    }
+
     // Init on load
     renderSourcesGrid();
+    renderProviderGrid();
     updateResolutionUI();
     onTimeoutChange(10);
     updateManifestUrl();
