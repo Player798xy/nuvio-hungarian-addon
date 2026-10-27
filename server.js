@@ -340,7 +340,24 @@ app.get('/api/debug-netmozi', async (req, res) => {
   log.targetUrl = url;
 
   try {
-    const detailRes = await netmoziFetchWithRedirects(url, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
+    const redirectChain = [];
+    let curUrl = url;
+    let curRes = null;
+    for (let r = 0; r < 5; r++) {
+      curRes = await netmoziTlsRequest(curUrl, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
+      redirectChain.push({ url: curUrl, status: curRes.statusCode, location: curRes.headers['location'] });
+      if ([301, 302, 307, 308].includes(curRes.statusCode) && curRes.headers['location']) {
+        let loc = curRes.headers['location'];
+        if (!loc.startsWith('http')) {
+          loc = 'https://netmozi.com' + (loc.startsWith('/') ? '' : '/') + loc;
+        }
+        curUrl = loc;
+      } else {
+        break;
+      }
+    }
+    log.redirectChain = redirectChain;
+    const detailRes = curRes;
     log.detailStatus = detailRes.statusCode;
     log.detailBodyLength = detailRes.body?.length || 0;
     log.detailCookies = Array.from(cookieJar.entries());
