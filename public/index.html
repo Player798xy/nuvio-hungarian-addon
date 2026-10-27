@@ -2306,7 +2306,7 @@
       if (loader) loader.style.display = 'block';
 
       try {
-        const res = await fetch(`/api/episodes?id=${encodeURIComponent(seriesId)}`);
+        const res = await fetch(`/api/episodes?id=${encodeURIComponent(seriesId)}&_t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
         if (loader) loader.style.display = 'none';
 

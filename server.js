@@ -250,7 +250,9 @@ app.get('/api/episodes', async (req, res) => {
   try {
     const data = await getSeriesEpisodes(id);
     if (data) {
-      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       return res.json(data);
     }
     res.json({ meta: null });
