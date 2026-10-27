@@ -439,23 +439,28 @@ app.get('/api/debug-hdmozi', async (req, res) => {
       }
     ];
 
-    for (const hSet of headerSets) {
-      const t0 = Date.now();
+    // Test wp-json endpoints on hdmozi
+    const wpEndpoints = [
+      'https://hdmozi.hu/wp-json/wp/v2/posts?search=kutya',
+      'https://hdmozi.hu/wp-json/dooplayer/v2/',
+      'https://hdmozi.hu/wp-admin/admin-ajax.php'
+    ];
+
+    for (const ep of wpEndpoints) {
       try {
-        const resp = await fetch(`https://hdmozi.hu/?s=${encodeURIComponent(title)}`, {
-          headers: hSet.headers,
+        const resp = await fetch(ep, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
           signal: AbortSignal.timeout(4000)
         });
         const text = await resp.text();
         steps.push({
-          preset: hSet.name,
+          endpoint: ep,
           status: resp.status,
-          durationMs: Date.now() - t0,
-          isCf: text.includes('Just a moment') || text.includes('cf-chl'),
-          sample: text.slice(0, 200)
+          isCf: text.includes('Just a moment'),
+          sample: text.slice(0, 150)
         });
       } catch (e) {
-        steps.push({ preset: hSet.name, error: e.message });
+        steps.push({ endpoint: ep, error: e.message });
       }
     }
 
