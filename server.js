@@ -401,73 +401,14 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
-// Debug endpoint for HDMozi / RPM scraper diagnostics
-app.get('/api/debug-hdmozi', async (req, res) => {
-  const steps = [];
-  const title = req.query.title || 'Kutya csillagkép';
-  try {
-    // Test different header sets
-    const headerSets = [
-      {
-        name: 'standard_desktop',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Upgrade-Insecure-Requests': '1'
-        }
-      },
-      {
-        name: 'mobile_android',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-          'Accept-Language': 'hu-HU,hu;q=0.9'
-        }
-      },
-      {
-        name: 'googlebot',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
-        }
-      }
-    ];
-
-    // Test wp-json endpoints on hdmozi
-    const wpEndpoints = [
-      'https://hdmozi.hu/wp-json/wp/v2/posts?search=kutya',
-      'https://hdmozi.hu/wp-json/dooplayer/v2/',
-      'https://hdmozi.hu/wp-admin/admin-ajax.php'
-    ];
-
-    for (const ep of wpEndpoints) {
-      try {
-        const resp = await fetch(ep, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-          signal: AbortSignal.timeout(4000)
-        });
-        const text = await resp.text();
-        steps.push({
-          endpoint: ep,
-          status: resp.status,
-          isCf: text.includes('Just a moment'),
-          sample: text.slice(0, 150)
-        });
-      } catch (e) {
-        steps.push({ endpoint: ep, error: e.message });
-      }
-    }
-
-    res.json({ ok: true, steps });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message, steps });
-  }
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    version: '1.7.4',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Configure Route & Index Page
