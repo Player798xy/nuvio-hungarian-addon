@@ -327,6 +327,71 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// NetMozi Scraper Live Diagnostic
+app.get('/api/debug-netmozi', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const clientIp = getClientIp(req);
+  const { netmoziFetchWithRedirects, netmoziTlsRequest } = require('./src/scrapers/netmozi');
+  const { unpack } = require('./src/utils/linkpayload');
+
+  const log = {};
+  const cookieJar = new Map();
+  const url = req.query.url || 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
+  log.targetUrl = url;
+
+  try {
+    const detailRes = await netmoziFetchWithRedirects(url, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
+    log.detailStatus = detailRes.statusCode;
+    log.detailBodyLength = detailRes.body?.length || 0;
+    log.detailCookies = Array.from(cookieJar.entries());
+
+    const attrs = {};
+    for (const mMatch of (detailRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+      attrs[mMatch[1]] = mMatch[2];
+    }
+    log.attrs = attrs;
+
+    // Check for captcha or cloudflare
+    log.isCloudflare = detailRes.body?.includes('cf-browser-verification') || detailRes.body?.includes('Just a moment...');
+    log.hasBrowserState = detailRes.body?.includes('id="netmozi-browser-state"');
+    if (log.hasBrowserState) {
+      const bState = detailRes.body.match(/<script[^>]*id="netmozi-browser-state"[^>]*>([\s\S]*?)<\/script>/);
+      if (bState) {
+        try { log.browserState = JSON.parse(bState[1]); } catch (e) { log.browserState = bState[1]; }
+      }
+    }
+
+    if (attrs['data-movie-id'] && attrs['data-token'] && attrs['data-csrf']) {
+      const loadLinksUrl = `https://netmozi.com/details/loadLinks/${attrs['data-movie-id']}${attrs['data-csrf']}`;
+      const loadRes = await netmoziTlsRequest(loadLinksUrl, {
+        method: 'POST',
+        body: 'token=' + encodeURIComponent(attrs['data-token']),
+        referer: url,
+        clientIp,
+        headers: {
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }, cookieJar);
+      log.loadLinksStatus = loadRes.statusCode;
+      log.loadLinksBody = loadRes.body;
+      try {
+        const parsed = JSON.parse(loadRes.body);
+        if (parsed.success && parsed.linkPayload) {
+          const links = unpack(parsed.linkPayload.value, attrs['data-token']);
+          log.unpackedLinks = links;
+        }
+      } catch (e) {
+        log.unpackError = e.message;
+      }
+    }
+
+    res.json(log);
+  } catch (err) {
+    res.status(500).json({ error: err.message, stack: err.stack, log });
+  }
+});
+
 // Diagnostic & Live Test API for the web landing page
 app.get('/api/test', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
