@@ -444,8 +444,8 @@ async function searchCatalog(type, query, catalogId = null) {
 
 function scoreItemRelevance(itemTitle, query) {
   if (!itemTitle || !query) return 0;
-  const normTitle = (itemTitle || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const normQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normTitle = (itemTitle || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const normQuery = query.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
   if (normTitle === normQuery) return 1000;
   if (normTitle.startsWith(normQuery)) return 500;
@@ -453,8 +453,14 @@ function scoreItemRelevance(itemTitle, query) {
 
   const cleanT = normTitle.replace(/[^a-z0-9]/g, '');
   const cleanQ = normQuery.replace(/[^a-z0-9]/g, '');
-  if (cleanT === cleanQ) return 900;
-  if (cleanT.includes(cleanQ) || cleanQ.includes(cleanT) || (cleanQ.includes('hoho') && cleanT.includes('hoho'))) return 600;
+  if (cleanT === cleanQ) return 1000;
+  if (cleanT.includes(cleanQ)) return 850;
+  if (cleanQ.includes(cleanT)) return 750;
+
+  let fusedBonus = 0;
+  if (cleanQ.includes('hoho') && cleanT.includes('hoho')) fusedBonus += 300;
+  if (cleanQ.includes('horgasz') && cleanT.includes('horgasz')) fusedBonus += 500;
+  if (fusedBonus > 0) return fusedBonus;
 
   const queryWords = normQuery.split(/\s+/).filter(w => w.length > 1);
   if (queryWords.length === 0) return 0;
