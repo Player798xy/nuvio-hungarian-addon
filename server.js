@@ -245,13 +245,12 @@ app.get(['/api/live/:streamId.m3u8', '/hls/live/:streamId.m3u8'], async (req, re
 // Debug endpoint to diagnose NetMozi on Vercel
 app.get('/api/debug-netmozi', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  const { netmoziTlsRequest } = require('./src/scrapers/netmozi');
+  const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
   const cookieJar = new Map();
   const pageUrl = 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
   
-  // Test with Kodi Smart TV User-Agent
   const tvAgent = 'Mozilla/5.0 (SMART-TV; Linux; Kodi) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Kodi/21.0';
-  const pageRes = await netmoziTlsRequest(pageUrl, {
+  const pageRes = await netmoziFetchWithRedirects(pageUrl, {
     headers: {
       'User-Agent': tvAgent
     }
@@ -263,7 +262,8 @@ app.get('/api/debug-netmozi', async (req, res) => {
     pageStatus: pageRes.statusCode,
     pageLen: pageRes.body.length,
     tokensFound: tokens,
-    cookieJarSize: cookieJar.size
+    cookieJarSize: cookieJar.size,
+    redirectUrl: pageRes.finalUrl || null
   });
 });
 
