@@ -378,6 +378,12 @@ app.get('/api/debug-netmozi', async (req, res) => {
             const page2Res = await netmoziFetchWithRedirects(url, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
             log.page2Status = page2Res.statusCode;
             log.page2BodyLength = page2Res.body?.length || 0;
+            log.page2HasRegeljbe = page2Res.body?.includes('regeljbe') || page2Res.body?.includes('regisztr');
+            log.page2Title = page2Res.body?.match(/<title>([^<]+)<\/title>/)?.[1];
+            log.page2Buttons = [...(page2Res.body?.matchAll(/<a[^>]+class="[^"]*btn[^"]*"[^>]*>[\s\S]*?<\/a>/gi) || [])].map(m => m[0].slice(0, 150));
+            log.page2DetailsBtn = page2Res.body?.match(/class="[^"]*details_links_btn[^"]*"[^>]*href="([^"]+)"/)?.[1];
+            log.page2LinkLoader = page2Res.body?.match(/data-link-loader[^>]*>/)?.[0];
+            log.page2Sample = page2Res.body?.slice(20000, 23000);
             for (const mMatch of (page2Res.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
               attrs[mMatch[1]] = mMatch[2];
             }
