@@ -5,3 +5,5 @@ node_modules/
 cookies.txt
 scratch/
 scratch_*
+kodi_netmozi/
+*.zip

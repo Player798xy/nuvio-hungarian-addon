@@ -402,8 +402,8 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
       if (targetPageUrl) {
         streams.push({
-          name: `[HU] NetMozi [720p HD]`,
-          title: `${cleanTitle} [720p HD]\n🇭🇺 NetMozi • Szinkron • Közvetlen Webes Lejátszás`,
+          name: `[HU] NetMozi Beépített Lejátszó [720p HD]`,
+          title: `${cleanTitle} [720p HD]\n🇭🇺 NetMozi Mozi Lejátszó • Szinkron • Közvetlen Beágyazás`,
           url: targetPageUrl,
           playerUrl: targetPageUrl,
           quality: '720p',
@@ -589,9 +589,10 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
 
         const qualityBadge = height >= 1080 ? '1080p FHD' : '720p HD';
         streams.push({
-          name: `[HU] NetMozi ${qualityBadge}`,
-          title: `${cleanTitle} [${qualityBadge}]\n🇭🇺 NetMozi / ${hosterName} • Szinkron`,
+          name: `[HU] NetMozi (${hosterName}) ${qualityBadge}`,
+          title: `${cleanTitle} [${qualityBadge}]\n🇭🇺 NetMozi / ${hosterName} • Szinkron • Közvetlen Lejátszó`,
           url: loc,
+          playerUrl: loc,
           quality: height >= 1080 ? '1080p' : '720p',
           height: height,
           source: 'netmozi'
@@ -702,8 +703,8 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
       if (directStreams.length > 0) return directStreams;
 
       return [{
-        name: `[HU] NetMozi [720p HD]`,
-        title: `${cleanTitle || finalSlug.replace(/-/g, ' ')}${itemType === 'series' ? ` (${s}. Évad ${e}. Rész)` : ''} [720p HD]\n🇭🇺 NetMozi • Szinkron • Közvetlen Webes Lejátszás`,
+        name: `[HU] NetMozi Beépített Lejátszó [720p HD]`,
+        title: `${cleanTitle || finalSlug.replace(/-/g, ' ')}${itemType === 'series' ? ` (${s}. Évad ${e}. Rész)` : ''} [720p HD]\n🇭🇺 NetMozi Mozi Lejátszó • Szinkron • Közvetlen Beágyazás`,
         url: pageUrl,
         playerUrl: pageUrl,
         quality: '720p',
@@ -746,8 +747,8 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
       if (targetPageUrl) {
         streams.push({
-          name: `[HU] NetMozi [720p HD]`,
-          title: `${cleanTitle} [720p HD]\n🇭🇺 NetMozi • Szinkron • Közvetlen Webes Lejátszás`,
+          name: `[HU] NetMozi Beépített Lejátszó [720p HD]`,
+          title: `${cleanTitle} [720p HD]\n🇭🇺 NetMozi Mozi Lejátszó • Szinkron • Közvetlen Beágyazás`,
           url: targetPageUrl,
           playerUrl: targetPageUrl,
           quality: '720p',
@@ -925,9 +926,10 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
 
         const qualityBadge = height >= 1080 ? '1080p FHD' : '720p HD';
         streams.push({
-          name: `[HU] NetMozi ${qualityBadge}`,
-          title: `${cleanTitle} [${qualityBadge}]\n🇭🇺 NetMozi / ${hosterName} • Szinkron`,
+          name: `[HU] NetMozi (${hosterName}) ${qualityBadge}`,
+          title: `${cleanTitle} [${qualityBadge}]\n🇭🇺 NetMozi / ${hosterName} • Szinkron • Közvetlen Lejátszó`,
           url: loc,
+          playerUrl: loc,
           quality: height >= 1080 ? '1080p' : '720p',
           height: height,
           source: 'netmozi'

@@ -221,19 +221,24 @@ async function getMediaMeta(type, rawId) {
     const parts = id.split(':');
     const itemType = parts[1] || type || 'movie';
     const mid = parts[2] || '';
-    season = parts[3] ? parseInt(parts[3], 10) : (itemType === 'series' ? 1 : null);
-    episode = parts[4] ? parseInt(parts[4], 10) : (itemType === 'series' ? 1 : null);
-
     let netmoziTitle = '';
     let netmoziYear = '';
 
-    // Check if title is encoded in ID (e.g. netmozi:series:42579:1:1:Ingatlanvad%C3%A1szok)
-    if (parts[5]) {
-      try {
-        netmoziTitle = decodeURIComponent(parts[5]);
-      } catch (e) {
-        netmoziTitle = parts[5];
+    if (parts.length >= 6 && !/^\d+$/.test(parts[3]) && /^\d+$/.test(parts[4]) && /^\d+$/.test(parts[5])) {
+      // Format: netmozi:series:mid:slugOrTitle:season:episode
+      try { netmoziTitle = decodeURIComponent(parts[3]).replace(/-/g, ' '); } catch (e) { netmoziTitle = parts[3]; }
+      season = parseInt(parts[4], 10);
+      episode = parseInt(parts[5], 10);
+    } else if (parts.length >= 5 && /^\d+$/.test(parts[3]) && /^\d+$/.test(parts[4])) {
+      // Format: netmozi:series:mid:season:episode[:title]
+      season = parseInt(parts[3], 10);
+      episode = parseInt(parts[4], 10);
+      if (parts[5]) {
+        try { netmoziTitle = decodeURIComponent(parts[5]); } catch (e) { netmoziTitle = parts[5]; }
       }
+    } else {
+      season = parts[3] && /^\d+$/.test(parts[3]) ? parseInt(parts[3], 10) : (itemType === 'series' ? 1 : null);
+      episode = parts[4] && /^\d+$/.test(parts[4]) ? parseInt(parts[4], 10) : (itemType === 'series' ? 1 : null);
     }
 
     // Check in-memory cache

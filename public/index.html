@@ -1731,8 +1731,9 @@
           <div class="modal-title" id="playerModalTitle">Lejátszás</div>
           <button type="button" onclick="closePlayerModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; padding: 0 0.5rem; line-height: 1;">&times;</button>
         </div>
-        <div class="video-viewport">
-          <video id="modalVideoPlayer" controls playsinline style="width: 100%; height: 100%; max-height: 72vh; background: #000; outline: none;"></video>
+        <div class="video-viewport" style="position: relative; width: 100%; min-height: 380px; max-height: 75vh; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <video id="modalVideoPlayer" controls playsinline style="width: 100%; height: 100%; max-height: 75vh; background: #000; outline: none;"></video>
+          <iframe id="modalIframePlayer" src="about:blank" style="display: none; width: 100%; height: 60vh; min-height: 400px; max-height: 75vh; border: 0; background: #000;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
         </div>
         <div class="modal-actions">
           <div id="playerModalMeta" style="font-size: 0.8rem; color: #94a3b8;">Full HD közvetlen lejátszás</div>
@@ -2850,8 +2851,52 @@
     highlightActivePreset();
     loadDefaultCatalog('all');
 
-    // Built-in In-Page Cinema Video Player with Hls.js
+    // Built-in In-Page Cinema Video Player with Hls.js and Iframe Embed Support
     let currentModalStreamUrl = '';
+
+    function resolveEmbedUrl(rawUrl) {
+      if (!rawUrl) return null;
+      const u = rawUrl.trim();
+
+      // Filemoon
+      const fMatch = u.match(/filemoon\.(?:to|sx|org|me)\/(?:d\/|e\/)?([a-zA-Z0-9]+)/i);
+      if (fMatch) return `https://filemoon.to/e/${fMatch[1]}`;
+
+      // Vidmoly
+      const vMatch = u.match(/vidmoly\.(?:me|to|net|biz|org)\/(?:embed-|w\/|v\/|dl\/)?([0-9a-zA-Z]+)/i);
+      if (vMatch) return `https://vidmoly.me/embed-${vMatch[1]}.html`;
+
+      // StreamRuby
+      const sMatch = u.match(/(?:streamruby|sruby|rubystream)\.(?:com|xyz|buzz)\/(?:embed-|e\/|d\/)?([a-zA-Z0-9]+)/i);
+      if (sMatch) return `https://streamruby.com/embed-${sMatch[1]}.html`;
+
+      // Upstream
+      const upMatch = u.match(/upstream\.(?:to)\/(?:embed-)?([a-zA-Z0-9]+)/i);
+      if (upMatch) return `https://upstream.to/embed-${upMatch[1]}.html`;
+
+      // Waaw / Netu
+      const wMatch = u.match(/(?:waaw|netu)\.(?:to|tv)\/(?:watch_video\.php\?v=|e\/|f\/)([a-zA-Z0-9]+)/i);
+      if (wMatch) return `https://waaw.to/e/${wMatch[1]}`;
+
+      // VOE
+      const voeMatch = u.match(/voe\.sx\/(?:e\/)?([a-zA-Z0-9]+)/i);
+      if (voeMatch) return `https://voe.sx/e/${voeMatch[1]}`;
+
+      // Videa
+      const vdMatch = u.match(/videa\.hu\/(?:videok|player)[^?#]*[?&]v=([a-zA-Z0-9]{16})/i) || u.match(/videa\.hu\/static\/.*?[?&]v=([a-zA-Z0-9]{16})/i);
+      if (vdMatch) return `https://videa.hu/player?v=${vdMatch[1]}`;
+
+      // Indavideo
+      const indaMatch = u.match(/indavideo\.hu\/(?:video|player)\/([a-zA-Z0-9]+)/i);
+      if (indaMatch) return `https://indavideo.hu/player/video/${indaMatch[1]}`;
+
+      // NetMozi or JobbMintATV embedded player page
+      if (u.includes('netmozi.com') || u.includes('jobbmintatv.hu')) {
+        return u;
+      }
+
+      return null;
+    }
 
     function playInModal(encUrl, encTitle, encPlayerUrl) {
       const url = decodeURIComponent(encUrl);
@@ -2859,36 +2904,23 @@
       const playerUrl = encPlayerUrl ? decodeURIComponent(encPlayerUrl) : '';
       currentModalStreamUrl = url;
 
-      // If URL is an external webpage (e.g. NetMozi web player page), open directly in new tab
-      if (url.includes('netmozi.com') || url.includes('jobbmintatv.hu') || (!url.includes('.m3u8') && !url.includes('.mp4') && !url.includes('.mkv') && !url.includes('videa') && !url.includes('indavideo') && !url.includes('filemoon') && !url.includes('streamruby') && !url.includes('vidmoly') && !url.includes('waaw') && !url.includes('ok.ru'))) {
-        window.open(playerUrl || url, '_blank', 'noopener,noreferrer');
-        showToast('🌐 <strong>NetMozi megnyitva új lapon!</strong><br>A tartalom azonnal megtekinthető a hivatalos lejátszóban.');
-        return;
-      }
-
       const modal = document.getElementById('playerModal');
       const video = document.getElementById('modalVideoPlayer');
+      const iframe = document.getElementById('modalIframePlayer');
       const titleEl = document.getElementById('playerModalTitle');
       const officialBtn = document.getElementById('playerOfficialBtn');
       const metaEl = document.getElementById('playerModalMeta');
 
       if (titleEl) titleEl.textContent = title;
       if (officialBtn) {
-        if (playerUrl) {
-          officialBtn.href = playerUrl;
-          officialBtn.style.display = 'inline-flex';
-        } else {
-          officialBtn.style.display = 'none';
-        }
-      }
-
-      if (metaEl) {
-        metaEl.textContent = url.includes('.m3u8') ? '🔴 HLS Élő / VOD Közvetlen Stream (1080p FHD)' : '🎬 Közvetlen MP4 Lejátszás';
+        officialBtn.href = playerUrl || url;
+        officialBtn.style.display = 'inline-flex';
+        officialBtn.textContent = 'Megnyitás Új Lapban';
       }
 
       modal.style.display = 'flex';
 
-      // Clean up previous instance
+      // Clean up previous playback instance
       if (window._currentHls) {
         window._currentHls.destroy();
         window._currentHls = null;
@@ -2896,62 +2928,98 @@
       video.pause();
       video.removeAttribute('src');
 
-      if (url.includes('.m3u8')) {
-        if (window.Hls && Hls.isSupported()) {
-          const hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            capLevelToPlayerSize: false
-          });
-          window._currentHls = hls;
-          hls.loadSource(url);
-          hls.attachMedia(video);
-          hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-            // Instantly start in 1080p Full HD (highest rendition level) without waiting for ABR ramp up
-            if (data && data.levels && data.levels.length > 0) {
-              const maxIdx = data.levels.length - 1;
-              hls.currentLevel = maxIdx;
-              hls.startLevel = maxIdx;
-              console.log('[Player] Forced 1080p FHD initial level:', maxIdx, data.levels[maxIdx]);
-            }
-            video.play().catch(e => console.log('Autoplay deferred:', e));
-          });
-          hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-              switch (data.type) {
-                case Hls.ErrorTypes.NETWORK_ERROR:
-                  hls.startLoad();
-                  break;
-                case Hls.ErrorTypes.MEDIA_ERROR:
-                  hls.recoverMediaError();
-                  break;
-                default:
-                  hls.destroy();
-                  break;
+      const isDirectMedia = url.includes('.m3u8') || url.includes('.mp4') || url.includes('.webm') || url.includes('.mkv');
+      const embedUrl = resolveEmbedUrl(playerUrl || url);
+
+      if (isDirectMedia) {
+        // Direct HTML5 / HLS Stream
+        if (iframe) {
+          iframe.style.display = 'none';
+          iframe.src = 'about:blank';
+        }
+        video.style.display = 'block';
+
+        if (url.includes('.m3u8')) {
+          if (metaEl) metaEl.textContent = '🔴 HLS Élő / VOD Közvetlen Stream (1080p FHD)';
+          if (window.Hls && Hls.isSupported()) {
+            const hls = new Hls({
+              enableWorker: true,
+              lowLatencyMode: true,
+              capLevelToPlayerSize: false
+            });
+            window._currentHls = hls;
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+              if (data && data.levels && data.levels.length > 0) {
+                const maxIdx = data.levels.length - 1;
+                hls.currentLevel = maxIdx;
+                hls.startLevel = maxIdx;
               }
-            }
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          // Native Safari / iOS HLS
+              video.play().catch(e => console.log('Autoplay deferred:', e));
+            });
+            hls.on(Hls.Events.ERROR, (event, data) => {
+              if (data.fatal) {
+                switch (data.type) {
+                  case Hls.ErrorTypes.NETWORK_ERROR:
+                    hls.startLoad();
+                    break;
+                  case Hls.ErrorTypes.MEDIA_ERROR:
+                    hls.recoverMediaError();
+                    break;
+                  default:
+                    hls.destroy();
+                    break;
+                }
+              }
+            });
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.play().catch(() => {});
+          } else {
+            showToast('⚠️ A böngésződ nem támogatja a közvetlen HLS-t, használd a "Stream Link Másolása" gombot!');
+          }
+        } else {
+          // Direct MP4
+          if (metaEl) metaEl.textContent = '🎬 Közvetlen MP4 Lejátszás';
           video.src = url;
           video.play().catch(() => {});
-        } else {
-          showToast('⚠️ A böngésződ nem támogatja a HLS-t, használd a "HLS Link Másolása" gombot VLC-hez!');
+        }
+      } else if (embedUrl) {
+        // Direct In-Page Web Player (Filemoon, Vidmoly, StreamRuby, NetMozi, etc.)
+        video.style.display = 'none';
+        if (iframe) {
+          iframe.style.display = 'block';
+          iframe.src = embedUrl;
+        }
+        if (metaEl) {
+          let hosterLabel = 'Mozi Stream Hoster';
+          if (embedUrl.includes('filemoon')) hosterLabel = 'Filemoon Hoster Player';
+          else if (embedUrl.includes('streamruby')) hosterLabel = 'StreamRuby Hoster Player';
+          else if (embedUrl.includes('vidmoly')) hosterLabel = 'Vidmoly Hoster Player';
+          else if (embedUrl.includes('netmozi')) hosterLabel = 'NetMozi Hivatalos Lejátszó';
+          metaEl.textContent = `🎬 Beépített Mozi Lejátszó • ${hosterLabel}`;
         }
       } else {
-        // Direct MP4
-        video.src = url;
-        video.play().catch(() => {});
+        // Fallback: Open in new tab
+        window.open(playerUrl || url, '_blank', 'noopener,noreferrer');
+        showToast('🌐 <strong>Lejátszó megnyitva új lapon!</strong>');
+        closePlayerModal();
       }
     }
 
     function closePlayerModal() {
       const modal = document.getElementById('playerModal');
       const video = document.getElementById('modalVideoPlayer');
+      const iframe = document.getElementById('modalIframePlayer');
       if (video) {
         video.pause();
         video.removeAttribute('src');
         video.load();
+      }
+      if (iframe) {
+        iframe.src = 'about:blank';
+        iframe.style.display = 'none';
       }
       if (window._currentHls) {
         window._currentHls.destroy();

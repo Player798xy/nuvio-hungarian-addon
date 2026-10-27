@@ -242,62 +242,6 @@ app.get(['/api/live/:streamId.m3u8', '/hls/live/:streamId.m3u8'], async (req, re
   }
 });
 
-// Debug endpoint to diagnose NetMozi on Vercel
-app.get('/api/debug-netmozi', async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  const { netmoziFetchWithRedirects, netmoziTlsRequest } = require('./src/scrapers/netmozi');
-  const cookieJar = new Map();
-  const pageUrl = 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
-  const pageRes = await netmoziFetchWithRedirects(pageUrl, {}, cookieJar);
-  
-  const body = pageRes.body;
-  const sDataMid = body.match(/data-mid="(\d+)"/i);
-  const browserState = body.match(/id="netmozi-browser-state">([^<]+)</i);
-  
-  let pingRes = null;
-  let loadRes = null;
-  
-  if (sDataMid && browserState) {
-    const bs = JSON.parse(browserState[1]);
-    
-    // Step 1: Ping browser identity endpoint
-    const pingUrl = bs.endpoint.startsWith('http') ? bs.endpoint : `https://netmozi.com${bs.endpoint}`;
-    pingRes = await netmoziTlsRequest(pingUrl, {
-      method: 'POST',
-      body: 'mirror=' + encodeURIComponent(bs.token),
-      referer: pageUrl,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    }, cookieJar);
-    
-    // Step 2: Now call loadLinks
-    const csrfMatch = bs.endpoint.match(/(\?c=[a-f0-9]+)/);
-    const csrf = csrfMatch ? csrfMatch[1] : '';
-    const loadUrl = `https://netmozi.com/details/loadLinks/${sDataMid[1]}${csrf}`;
-    
-    loadRes = await netmoziTlsRequest(loadUrl, {
-      method: 'POST',
-      body: 'token=' + encodeURIComponent(bs.token),
-      referer: pageUrl,
-      headers: {
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    }, cookieJar);
-  }
-
-  res.json({
-    sDataMid: sDataMid ? sDataMid[1] : null,
-    pingStatus: pingRes ? pingRes.statusCode : null,
-    pingBody: pingRes ? pingRes.body : null,
-    loadStatus: loadRes ? loadRes.statusCode : null,
-    loadBodyLen: loadRes ? loadRes.body.length : null,
-    loadBodyPreview: loadRes ? loadRes.body.slice(0, 300) : null
-  });
-});
-
 // Episodes API for Nuvio-like Season/Episode selector
 app.get('/api/episodes', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
