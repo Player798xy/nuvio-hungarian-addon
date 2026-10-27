@@ -411,6 +411,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/debug-mindjart', async (req, res) => {
+  const tokenUrl = 'https://mindjart.megnezed.com/links/vv/NDA2ODg=/-1/-1?token=eyJwdXJwb3NlIjoibWluZGphcnQiLCJ2IjoxLCJtaWQiOjQwNjg4LCJ1aWQiOjAsInNlYXNvbiI6LTEsImVwaXNvZGUiOi0xLCJpYXQiOjE3OTMxMTk5OTAsImV4cCI6MTc5MzEzNDM5MCwidHZfcG9saWN5IjoidHYtb25seS0yMDI2MTAyMiIsInR2X2RldmljZSI6ZmFsc2UsInR2X2xheW91dCI6ZmFsc2UsInR2X2FnZW50IjoiMWNmYTI1YWFjYTlhZjg2OWVkOTcxYzdlOWNiNDk1ZmQ5OGFkNTQ2ZGRkZjk5ZjQ4ODU4OTI2MTBhYWY3NWQ2OCIsImd1YXJkX3N1YmplY3QiOiJhMzkxZDUzOWJmMjRiMTI1NzA2NTA5MmVlZGU4MDlhYjVhODdjMDI4MmU5NmU5ZmFmMjJmYmMzZThhNzE1NjllIiwiZ2VvX3VudGlsIjoxNzkzMTIwNTkwfQ.AiI_rQTQ-704qyCVV0wTWiYuKHuB0EbE6F-eXgG1bs4';
+  try {
+    const r = await fetch(tokenUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://netmozi.com/'
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+    const text = await r.text();
+    res.json({ status: r.status, length: text.length, isCf: text.includes('Just a moment') });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Configure Route & Index Page
 app.get(['/configure', '/:config/configure'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
