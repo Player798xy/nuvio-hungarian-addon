@@ -406,50 +406,62 @@ app.get('/api/debug-hdmozi', async (req, res) => {
   const steps = [];
   const title = req.query.title || 'Kutya csillagkép';
   try {
-    // Step 1: hdmozi.hu direct search connectivity
-    const t0 = Date.now();
-    const sResp = await fetch(`https://hdmozi.hu/?s=${encodeURIComponent(title)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+    // Test different header sets
+    const headerSets = [
+      {
+        name: 'standard_desktop',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1'
+        }
       },
-      signal: AbortSignal.timeout(5000)
-    });
-    const sText = await sResp.text();
-    steps.push({
-      step: 'search_hdmozi',
-      status: sResp.status,
-      durationMs: Date.now() - t0,
-      bodyLength: sText.length,
-      sample: sText.slice(0, 300)
-    });
+      {
+        name: 'mobile_android',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+          'Accept-Language': 'hu-HU,hu;q=0.9'
+        }
+      },
+      {
+        name: 'googlebot',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+        }
+      }
+    ];
 
-    // Step 2: rpmshare connectivity
-    const t1 = Date.now();
-    const rpmResp = await fetch('https://rpmshare.rpmstream.live', {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      signal: AbortSignal.timeout(5000)
-    });
-    steps.push({
-      step: 'rpmshare_ping',
-      status: rpmResp.status,
-      durationMs: Date.now() - t1
-    });
-
-    // Step 3: Run scrapeHDMozi directly
-    const { scrapeHDMozi } = require('./src/scrapers/hdmozi');
-    const t2 = Date.now();
-    const streams = await scrapeHDMozi({ hungarianTitle: title, type: 'movie' });
-    steps.push({
-      step: 'scrapeHDMozi',
-      streamsCount: streams.length,
-      durationMs: Date.now() - t2,
-      streams
-    });
+    for (const hSet of headerSets) {
+      const t0 = Date.now();
+      try {
+        const resp = await fetch(`https://hdmozi.hu/?s=${encodeURIComponent(title)}`, {
+          headers: hSet.headers,
+          signal: AbortSignal.timeout(4000)
+        });
+        const text = await resp.text();
+        steps.push({
+          preset: hSet.name,
+          status: resp.status,
+          durationMs: Date.now() - t0,
+          isCf: text.includes('Just a moment') || text.includes('cf-chl'),
+          sample: text.slice(0, 200)
+        });
+      } catch (e) {
+        steps.push({ preset: hSet.name, error: e.message });
+      }
+    }
 
     res.json({ ok: true, steps });
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message, stack: err.stack, steps });
+    res.status(500).json({ ok: false, error: err.message, steps });
   }
 });
 
