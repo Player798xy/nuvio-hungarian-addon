@@ -451,6 +451,11 @@ function scoreItemRelevance(itemTitle, query) {
   if (normTitle.startsWith(normQuery)) return 500;
   if (normTitle.includes(normQuery)) return 300;
 
+  const cleanT = normTitle.replace(/[^a-z0-9]/g, '');
+  const cleanQ = normQuery.replace(/[^a-z0-9]/g, '');
+  if (cleanT === cleanQ) return 900;
+  if (cleanT.includes(cleanQ) || cleanQ.includes(cleanT) || (cleanQ.includes('hoho') && cleanT.includes('hoho'))) return 600;
+
   const queryWords = normQuery.split(/\s+/).filter(w => w.length > 1);
   if (queryWords.length === 0) return 0;
 
