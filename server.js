@@ -248,22 +248,21 @@ app.get('/api/debug-netmozi', async (req, res) => {
   const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
   const cookieJar = new Map();
   const pageUrl = 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
+  const pageRes = await netmoziFetchWithRedirects(pageUrl, {}, cookieJar);
   
-  const tvAgent = 'Mozilla/5.0 (SMART-TV; Linux; Kodi) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Kodi/21.0';
-  const pageRes = await netmoziFetchWithRedirects(pageUrl, {
-    headers: {
-      'User-Agent': tvAgent
-    }
-  }, cookieJar);
-  
-  const tokens = [...pageRes.body.matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)].map(m => m[1]);
+  // Find interesting parts in 46KB body
+  const body = pageRes.body;
+  const sData = body.match(/<div[^>]*id="sData"[^>]*>/i);
+  const browserState = body.match(/id="netmozi-browser-state">([^<]+)</i);
+  const linksBtn = body.match(/class="[^"]*details_links_btn[^"]*"[^>]*href="([^"]+)"/i);
+  const allDivs = [...body.matchAll(/<div[^>]*data-([^=>\s]+)=["']([^"']+)["'][^>]*>/gi)].slice(0, 15).map(m => m[0]);
   
   res.json({
-    pageStatus: pageRes.statusCode,
-    pageLen: pageRes.body.length,
-    tokensFound: tokens,
-    cookieJarSize: cookieJar.size,
-    redirectUrl: pageRes.finalUrl || null
+    len: body.length,
+    sData: sData ? sData[0] : null,
+    browserState: browserState ? JSON.parse(browserState[1]) : null,
+    linksBtn: linksBtn ? linksBtn[1] : null,
+    allDivs
   });
 });
 
