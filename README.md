@@ -59,7 +59,7 @@ Minden forrás **valós idejű, élő scraperrel** működik (nincs memóriát f
 | **DMDAMedia** | Film / Sorozat | 1080p / 720p | Online film és epizódtár |
 | **Filmezek.com** | Film / Sorozat | 1080p / 720p | Videa és OK.ru beágyazások mély feloldása |
 | **OnlineFilmekIngyen** | Film / Sorozat | 1080p / 720p | DooPlay AJAX motor integráció |
-| **HDMozi.hu** | Film / Sorozat | 720p / 1080p | Film- és sorozatgyűjtemény közvetlen feloldással |
+| **HDMozi.hu (RPM)** | Film / Sorozat | 1080p / 720p | DooPlayer & RPM AES-CBC motor integráció (Thsandorh/Hd-mozi-scraper port), közvetlen IP HLS (.m3u8) streamek |
 
 ---
 

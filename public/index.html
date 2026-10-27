@@ -1734,6 +1734,17 @@
         <div class="video-viewport" style="position: relative; width: 100%; min-height: 380px; max-height: 75vh; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
           <video id="modalVideoPlayer" controls playsinline style="width: 100%; height: 100%; max-height: 75vh; background: #000; outline: none;"></video>
           <iframe id="modalIframePlayer" src="about:blank" style="display: none; width: 100%; height: 60vh; min-height: 400px; max-height: 75vh; border: 0; background: #000;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          <div id="modalExternalCard" style="display: none; width: 100%; text-align: center; padding: 3rem 1.5rem; background: linear-gradient(180deg, #0f172a 0%, #020617 100%);">
+            <div style="font-size: 3.5rem; margin-bottom: 1rem; filter: drop-shadow(0 0 16px rgba(56,189,248,0.4));">🎬</div>
+            <h3 id="modalExternalCardTitle" style="color: #f8fafc; font-size: 1.35rem; font-weight: 700; margin-bottom: 0.75rem;">Hivatalos Mozi Lejátszó</h3>
+            <p style="color: #94a3b8; font-size: 0.95rem; max-width: 520px; margin: 0 auto 1.75rem auto; line-height: 1.6;">
+              Ez a forrás védett harmadik féltől származó webes lejátszó. Kattints az alábbi gombra az azonnali indításhoz új lapon:
+            </p>
+            <a id="modalExternalCardBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.85rem 2rem; font-size: 1.05rem; font-weight: 600; box-shadow: 0 4px 20px rgba(59,130,246,0.5);">
+              <span>Megnyitás a Lejátszóban</span>
+              <span style="font-size: 1.3rem;">↗</span>
+            </a>
+          </div>
         </div>
         <div class="modal-actions">
           <div id="playerModalMeta" style="font-size: 0.8rem; color: #94a3b8;">Full HD közvetlen lejátszás</div>
@@ -1774,11 +1785,11 @@
       { id: 'mesefilm', name: 'MeseFilm / Kincstár', desc: 'Magyar Népmesék & Rajzfilmek', fast: true, kids: true },
       { id: 'filmezek', name: 'Filmezek.com', desc: 'Videa & OK.ru lejátszók', fast: false },
       { id: 'onlinefilmek', name: 'OnlineFilmekIngyen', desc: 'HD szinkronos filmek', fast: false },
-      { id: 'hdmozi', name: 'HDMozi.hu', desc: 'HD Filmek & Sorozatok', fast: false }
+      { id: 'hdmozi', name: 'HDMozi.hu', desc: 'HDMozi / RPM közvetlen 1080p HLS', fast: true }
     ];
 
     // State
-    let selectedSources = ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+    let selectedSources = ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2', 'hdmozi'];
     let selectedResolutions = ['1080p', '720p', '480p'];
     let selectedTimeoutSec = 10;
     let currentStreamQualityFilter = 'all';
@@ -1973,7 +1984,7 @@
 
     function applyPreset(preset) {
       if (preset === 'fast') {
-        selectedSources = ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2'];
+        selectedSources = ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2', 'hdmozi'];
       } else if (preset === 'all') {
         selectedSources = AVAILABLE_SOURCES.map(s => s.id);
       } else if (preset === 'kids') {
@@ -1985,7 +1996,7 @@
     }
 
     function highlightActivePreset() {
-      const isFast = selectedSources.length === 6 && ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2'].every(s => selectedSources.includes(s));
+      const isFast = selectedSources.length === 7 && ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2', 'hdmozi'].every(s => selectedSources.includes(s));
       const isAll = selectedSources.length === AVAILABLE_SOURCES.length;
       const isKids = selectedSources.length === 6 && ['mesefilm', 'mediaklikk', 'videa', 'netmozi', 'indavideo', 'jobbmintatv'].every(s => selectedSources.includes(s));
 
@@ -1994,7 +2005,7 @@
       document.getElementById('btnPresetKids').className = 'preset-btn' + (isKids ? ' active' : '');
 
       const speedBadge = document.getElementById('speedBadge');
-      if (selectedSources.length <= 6) {
+      if (selectedSources.length <= 7) {
         speedBadge.textContent = '⚡ Szupergyors mód (~500ms - 1s)';
         speedBadge.style.color = '#34d399';
         speedBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
@@ -2572,8 +2583,8 @@
           const heightA = a.height || 0;
           const heightB = b.height || 0;
           if (heightB !== heightA) return heightB - heightA;
-          const isDirectA = a.source === 'videa' || a.source === 'indavideo' || a.source === 'jobbmintatv' || a.source === 'netmozi';
-          const isDirectB = b.source === 'videa' || b.source === 'indavideo' || b.source === 'jobbmintatv' || b.source === 'netmozi';
+          const isDirectA = a.source === 'videa' || a.source === 'indavideo' || a.source === 'jobbmintatv' || a.source === 'netmozi' || a.source === 'hdmozi';
+          const isDirectB = b.source === 'videa' || b.source === 'indavideo' || b.source === 'jobbmintatv' || b.source === 'netmozi' || b.source === 'hdmozi';
           if (isDirectA && !isDirectB) return -1;
           if (isDirectB && !isDirectA) return 1;
           return 0;
@@ -2986,19 +2997,38 @@
           video.play().catch(() => {});
         }
       } else if (embedUrl) {
-        // Direct In-Page Web Player (Filemoon, Vidmoly, StreamRuby, NetMozi, etc.)
+        // Direct In-Page Web Player (Filemoon, Vidmoly, StreamRuby, etc.)
         video.style.display = 'none';
-        if (iframe) {
-          iframe.style.display = 'block';
-          iframe.src = embedUrl;
-        }
-        if (metaEl) {
-          let hosterLabel = 'Mozi Stream Hoster';
-          if (embedUrl.includes('filemoon')) hosterLabel = 'Filemoon Hoster Player';
-          else if (embedUrl.includes('streamruby')) hosterLabel = 'StreamRuby Hoster Player';
-          else if (embedUrl.includes('vidmoly')) hosterLabel = 'Vidmoly Hoster Player';
-          else if (embedUrl.includes('netmozi')) hosterLabel = 'NetMozi Hivatalos Lejátszó';
-          metaEl.textContent = `🎬 Beépített Mozi Lejátszó • ${hosterLabel}`;
+        const extCard = document.getElementById('modalExternalCard');
+
+        if (embedUrl.includes('netmozi.com')) {
+          // NetMozi webpage blocks iframe embedding via CSP frame-ancestors 'self'
+          if (iframe) {
+            iframe.style.display = 'none';
+            iframe.src = 'about:blank';
+          }
+          if (extCard) extCard.style.display = 'block';
+          const extTitle = document.getElementById('modalExternalCardTitle');
+          const extBtn = document.getElementById('modalExternalCardBtn');
+          if (extTitle) extTitle.textContent = title;
+          if (extBtn) extBtn.href = embedUrl;
+          if (metaEl) metaEl.textContent = '🎬 Védett Mozi Lejátszó • NetMozi';
+        } else {
+          // Embeddable video hosters (Filemoon, Vidmoly, StreamRuby, Upstream, Waaw, VOE, Videa, Indavideo)
+          if (extCard) extCard.style.display = 'none';
+          if (iframe) {
+            iframe.style.display = 'block';
+            iframe.src = embedUrl;
+          }
+          if (metaEl) {
+            let hosterLabel = 'Mozi Stream Hoster';
+            if (embedUrl.includes('filemoon')) hosterLabel = 'Filemoon Hoster Player';
+            else if (embedUrl.includes('streamruby')) hosterLabel = 'StreamRuby Hoster Player';
+            else if (embedUrl.includes('vidmoly')) hosterLabel = 'Vidmoly Hoster Player';
+            else if (embedUrl.includes('videa')) hosterLabel = 'Videa Hoster Player';
+            else if (embedUrl.includes('indavideo')) hosterLabel = 'Indavideo Player';
+            metaEl.textContent = `🎬 Beépített Mozi Lejátszó • ${hosterLabel}`;
+          }
         }
       } else {
         // Fallback: Open in new tab
@@ -3012,6 +3042,7 @@
       const modal = document.getElementById('playerModal');
       const video = document.getElementById('modalVideoPlayer');
       const iframe = document.getElementById('modalIframePlayer');
+      const extCard = document.getElementById('modalExternalCard');
       if (video) {
         video.pause();
         video.removeAttribute('src');
@@ -3020,6 +3051,9 @@
       if (iframe) {
         iframe.src = 'about:blank';
         iframe.style.display = 'none';
+      }
+      if (extCard) {
+        extCard.style.display = 'none';
       }
       if (window._currentHls) {
         window._currentHls.destroy();

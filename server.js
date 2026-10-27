@@ -242,29 +242,6 @@ app.get(['/api/live/:streamId.m3u8', '/hls/live/:streamId.m3u8'], async (req, re
   }
 });
 
-// Debug endpoint to diagnose NetMozi on Vercel
-app.get('/api/debug-netmozi', async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  const { netmoziFetchWithRedirects } = require('./src/scrapers/netmozi');
-  const cookieJar = new Map();
-  
-  // Step 1: Initialize cookies by visiting home page
-  await netmoziFetchWithRedirects('https://netmozi.com/', {}, cookieJar);
-  
-  // Step 2: Now visit episode page with established session cookies
-  const pageUrl = 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
-  const pageRes = await netmoziFetchWithRedirects(pageUrl, { referer: 'https://netmozi.com/' }, cookieJar);
-  
-  const tokens = [...pageRes.body.matchAll(/(data-token|data-movie-id|data-csrf)="([^"]+)"/g)].map(m => m[1]);
-  
-  res.json({
-    cookies: [...cookieJar.keys()],
-    pageStatus: pageRes.statusCode,
-    pageLen: pageRes.body.length,
-    tokensFound: tokens
-  });
-});
-
 // Episodes API for Nuvio-like Season/Episode selector
 app.get('/api/episodes', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');

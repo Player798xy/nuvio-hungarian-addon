@@ -18,20 +18,20 @@ const { scrapeMediaKlikk, getLiveChannelStreams, LIVE_CHANNELS } = require('./sc
 const { scrapeNetMozi } = require('./scrapers/netmozi');
 
 // Registry of all supported Hungarian sources (No caching - always fresh live scraper results)
-const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2', 'mediaklikk', 'netmozi']);
+const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2', 'mediaklikk', 'netmozi', 'hdmozi']);
 
 const ALL_SCRAPERS = [
   { id: 'videa', name: 'Videa', fn: scrapeVidea, fast: true },
   { id: 'indavideo', name: 'Indavideo', fn: scrapeIndavideo, fast: true },
   { id: 'jobbmintatv', name: 'JobbMintATV', fn: scrapeJobbMintATV, fast: true },
+  { id: 'hdmozi', name: 'HDMozi', fn: scrapeHDMozi, fast: true },
   { id: 'filmvilag2', name: 'Filmvilag2', fn: scrapeFilmvilag, fast: true },
   { id: 'mediaklikk', name: 'MédiaKlikk', fn: scrapeMediaKlikk, fast: true },
   { id: 'netmozi', name: 'NetMozi', fn: scrapeNetMozi, fast: true },
   { id: 'dmdamedia', name: 'DMDAMedia', fn: scrapeDMDAMedia, fast: false },
   { id: 'mesefilm', name: 'MeseFilm', fn: scrapeMeseFilm, fast: true },
   { id: 'filmezek', name: 'Filmezek', fn: scrapeFilmezek, fast: false },
-  { id: 'onlinefilmek', name: 'OnlineFilmek', fn: scrapeOnlineFilmek, fast: false },
-  { id: 'hdmozi', name: 'HDMozi', fn: scrapeHDMozi, fast: false }
+  { id: 'onlinefilmek', name: 'OnlineFilmek', fn: scrapeOnlineFilmek, fast: false }
 ];
 
 function getManifest(config = {}) {
