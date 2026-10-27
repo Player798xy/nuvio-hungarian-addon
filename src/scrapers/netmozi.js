@@ -229,7 +229,7 @@ function parseCandidatesFromHtml(html, isSeries, normTarget, targetYear) {
   const articleMatches = [...html.matchAll(/<article[^>]*class=["'][^"']*movie-card[^"']*["'][\s\S]*?<\/article>/gi)];
   for (const match of articleMatches) {
     const cardStr = match[0];
-    const linkMatch = cardStr.match(/href=["'](\/(?:adatlap|sorozatok|film)\/[^"']+)["']/i);
+    const linkMatch = cardStr.match(/href=["'](\/(?:adatlap|sorozatok|filmek|film)\/[^"']+)["']/i);
     const titleMatch = cardStr.match(/<h3[^>]*class=["']movie-title["'][^>]*>([\s\S]*?)<\/h3>/i);
     const yearMatch = cardStr.match(/Év:[\s\S]*?([0-9]{4})/i);
     const posterMatch = cardStr.match(/src=["']([^"']+)["']/i);
@@ -240,7 +240,7 @@ function parseCandidatesFromHtml(html, isSeries, normTarget, targetYear) {
       const itemTitle = titleMatch[1].replace(/<[^>]+>/g, '').replace('(sorozat)', '').trim();
       const itemYear = yearMatch ? yearMatch[1] : '';
       const itemLink = linkMatch[1];
-      const midMatch = itemLink.match(/\/(?:sorozatok|adatlap|film)\/(\d+)/i);
+      const midMatch = itemLink.match(/\/(?:sorozatok|adatlap|filmek|film)\/(\d+)/i);
       const itemMid = midMatch ? midMatch[1] : '';
 
       let itemPoster = '';
@@ -291,7 +291,7 @@ function parseCandidatesFromHtml(html, isSeries, normTarget, targetYear) {
       const itemTitle = titleMatch[1].replace(/<[^>]+>/g, '').replace('(sorozat)', '').trim();
       const itemYear = yearMatch ? yearMatch[1] : '';
       const itemLink = linkMatch[1];
-      const midMatch = itemLink.match(/\/(?:sorozatok|adatlap|film)\/(\d+)/i);
+      const midMatch = itemLink.match(/\/(?:sorozatok|adatlap|filmek|film)\/(\d+)/i);
       const itemMid = midMatch ? midMatch[1] : '';
 
       let itemPoster = '';
@@ -326,6 +326,126 @@ function parseCandidatesFromHtml(html, isSeries, normTarget, targetYear) {
   }
 
   return candidates;
+}
+
+function formatNetMoziStream(loc, cleanTitle) {
+  if (!loc) return null;
+  const locLower = loc.toLowerCase();
+
+  // Skip search fallbacks and file download hosts
+  if (
+    locLower.includes('videa.hu/kereses/') ||
+    locLower.includes('katfile') ||
+    locLower.includes('rapidgator') ||
+    locLower.includes('nitroflare') ||
+    locLower.includes('turbobit') ||
+    locLower.includes('1fichier') ||
+    locLower.includes('filefactory') ||
+    locLower.includes('limewire.com')
+  ) {
+    return null;
+  }
+
+  let hosterName = 'Hoster';
+  let height = 720;
+  let finalUrl = loc;
+
+  // 1. Filemoon
+  const fMatch = loc.match(/filemoon\.(?:to|sx|org|me)\/(?:d\/|e\/)?([a-zA-Z0-9]+)/i);
+  if (fMatch) {
+    hosterName = 'Filemoon';
+    height = 720;
+    finalUrl = `https://filemoon.to/e/${fMatch[1]}`;
+  }
+  // 2. VOE
+  else if (locLower.includes('voe.sx') || locLower.includes('voe.')) {
+    const voeMatch = loc.match(/voe\.(?:sx|net|to|org)\/(?:e\/)?([a-zA-Z0-9]+)/i);
+    hosterName = 'VOE';
+    height = 1080;
+    if (voeMatch) finalUrl = `https://voe.sx/e/${voeMatch[1]}`;
+  }
+  // 3. Vidmoly
+  else if (locLower.includes('vidmoly')) {
+    const vMatch = loc.match(/vidmoly\.(?:me|to|net|biz|org)\/(?:embed-|w\/|v\/|dl\/)?([0-9a-zA-Z]+)/i);
+    hosterName = 'Vidmoly';
+    height = 720;
+    if (vMatch) finalUrl = `https://vidmoly.me/embed-${vMatch[1]}.html`;
+  }
+  // 4. StreamRuby / RubyStream
+  else if (locLower.includes('streamruby') || locLower.includes('rubystream') || locLower.includes('rubyvidhub')) {
+    const sMatch = loc.match(/(?:streamruby|sruby|rubystream|rubyvidhub)\.(?:com|xyz|buzz)\/(?:embed-|e\/|d\/)?([a-zA-Z0-9]+)/i);
+    hosterName = 'StreamRuby';
+    height = 720;
+    if (sMatch) finalUrl = `https://streamruby.com/embed-${sMatch[1]}.html`;
+  }
+  // 5. Vinovo
+  else if (locLower.includes('vinovo')) {
+    const vinMatch = loc.match(/vinovo\.(?:to|com|net)\/(?:d\/|e\/)?([a-zA-Z0-9]+)/i);
+    hosterName = 'Vinovo';
+    height = 720;
+    if (vinMatch) finalUrl = `https://vinovo.to/e/${vinMatch[1]}`;
+  }
+  // 6. Vidara
+  else if (locLower.includes('vidara')) {
+    const vidaraMatch = loc.match(/vidara\.(?:to|com)\/(?:v\/|e\/)?([a-zA-Z0-9]+)/i);
+    hosterName = 'Vidara';
+    height = 720;
+    if (vidaraMatch) finalUrl = `https://vidara.to/e/${vidaraMatch[1]}`;
+  }
+  // 7. Mixdrop / Mxdrop
+  else if (locLower.includes('mixdrop') || locLower.includes('mxdrop')) {
+    const mxMatch = loc.match(/(?:mixdrop|mxdrop)\.(?:co|to|ch|bz|sx)\/(?:e\/|f\/)?([a-zA-Z0-9]+)/i);
+    hosterName = 'Mixdrop';
+    height = 720;
+    if (mxMatch) finalUrl = `https://mixdrop.co/e/${mxMatch[1]}`;
+  }
+  // 8. Upstream
+  else if (locLower.includes('upstream')) {
+    const upMatch = loc.match(/upstream\.(?:to)\/(?:embed-)?([a-zA-Z0-9]+)/i);
+    hosterName = 'Upstream';
+    height = 720;
+    if (upMatch) finalUrl = `https://upstream.to/embed-${upMatch[1]}.html`;
+  }
+  // 9. Waaw / Netu
+  else if (locLower.includes('waaw') || locLower.includes('netu')) {
+    const wMatch = loc.match(/(?:waaw|netu)\.(?:to|tv)\/(?:watch_video\.php\?v=|e\/|f\/)([a-zA-Z0-9]+)/i);
+    hosterName = 'Netu / Waaw';
+    height = 720;
+    if (wMatch) finalUrl = `https://waaw.to/e/${wMatch[1]}`;
+  }
+  // 10. DoodStream
+  else if (locLower.includes('dood') || locLower.includes('byselapuix')) {
+    const dMatch = loc.match(/(?:doodstream|dood|ds2play)\.(?:com|to|so|cx|watch)\/(?:e\/|d\/)?([a-zA-Z0-9]+)/i);
+    hosterName = 'DoodStream';
+    height = 720;
+    if (dMatch) finalUrl = `https://doodstream.com/e/${dMatch[1]}`;
+  }
+  // 11. Direct MP4 (frdl.io or direct cdn .mp4)
+  else if (locLower.includes('frdl.io') || locLower.endsWith('.mp4') || locLower.includes('.mp4?')) {
+    hosterName = 'Direct MP4';
+    height = 1080;
+  }
+  // 12. Generic Hoster
+  else {
+    try {
+      const uObj = new URL(loc);
+      hosterName = uObj.hostname.replace(/^www\./, '');
+    } catch (e) {
+      hosterName = 'Hoster';
+    }
+  }
+
+  const qualityBadge = height >= 1080 ? '1080p FHD' : '720p HD';
+  return {
+    name: `[HU] NetMozi (${hosterName}) ${qualityBadge}`,
+    title: `${cleanTitle} [${qualityBadge}]\n🇭🇺 NetMozi / ${hosterName} • Szinkron • Közvetlen Lejátszó`,
+    url: finalUrl,
+    playerUrl: finalUrl,
+    quality: height >= 1080 ? '1080p' : '720p',
+    height: height,
+    source: 'netmozi',
+    behaviorHints: { bingeGroup: `hu-netmozi-${hosterName.toLowerCase()}` }
+  };
 }
 
 /**
@@ -400,17 +520,6 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
     }
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
-      if (targetPageUrl) {
-        streams.push({
-          name: `[HU] NetMozi Beépített Lejátszó [720p HD]`,
-          title: `${cleanTitle} [720p HD]\n🇭🇺 NetMozi Mozi Lejátszó • Szinkron • Közvetlen Beágyazás`,
-          url: targetPageUrl,
-          playerUrl: targetPageUrl,
-          quality: '720p',
-          height: 720,
-          source: 'netmozi'
-        });
-      }
       return streams;
     }
 
@@ -423,7 +532,8 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
       clientIp,
       headers: {
         'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
       }
     }, cookieJar);
 
@@ -460,7 +570,7 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
     // Step 7: Resolve Host Routes
     const seenUrls = new Set();
     const streamingRoutes = routes.filter(r => !r.startsWith('////diablo') && !r.startsWith('////torrent'));
-    const routesToResolve = streamingRoutes.slice(0, 8);
+    const routesToResolve = streamingRoutes.slice(0, 12);
 
     await Promise.all(routesToResolve.map(async (route) => {
       const fullRouteUrl = route.startsWith('http') ? route : ('https://mindjart.megnezed.com' + route);
@@ -471,19 +581,6 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
         seenUrls.add(loc);
 
         const locLower = loc.toLowerCase();
-
-        // Skip non-stream file hosters or search fallbacks
-        if (
-          locLower.includes('videa.hu/kereses/') ||
-          locLower.includes('katfile') ||
-          locLower.includes('rapidgator') ||
-          locLower.includes('nitroflare') ||
-          locLower.includes('turbobit') ||
-          locLower.includes('1fichier') ||
-          locLower.includes('filefactory')
-        ) {
-          return;
-        }
 
         // 1. Direct Videa stream extraction
         if (locLower.includes('videa')) {
@@ -498,9 +595,11 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
                   name: `[HU] NetMozi ${qualLabel}`,
                   title: `${cleanTitle}\n🇭🇺 NetMozi (Videa) • ${qualLabel} • Szinkron`,
                   url: vs.url,
+                  playerUrl: vs.url,
                   quality: vs.height >= 1080 ? '1080p' : vs.height >= 720 ? '720p' : '480p',
                   height: vs.height,
-                  source: 'netmozi'
+                  source: 'netmozi',
+                  behaviorHints: { bingeGroup: `hu-netmozi-videa-${qualLabel}` }
                 });
               }
               return;
@@ -522,9 +621,11 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
                   name: `[HU] NetMozi ${qualLabel}`,
                   title: `${cleanTitle}\n🇭🇺 NetMozi (Indavideo) • ${qualLabel} • Szinkron`,
                   url: is.url,
+                  playerUrl: is.url,
                   quality: is.height >= 1080 ? '1080p' : is.height >= 720 ? '720p' : '480p',
                   height: is.height,
-                  source: 'netmozi'
+                  source: 'netmozi',
+                  behaviorHints: { bingeGroup: `hu-netmozi-indavideo-${qualLabel}` }
                 });
               }
               return;
@@ -542,61 +643,11 @@ async function searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, season, 
           }
         }
 
-        // 4. Direct MP4 or hoster link
-        let hosterName = 'Hoster';
-        let height = 720;
-
-        if (locLower.includes('frdl.io') || locLower.includes('.mp4')) {
-          hosterName = 'Direct MP4';
-          height = 1080;
-        } else if (locLower.includes('filemoon')) {
-          hosterName = 'Filemoon';
-          height = 720;
-        } else if (locLower.includes('streamruby') || locLower.includes('rubystream')) {
-          hosterName = 'StreamRuby';
-          height = 720;
-        } else if (locLower.includes('vidmoly')) {
-          hosterName = 'Vidmoly';
-          height = 720;
-        } else if (locLower.includes('mixdrop')) {
-          hosterName = 'Mixdrop';
-          height = 720;
-        } else if (locLower.includes('upstream')) {
-          hosterName = 'Upstream';
-          height = 720;
-        } else if (locLower.includes('streamwish')) {
-          hosterName = 'Streamwish';
-          height = 720;
-        } else if (locLower.includes('waaw') || locLower.includes('netu')) {
-          hosterName = 'Netu / Waaw';
-          height = 720;
-        } else if (locLower.includes('voe')) {
-          hosterName = 'VOE';
-          height = 1080;
-        } else if (locLower.includes('dood') || locLower.includes('byselapuix')) {
-          hosterName = 'DoodStream';
-          height = 720;
-        } else if (locLower.includes('vidoza')) {
-          hosterName = 'Vidoza';
-          height = 720;
-        } else if (locLower.includes('vinovo')) {
-          hosterName = 'Vinovo';
-          height = 720;
-        } else if (locLower.includes('streamtape')) {
-          hosterName = 'Streamtape';
-          height = 720;
+        // 4. Normalized Hoster Streams (Filemoon, VOE, Vidmoly, StreamRuby, Vinovo, Vidara, Mixdrop, etc.)
+        const hosterStream = formatNetMoziStream(loc, cleanTitle);
+        if (hosterStream) {
+          streams.push(hosterStream);
         }
-
-        const qualityBadge = height >= 1080 ? '1080p FHD' : '720p HD';
-        streams.push({
-          name: `[HU] NetMozi (${hosterName}) ${qualityBadge}`,
-          title: `${cleanTitle} [${qualityBadge}]\n🇭🇺 NetMozi / ${hosterName} • Szinkron • Közvetlen Lejátszó`,
-          url: loc,
-          playerUrl: loc,
-          quality: height >= 1080 ? '1080p' : '720p',
-          height: height,
-          source: 'netmozi'
-        });
       } catch (err) {
         // Individual route failed
       }
@@ -700,17 +751,7 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
       
       const cookieJar = new Map();
       const directStreams = await scrapeNetMoziDetailPage(pageUrl, cleanTitle || finalSlug.replace(/-/g, ' '), clientIp, cookieJar);
-      if (directStreams.length > 0) return directStreams;
-
-      return [{
-        name: `[HU] NetMozi Beépített Lejátszó [720p HD]`,
-        title: `${cleanTitle || finalSlug.replace(/-/g, ' ')}${itemType === 'series' ? ` (${s}. Évad ${e}. Rész)` : ''} [720p HD]\n🇭🇺 NetMozi Mozi Lejátszó • Szinkron • Közvetlen Beágyazás`,
-        url: pageUrl,
-        playerUrl: pageUrl,
-        quality: '720p',
-        height: 720,
-        source: 'netmozi'
-      }];
+      return directStreams;
     }
   }
 
@@ -745,17 +786,6 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
     }
 
     if (!attrs['data-movie-id'] || !attrs['data-token'] || !attrs['data-csrf']) {
-      if (targetPageUrl) {
-        streams.push({
-          name: `[HU] NetMozi Beépített Lejátszó [720p HD]`,
-          title: `${cleanTitle} [720p HD]\n🇭🇺 NetMozi Mozi Lejátszó • Szinkron • Közvetlen Beágyazás`,
-          url: targetPageUrl,
-          playerUrl: targetPageUrl,
-          quality: '720p',
-          height: 720,
-          source: 'netmozi'
-        });
-      }
       return streams;
     }
 
@@ -767,7 +797,8 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
       clientIp,
       headers: {
         'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
       }
     }, cookieJar);
 
@@ -802,7 +833,7 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
 
     const seenUrls = new Set();
     const streamingRoutes = routes.filter(r => !r.startsWith('////diablo') && !r.startsWith('////torrent'));
-    const routesToResolve = streamingRoutes.slice(0, 8);
+    const routesToResolve = streamingRoutes.slice(0, 12);
 
     await Promise.all(routesToResolve.map(async (route) => {
       const fullRouteUrl = route.startsWith('http') ? route : ('https://mindjart.megnezed.com' + route);
@@ -813,18 +844,6 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
         seenUrls.add(loc);
 
         const locLower = loc.toLowerCase();
-
-        if (
-          locLower.includes('videa.hu/kereses/') ||
-          locLower.includes('katfile') ||
-          locLower.includes('rapidgator') ||
-          locLower.includes('nitroflare') ||
-          locLower.includes('turbobit') ||
-          locLower.includes('1fichier') ||
-          locLower.includes('filefactory')
-        ) {
-          return;
-        }
 
         if (locLower.includes('videa')) {
           const vcodeMatch = loc.match(/(?:v=|[-_])([a-zA-Z0-9]{16})(?:[?&#/]|$)/);
@@ -838,9 +857,11 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
                   name: `[HU] NetMozi ${qualLabel}`,
                   title: `${cleanTitle}\n🇭🇺 NetMozi (Videa) • ${qualLabel} • Szinkron`,
                   url: vs.url,
+                  playerUrl: vs.url,
                   quality: vs.height >= 1080 ? '1080p' : vs.height >= 720 ? '720p' : '480p',
                   height: vs.height,
-                  source: 'netmozi'
+                  source: 'netmozi',
+                  behaviorHints: { bingeGroup: `hu-netmozi-videa-${qualLabel}` }
                 });
               }
               return;
@@ -861,9 +882,11 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
                   name: `[HU] NetMozi ${qualLabel}`,
                   title: `${cleanTitle}\n🇭🇺 NetMozi (Indavideo) • ${qualLabel} • Szinkron`,
                   url: is.url,
+                  playerUrl: is.url,
                   quality: is.height >= 1080 ? '1080p' : is.height >= 720 ? '720p' : '480p',
                   height: is.height,
-                  source: 'netmozi'
+                  source: 'netmozi',
+                  behaviorHints: { bingeGroup: `hu-netmozi-indavideo-${qualLabel}` }
                 });
               }
               return;
@@ -880,60 +903,10 @@ async function scrapeNetMoziDetailPage(targetPageUrl, cleanTitle, clientIp = nul
           }
         }
 
-        let hosterName = 'Hoster';
-        let height = 720;
-
-        if (locLower.includes('frdl.io') || locLower.includes('.mp4')) {
-          hosterName = 'Direct MP4';
-          height = 1080;
-        } else if (locLower.includes('filemoon')) {
-          hosterName = 'Filemoon';
-          height = 720;
-        } else if (locLower.includes('streamruby') || locLower.includes('rubystream')) {
-          hosterName = 'StreamRuby';
-          height = 720;
-        } else if (locLower.includes('vidmoly')) {
-          hosterName = 'Vidmoly';
-          height = 720;
-        } else if (locLower.includes('mixdrop')) {
-          hosterName = 'Mixdrop';
-          height = 720;
-        } else if (locLower.includes('upstream')) {
-          hosterName = 'Upstream';
-          height = 720;
-        } else if (locLower.includes('streamwish')) {
-          hosterName = 'Streamwish';
-          height = 720;
-        } else if (locLower.includes('waaw') || locLower.includes('netu')) {
-          hosterName = 'Netu / Waaw';
-          height = 720;
-        } else if (locLower.includes('voe')) {
-          hosterName = 'VOE';
-          height = 1080;
-        } else if (locLower.includes('dood') || locLower.includes('byselapuix')) {
-          hosterName = 'DoodStream';
-          height = 720;
-        } else if (locLower.includes('vidoza')) {
-          hosterName = 'Vidoza';
-          height = 720;
-        } else if (locLower.includes('vinovo')) {
-          hosterName = 'Vinovo';
-          height = 720;
-        } else if (locLower.includes('streamtape')) {
-          hosterName = 'Streamtape';
-          height = 720;
+        const hosterStream = formatNetMoziStream(loc, cleanTitle);
+        if (hosterStream) {
+          streams.push(hosterStream);
         }
-
-        const qualityBadge = height >= 1080 ? '1080p FHD' : '720p HD';
-        streams.push({
-          name: `[HU] NetMozi (${hosterName}) ${qualityBadge}`,
-          title: `${cleanTitle} [${qualityBadge}]\n🇭🇺 NetMozi / ${hosterName} • Szinkron • Közvetlen Lejátszó`,
-          url: loc,
-          playerUrl: loc,
-          quality: height >= 1080 ? '1080p' : '720p',
-          height: height,
-          source: 'netmozi'
-        });
       } catch (err) {}
     }));
   } catch (err) {

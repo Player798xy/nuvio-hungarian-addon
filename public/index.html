@@ -2877,8 +2877,8 @@
       const vMatch = u.match(/vidmoly\.(?:me|to|net|biz|org)\/(?:embed-|w\/|v\/|dl\/)?([0-9a-zA-Z]+)/i);
       if (vMatch) return `https://vidmoly.me/embed-${vMatch[1]}.html`;
 
-      // StreamRuby
-      const sMatch = u.match(/(?:streamruby|sruby|rubystream)\.(?:com|xyz|buzz)\/(?:embed-|e\/|d\/)?([a-zA-Z0-9]+)/i);
+      // StreamRuby / RubyStream
+      const sMatch = u.match(/(?:streamruby|sruby|rubystream|rubyvidhub)\.(?:com|xyz|buzz)\/(?:embed-|e\/|d\/)?([a-zA-Z0-9]+)/i);
       if (sMatch) return `https://streamruby.com/embed-${sMatch[1]}.html`;
 
       // Upstream
@@ -2890,8 +2890,24 @@
       if (wMatch) return `https://waaw.to/e/${wMatch[1]}`;
 
       // VOE
-      const voeMatch = u.match(/voe\.sx\/(?:e\/)?([a-zA-Z0-9]+)/i);
+      const voeMatch = u.match(/voe\.(?:sx|net|to|org)\/(?:e\/)?([a-zA-Z0-9]+)/i);
       if (voeMatch) return `https://voe.sx/e/${voeMatch[1]}`;
+
+      // Vinovo
+      const vinMatch = u.match(/vinovo\.(?:to|com|net)\/(?:d\/|e\/)?([a-zA-Z0-9]+)/i);
+      if (vinMatch) return `https://vinovo.to/e/${vinMatch[1]}`;
+
+      // Vidara
+      const vidaraMatch = u.match(/vidara\.(?:to|com)\/(?:v\/|e\/)?([a-zA-Z0-9]+)/i);
+      if (vidaraMatch) return `https://vidara.to/e/${vidaraMatch[1]}`;
+
+      // Mixdrop
+      const mxMatch = u.match(/(?:mixdrop|mxdrop)\.(?:co|to|ch|bz|sx)\/(?:e\/|f\/)?([a-zA-Z0-9]+)/i);
+      if (mxMatch) return `https://mixdrop.co/e/${mxMatch[1]}`;
+
+      // DoodStream
+      const dMatch = u.match(/(?:doodstream|dood|ds2play)\.(?:com|to|so|cx|watch)\/(?:e\/|d\/)?([a-zA-Z0-9]+)/i);
+      if (dMatch) return `https://doodstream.com/e/${dMatch[1]}`;
 
       // Videa
       const vdMatch = u.match(/videa\.hu\/(?:videok|player)[^?#]*[?&]v=([a-zA-Z0-9]{16})/i) || u.match(/videa\.hu\/static\/.*?[?&]v=([a-zA-Z0-9]{16})/i);
@@ -2901,8 +2917,13 @@
       const indaMatch = u.match(/indavideo\.hu\/(?:video|player)\/([a-zA-Z0-9]+)/i);
       if (indaMatch) return `https://indavideo.hu/player/video/${indaMatch[1]}`;
 
-      // NetMozi or JobbMintATV embedded player page
-      if (u.includes('netmozi.com') || u.includes('jobbmintatv.hu')) {
+      // JobbMintATV embedded player page
+      if (u.includes('jobbmintatv.hu')) {
+        return u;
+      }
+
+      // If already an embed/e URL
+      if (u.includes('/embed') || u.includes('/e/')) {
         return u;
       }
 
@@ -2939,7 +2960,8 @@
       video.pause();
       video.removeAttribute('src');
 
-      const isDirectMedia = url.includes('.m3u8') || url.includes('.mp4') || url.includes('.webm') || url.includes('.mkv');
+      const isHosterUrl = /filemoon|vidmoly|streamruby|rubystream|rubyvidhub|upstream|waaw|netu|voe\.(?:sx|net|to|org)|dood|byselapuix|vinovo|vidara|mixdrop|mxdrop/i.test(url);
+      const isDirectMedia = !isHosterUrl && (url.includes('.m3u8') || url.includes('.mp4') || url.includes('.webm') || url.includes('.mkv'));
       const embedUrl = resolveEmbedUrl(playerUrl || url);
 
       if (isDirectMedia) {
