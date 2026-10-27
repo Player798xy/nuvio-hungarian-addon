@@ -60,7 +60,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.8.0',
+    version: '1.8.1',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
@@ -89,6 +89,15 @@ function getManifest(config = {}) {
         type: 'movie',
         id: 'hu-live-tv',
         name: '🔴 Magyar Élő TV (M4 Sport, M1, Duna)',
+        extra: [
+          { name: 'search', isRequired: false },
+          { name: 'skip', isRequired: false }
+        ]
+      },
+      {
+        type: 'series',
+        id: 'hu-mediaklikk-classics',
+        name: '🏛️ MédiaKlikk Klasszikusok (MTVA)',
         extra: [
           { name: 'search', isRequired: false },
           { name: 'skip', isRequired: false }
@@ -144,6 +153,7 @@ async function getStreams(type, id, config = {}) {
   const startTime = Date.now();
   console.log(`[Addon] Fetching fresh streams for ${type} ${id} (sources: ${configSourcesKey})`);
   const meta = await getMediaMeta(type, id);
+  if (meta) meta.clientIp = config.clientIp || null;
   console.log(`[Addon] Resolved: "${meta.englishTitle}" / "${meta.hungarianTitle}" (${meta.year || 'N/A'}) S:${meta.season} E:${meta.episode}`);
 
   // 2. Filter active scrapers based on user configuration and stage

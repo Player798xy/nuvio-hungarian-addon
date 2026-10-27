@@ -281,86 +281,181 @@ async function getLiveChannelStreams(channelIdOrKey, clientIp = null, hostUrl = 
   ];
 }
 
+function parseSeasonEpisode(title) {
+  let s = null;
+  let e = null;
+
+  // Fraction format e.g. II/2. or I/12. or II/ 10. or 1/5.
+  const slashMatch = title.match(/\b(I{1,3}|IV|V|\d+)\s*\/\s*(\d+)/i);
+  if (slashMatch) {
+    const sStr = slashMatch[1].toUpperCase();
+    if (sStr === 'I') s = 1;
+    else if (sStr === 'II') s = 2;
+    else if (sStr === 'III') s = 3;
+    else if (sStr === 'IV') s = 4;
+    else s = parseInt(sStr, 10);
+    e = parseInt(slashMatch[2], 10);
+  }
+
+  // Roman numeral season e.g. "I. sorozat" or "2. évad"
+  if (s === null) {
+    const sMatch = title.match(/\b(I{1,3}|IV|V|\d+)\.\s*(sorozat|evad|évad|széria|szeria)/i);
+    if (sMatch) {
+      const sStr = sMatch[1].toUpperCase();
+      if (sStr === 'I') s = 1;
+      else if (sStr === 'II') s = 2;
+      else if (sStr === 'III') s = 3;
+      else if (sStr === 'IV') s = 4;
+      else s = parseInt(sStr, 10);
+    }
+  }
+
+  // Ordinal episode e.g. "(\\d+)\\. rész"
+  if (e === null) {
+    const eMatch = title.match(/(\d+)\.\s*rész/i);
+    if (eMatch) {
+      e = parseInt(eMatch[1], 10);
+    }
+  }
+
+  return { season: s, episode: e };
+}
+
 /**
- * Scrapes on-demand (VOD) videos from MédiaKlikk for a movie or series
+ * Scrapes on-demand (VOD) videos from MédiaKlikk via official MTVA AJAX search endpoint
+ * Resolves 1080p Full HD direct HLS streams for Hungarian classics and on-demand titles
  * @param {Object} meta Media metadata
  * @returns {Promise<Array>} List of stream objects
  */
 async function scrapeMediaKlikk(meta) {
+  // If live channel id was requested, return live channel streams directly
+  if (meta.id && (meta.id.startsWith('mediaklikk-live-') || meta.id.startsWith('m1') || meta.id.startsWith('m4') || meta.id.startsWith('duna'))) {
+    return await getLiveChannelStreams(meta.id, meta.clientIp);
+  }
+
   const streams = [];
   const hu = meta.hungarianTitle || meta.englishTitle;
   if (!hu) return streams;
 
-  // If live channel id was requested, return live channel streams directly
-  if (meta.id && meta.id.startsWith('mediaklikk-live-')) {
-    return await getLiveChannelStreams(meta.id);
-  }
-
   const normTarget = normalize(hu);
-  const searchQueries = [];
+  const isSeries = meta.type === 'series' || meta.season !== undefined;
+  const season = meta.season ? parseInt(meta.season, 10) : null;
+  const episode = meta.episode ? parseInt(meta.episode, 10) : null;
+  const epTitle = meta.episodeTitle ? normalize(meta.episodeTitle) : null;
+  const clientIp = meta.clientIp || null;
 
-  if (meta.episodeTitle) {
-    searchQueries.push(meta.episodeTitle);
-    searchQueries.push(`${hu} ${meta.episodeTitle}`);
+  // Curate targeted query keywords for MédiaKlikk's backend
+  const queries = new Set();
+  if (normTarget.includes('ho ho') || normTarget.includes('hoho') || normTarget.includes('horgasz')) {
+    queries.add('ho-ho-ho');
+    queries.add('A nagy ho-ho-ho-horgász');
+  } else if (normTarget.includes('nepmese')) {
+    queries.add('Magyar népmesék');
+    queries.add('népmesék');
+  } else if (normTarget.includes('tenkes')) {
+    queries.add('Tenkes');
+  } else if (normTarget.includes('mezga')) {
+    queries.add('Mézga');
+  } else if (normTarget.includes('frakk')) {
+    queries.add('Frakk');
+  } else if (normTarget.includes('pom pom') || normTarget.includes('pompom')) {
+    queries.add('Pom-Pom');
+  } else if (normTarget.includes('kukori')) {
+    queries.add('Kukori');
+  } else if (normTarget.includes('susu')) {
+    queries.add('Süsü');
+  } else if (normTarget.includes('bakterhaz')) {
+    queries.add('bakterház');
+    queries.add('Indul a bakterház');
+  } else if (normTarget.includes('vuk')) {
+    queries.add('Vuk');
+  } else {
+    queries.add(hu);
+    if (meta.episodeTitle) queries.add(meta.episodeTitle);
   }
-  searchQueries.push(hu);
 
-  for (const q of searchQueries.slice(0, 2)) {
+  const searchUrl = 'https://mediaklikk.hu/wp-content/plugins/hms-mediaklikk/interfaces/get_results.php';
+
+  for (const q of queries) {
     try {
-      const searchUrl = `https://mediaklikk.hu/?s=${encodeURIComponent(q)}`;
-      const sRes = await fetch(searchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://mediaklikk.hu/'
-        },
-        signal: AbortSignal.timeout(3500)
+      const body = new URLSearchParams({
+        action: 'search',
+        s_type: 'video',
+        keyword: q,
+        fromDate: '2013-01-01',
+        toDate: new Date().toISOString().slice(0, 10),
+        pageSize: '40',
+        getAudioPrograms: 'false'
       });
 
-      if (!sRes.ok) continue;
-      const html = await sRes.text();
+      const res = await fetch(searchUrl, {
+        method: 'POST',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Referer': 'https://mediaklikk.hu/talalati-lista/?search_mk=' + encodeURIComponent(q)
+        },
+        body: body.toString(),
+        signal: AbortSignal.timeout(4000)
+      });
 
-      // Extract video article links
-      const videoLinks = [...html.matchAll(/href=["'](\/\/mediaklikk\.hu\/video\/[^"']+)["']/gi)]
-        .map(m => m[1].startsWith('//') ? 'https:' + m[1] : m[1]);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const items = data[0]?.data?.items || [];
 
-      // Deduplicate links
-      const uniqueLinks = [...new Set(videoLinks)];
+      for (const item of items) {
+        const rawTitle = (item.post_title || item.source?.post_title || '').replace(/<[^>]+>/g, '').trim();
+        const normItemTitle = normalize(rawTitle);
+        const token = item.token || item.source?.token;
+        const permalink = item.permalink || item.source?.permalink || item.URL || 'https://mediaklikk.hu/';
 
-      for (const pageUrl of uniqueLinks.slice(0, 3)) {
-        try {
-          // Normalize URL with trailing slash to avoid 301
-          const normalizedUrl = pageUrl.endsWith('/') ? pageUrl : pageUrl + '/';
-          const pRes = await fetch(normalizedUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Referer': 'https://mediaklikk.hu/'
-            },
-            signal: AbortSignal.timeout(3500)
-          });
+        if (!token) continue;
 
-          if (!pRes.ok) continue;
-          const pHtml = await pRes.text();
+        let isMatch = false;
 
-          // Extract loadPlayer config token
-          const loadPlayerMatch = pHtml.match(/loadPlayer\s*\(\s*['"][^'"]+['"]\s*,\s*(\{[\s\S]*?\})\s*\)/);
-          let token = null;
-          let videoTitle = hu;
+        if (isSeries) {
+          const parsed = parseSeasonEpisode(rawTitle);
 
-          if (loadPlayerMatch) {
-            try {
-              const cfg = JSON.parse(loadPlayerMatch[1]);
-              token = cfg.token;
-              if (cfg.title) videoTitle = cfg.title;
-            } catch (e) {}
+          // 1. Direct Season & Episode match
+          if (season !== null && episode !== null && parsed.season !== null && parsed.episode !== null) {
+            if (parsed.season === season && parsed.episode === episode) {
+              isMatch = true;
+            }
+          } else if (episode !== null && parsed.episode !== null && parsed.episode === episode) {
+            if (season === null || parsed.season === null || parsed.season === season) {
+              isMatch = true;
+            }
           }
 
-          if (token) {
-            const playerUrl = `https://player.mediaklikk.hu/playernew/player.php?video=${encodeURIComponent(token)}`;
+          // 2. Subtitle / episodeTitle match
+          if (!isMatch && epTitle && epTitle.length > 2) {
+            if (normItemTitle.includes(epTitle) || epTitle.includes(normItemTitle)) {
+              isMatch = true;
+            }
+          }
+        } else {
+          // Movie match
+          if (normItemTitle.includes(normTarget) || normTarget.includes(normItemTitle)) {
+            isMatch = true;
+          }
+        }
+
+        if (isMatch) {
+          // Resolve direct HLS stream from MTVA JWPlayer backend
+          try {
+            const playerUrl = `https://player.mediaklikk.hu/playernew/player.php?video=${token}`;
+            const headers = {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Referer': 'https://mediaklikk.hu/'
+            };
+            if (clientIp) {
+              headers['X-Forwarded-For'] = clientIp;
+              headers['X-Real-IP'] = clientIp;
+              headers['Client-IP'] = clientIp;
+            }
+
             const plRes = await fetch(playerUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0',
-                'Referer': 'https://mediaklikk.hu/'
-              },
+              headers,
               signal: AbortSignal.timeout(3500)
             });
 
@@ -371,9 +466,10 @@ async function scrapeMediaKlikk(meta) {
                 const streamUrl = m3u8Match[1].replace(/\\\//g, '/');
                 if (!streams.some(s => s.url === streamUrl)) {
                   streams.push({
-                    name: 'MédiaKlikk [HLS FHD]',
-                    title: `${videoTitle}\n🎬 MédiaKlikk HLS közvetlen lejátszás • 1080p`,
+                    name: '🔴 MédiaKlikk (MTVA) 1080p FHD',
+                    title: `${rawTitle}\n🇭🇺 MédiaKlikk HLS Közvetlen Lejátszás • MTVA Archívum`,
                     url: streamUrl,
+                    playerUrl: permalink,
                     quality: '1080p',
                     height: 1080,
                     source: 'mediaklikk',
@@ -384,16 +480,12 @@ async function scrapeMediaKlikk(meta) {
                 }
               }
             }
-          }
-        } catch (err) {
-          // Continue to next page
+          } catch (e) {}
         }
       }
 
       if (streams.length > 0) break;
-    } catch (err) {
-      // Continue to next query
-    }
+    } catch (err) {}
   }
 
   return streams;

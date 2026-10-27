@@ -1919,6 +1919,7 @@
         <button class="filter-btn active" id="tabAll" onclick="setFilter('all')">Mind</button>
         <button class="filter-btn" id="tabLive" onclick="setFilter('tv')">Élő TV (MédiaKlikk)</button>
         <button class="filter-btn" id="tabMovies" onclick="setFilter('movie')">Filmek</button>
+        <button class="filter-btn" id="tabClassics" onclick="setFilter('classics')">🏛️ MédiaKlikk Klasszikusok</button>
         <button class="filter-btn" id="tabSeries" onclick="setFilter('series')">Sorozatok &amp; Mesék</button>
       </div>
 
@@ -1932,6 +1933,8 @@
         <span class="chip" onclick="quickSearch('M4 Sport')">M4 Sport Élő</span>
         <span class="chip" onclick="quickSearch('Duna')">Duna TV Élő</span>
         <span class="chip" onclick="quickSearch('M1')">M1 Híradó</span>
+        <span class="chip" onclick="quickSearch('A nagy ho-ho-ho-horgász')">🎣 A nagy ho-ho-ho-horgász</span>
+        <span class="chip" onclick="quickSearch('Süsü a sárkány')">🐉 Süsü, a sárkány</span>
         <span class="chip" onclick="quickSearch('Magyar népmesék')">Magyar népmesék</span>
         <span class="chip" onclick="quickSearch('A Mandalóri')">A Mandalóri</span>
         <span class="chip" onclick="quickSearch('Macskafogó')">Macskafogó</span>
@@ -2018,6 +2021,7 @@
       <!-- Quick Title Chips -->
       <div class="chips-container" style="margin-top: 0.65rem;">
         <span style="font-size: 0.78rem; color: #64748b; align-self: center;">Gyors teszt minták:</span>
+        <span class="chip" onclick="setInspectorQuery('A nagy ho-ho-horgász', 'series')">🎣 A nagy ho-ho-horgász</span>
         <span class="chip" onclick="setInspectorQuery('A vad robot', 'movie')">🎬 A vad robot</span>
         <span class="chip" onclick="setInspectorQuery('The Wild Robot', 'movie')">🤖 The Wild Robot</span>
         <span class="chip" onclick="setInspectorQuery('Kutya csillagkép', 'movie')">⭐ Kutya csillagkép</span>
@@ -2392,6 +2396,7 @@
       document.getElementById('tabAll').className = type === 'all' ? 'filter-btn active' : 'filter-btn';
       document.getElementById('tabLive').className = type === 'tv' ? 'filter-btn active' : 'filter-btn';
       document.getElementById('tabMovies').className = type === 'movie' ? 'filter-btn active' : 'filter-btn';
+      document.getElementById('tabClassics').className = type === 'classics' ? 'filter-btn active' : 'filter-btn';
       document.getElementById('tabSeries').className = type === 'series' ? 'filter-btn active' : 'filter-btn';
       
       const rawInput = (document.getElementById('testId').value || '').trim();

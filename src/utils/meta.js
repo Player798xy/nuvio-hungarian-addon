@@ -79,7 +79,41 @@ const TENKES_KAPITANYA_EPISODES = {
   13: 'A vár ostroma'
 };
 
+const HOHO_HORGASZ_EPISODES = {
+  1: {
+    1: 'Reszkessetek halacskák',
+    2: 'A csalafinta csali',
+    3: 'A repülő hal',
+    4: 'A sötétlelkű orvhorgász',
+    5: 'Születésnapi ajándék',
+    6: 'A gumihal',
+    7: 'A falánk pelikán',
+    8: 'Az éjszakai horgászat',
+    9: 'Teknősháton lovagolva',
+    10: 'A mindentvágó rákolló',
+    11: 'A titokzatos békaember',
+    12: 'Nászajándék',
+    13: 'Virágcsokor a horgon'
+  },
+  2: {
+    1: 'Horgász a tetőn',
+    2: 'Horgász a kéményben',
+    3: 'Szálka hal nélkül',
+    4: 'A megszökött műhal',
+    5: 'Csecsemőaltató horgászbot',
+    6: 'Horgász a halpiacon',
+    7: 'Mit hozott a Mikulás',
+    8: 'A karácsonyi hal',
+    9: 'A holló és a hal',
+    10: 'Hová tűnt a horgászzsinór',
+    11: 'Kétoldali horgászláz',
+    12: 'A fagyasztott hal',
+    13: 'Az eldugult mosogató'
+  }
+};
+
 const PRELOADED_HUNGARIAN_TITLES = {
+  'tt0129719': { hu: 'Süsü, a sárkány kalandjai', en: 'Süsü, the Dragon', year: '1977', runtime: 30 },
   'tt0056789': { hu: 'A Tenkes kapitánya', en: 'Captain Tenkes', year: '1964', runtime: 25 },
   'tt0861751': { hu: 'Magyar népmesék', en: 'Hungarian Folk Tales', year: '1980', runtime: 10 },
   'tt0136650': { hu: 'Üzenet a jövőből - A Mézga család', en: 'The Mézga Family', year: '1969', runtime: 25 },
@@ -381,6 +415,8 @@ async function getMediaMeta(type, rawId) {
       if (matched && matched.title) episodeTitle = matched.title;
     } else if (imdbId === 'tt0056789' && episode && TENKES_KAPITANYA_EPISODES[episode]) {
       episodeTitle = TENKES_KAPITANYA_EPISODES[episode];
+    } else if (imdbId === 'tt0154077' && season && episode && HOHO_HORGASZ_EPISODES[season]?.[episode]) {
+      episodeTitle = HOHO_HORGASZ_EPISODES[season][episode];
     }
 
     const result = {
@@ -439,6 +475,10 @@ async function getMediaMeta(type, rawId) {
     if (matched && matched.title) {
       episodeTitle = matched.title;
     }
+  } else if (imdbId === 'tt0056789' && episode && TENKES_KAPITANYA_EPISODES[episode]) {
+    episodeTitle = TENKES_KAPITANYA_EPISODES[episode];
+  } else if (imdbId === 'tt0154077' && season && episode && HOHO_HORGASZ_EPISODES[season]?.[episode]) {
+    episodeTitle = HOHO_HORGASZ_EPISODES[season][episode];
   }
 
   const result = {
@@ -526,6 +566,34 @@ async function getSeriesEpisodes(imdbId) {
   const cleanId = imdbId.split(':')[0];
   if (seriesEpisodesCache.has(cleanId)) {
     return seriesEpisodesCache.get(cleanId);
+  }
+
+  // Fast-path: Static pre-loaded episodes for A nagy ho-ho-horgász (tt0154077)
+  if (cleanId === 'tt0154077') {
+    const seasonsMap = {};
+    for (const [sNum, eps] of Object.entries(HOHO_HORGASZ_EPISODES)) {
+      seasonsMap[sNum] = Object.entries(eps).map(([epNum, epTitle]) => ({
+        id: `tt0154077:${sNum}:${epNum}`,
+        season: parseInt(sNum, 10),
+        episode: parseInt(epNum, 10),
+        name: epTitle,
+        overview: `A nagy ho-ho-horgász ${sNum}. Évad ${epNum}. Rész - ${epTitle}`,
+        thumbnail: 'https://images.metahub.space/poster/medium/tt0154077/img'
+      }));
+    }
+    const result = {
+      id: 'tt0154077',
+      name: 'A nagy ho-ho-horgász',
+      englishName: 'The Great Ho-ho-ho-angler',
+      year: '1982',
+      poster: 'https://images.metahub.space/poster/medium/tt0154077/img',
+      background: 'https://images.metahub.space/poster/medium/tt0154077/img',
+      description: 'A nagy ho-ho-horgász és hű társa, a Főkukac kalandjai Balázs Péter és Mikó István legendás hangjával az MTVA archívumából.',
+      genres: ['Animáció', 'Mese', 'Klasszikus'],
+      seasons: seasonsMap
+    };
+    seriesEpisodesCache.set(cleanId, result);
+    return result;
   }
 
   // Fast-path: Static pre-loaded episodes for A Tenkes kapitánya (tt0056789)

@@ -17,9 +17,30 @@ function normalize(str) {
     .trim();
 }
 
+// Flagship MédiaKlikk (MTVA) Classics Archive Catalog
+const FEATURED_MEDIAKLIKK_CLASSICS = [
+  { id: 'tt0154077', name: 'A nagy ho-ho-horgász', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0154077/img', year: '1982–1984', description: 'A nagy ho-ho-horgász és a Főkukac felejthetetlen kalandjai Balázs Péter és Mikó István hangjával az MTVA archívumából.' },
+  { id: 'tt0861751', name: 'Magyar népmesék', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0861751/img', year: '1980–2012', description: 'Klasszikus magyar népmesék animációs sorozat Szabó Gyula felejthetetlen mesemondásával.' },
+  { id: 'tt0129719', name: 'Süsü, a sárkány kalandjai', type: 'series', poster: 'https://m.media-amazon.com/images/M/MV5BYjBjN2Y1OGItYTRhNC00ZmZiLTk0NWItMTBjNzI5ZThjOTkyXkEyXkFqcGc@._V1_SX250.jpg', year: '1977–1984', description: 'Csukás István legendás bábfilmsorozata a jólelkű, egyfejű sárkányról Bodrogi Gyula hangjával.' },
+  { id: 'tt0131636', name: 'Vuk', type: 'movie', poster: 'https://images.metahub.space/poster/medium/tt0131636/img', year: '1981', description: 'Fekete István regényéből készült rajzfilmklasszikus Dargay Attila rendezésében.' },
+  { id: 'tt0121403', name: 'Indul a bakterház', type: 'movie', poster: 'https://images.metahub.space/poster/medium/tt0121403/img', year: '1980', description: 'Regős Bendegúz, a bakter és a banya felejthetetlen története Koltai Róbert főszereplésével.' },
+  { id: 'tt0056789', name: 'A Tenkes kapitánya', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0056789/img', year: '1964', description: 'Történelmi kalandfilmsorozat a kuruc korból Zenthe Ferenc főszereplésével.' },
+  { id: 'tt0136650', name: 'Üzenet a jövőből - A Mézga család', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0136650/img', year: '1969', description: 'Klasszikus magyar rajzfilmsorozat Nepp Zoltán és Romhányi József tollából.' },
+  { id: 'tt1225872', name: 'Vakáción a Mézga család', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt1225872/img', year: '1978', description: 'A Mézga család világkörüli kalandjai Hufnágel Pisti nyomában.' },
+  { id: 'tt0167595', name: 'Frakk, a macskák réme', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0167595/img', year: '1971–1985', description: 'Klasszikus magyar papírkivágásos animációs sorozat Károly bácsival és Irmuskával.' },
+  { id: 'tt0168342', name: 'Kukori és Kotkoda', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0168342/img', year: '1971–1972', description: 'Népszerű magyar rajzfilmsorozat a lusta kakasról és szorgos tyúkocskájáról.' },
+  { id: 'tt0166931', name: 'Pom-Pom meséi', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0166931/img', year: '1980–1984', description: 'Picur és Pom Pom történetei: Gombóc Artúr, Festéktüsszentő Hapci Benő és barátai.' },
+  { id: 'tt0168343', name: 'Kérem a következőt! (Dr. Bubó)', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0168343/img', year: '1974–1979', description: 'Dr. Bubó orvosbagoly és Ursula nővér erdőlakó pácienseinek szatírája.' },
+  { id: 'tt0179955', name: 'Macskafogó (Cat City)', type: 'movie', poster: 'https://images.metahub.space/poster/medium/tt0179955/img', year: '1986', description: 'Grabowski a szuperegér titkos küldetése a macskaszindikátus ellen.' },
+  { id: 'tt0065067', name: 'A tanú', type: 'movie', poster: 'https://images.metahub.space/poster/medium/tt0065067/img', year: '1969', description: 'Pelikán József gátőr legendás szatírája Bacsó Péter filmjében.' },
+  { id: 'tt0257290', name: 'Üvegtigris', type: 'movie', poster: 'https://images.metahub.space/poster/medium/tt0257290/img', year: '2001', description: 'Kultikus magyar vígjáték Rudolf Péter rendezésében.' }
+];
+
 // Popular curated Hungarian catalog items for browsing (100% verified IMDb IDs & posters)
 const FEATURED_HUNGARIAN_SERIES = [
   { id: 'tt0861751', name: 'Magyar népmesék', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0861751/img', year: '1980–2012', description: 'Klasszikus magyar népmesék animációs sorozat.' },
+  { id: 'tt0154077', name: 'A nagy ho-ho-horgász', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0154077/img', year: '1982–1984', description: 'A nagy ho-ho-horgász és a Főkukac felejthetetlen kalandjai Balázs Péter hangjával.' },
+  { id: 'tt0129719', name: 'Süsü, a sárkány kalandjai', type: 'series', poster: 'https://m.media-amazon.com/images/M/MV5BYjBjN2Y1OGItYTRhNC00ZmZiLTk0NWItMTBjNzI5ZThjOTkyXkEyXkFqcGc@._V1_SX250.jpg', year: '1977–1984', description: 'Csukás István legendás bábfilmsorozata a jólelkű, egyfejű sárkányról Bodrogi Gyula hangjával.' },
   { id: 'tt8111088', name: 'A Mandalóri (The Mandalorian)', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt8111088/img', year: '2019–2023', description: 'Star Wars élőszereplős sorozat magyar szinkronnal.' },
   { id: 'tt0056789', name: 'A Tenkes kapitánya', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0056789/img', year: '1964', description: 'Történelmi kalandfilmsorozat a kuruc korból Zenthe Ferenc főszereplésével.' },
   { id: 'tt0136650', name: 'Üzenet a jövőből - A Mézga család', type: 'series', poster: 'https://images.metahub.space/poster/medium/tt0136650/img', year: '1969', description: 'Klasszikus magyar rajzfilmsorozat Nepp Zoltán és Romhányi József tollából.' },
@@ -184,6 +205,16 @@ async function resolveHungarianQueryToEnglish(query) {
 }
 
 async function searchCatalog(type, query, catalogId = null) {
+  // If MédiaKlikk classics catalog requested
+  if (catalogId === 'hu-mediaklikk-classics') {
+    if (!query) return FEATURED_MEDIAKLIKK_CLASSICS;
+    const qNorm = normalize(query);
+    return FEATURED_MEDIAKLIKK_CLASSICS.filter(item => 
+      normalize(item.name).includes(qNorm) || 
+      normalize(item.description).includes(qNorm)
+    );
+  }
+
   // If Live TV catalog requested (either by catalog id or by type)
   if (catalogId === 'hu-live-tv' || catalogId === 'hu-live-tv-channel' || type === 'tv' || type === 'channel') {
     const list = LIVE_CHANNELS.map(ch => ({
@@ -208,9 +239,24 @@ async function searchCatalog(type, query, catalogId = null) {
   const results = [];
   const seenIds = new Set();
   const cleanQuery = query.trim();
+  const qNorm = normalize(cleanQuery);
+
+  // Match curated Hungarian Classics & Flagship Catalog
+  const allCurated = [...FEATURED_MEDIAKLIKK_CLASSICS, ...FEATURED_HUNGARIAN_SERIES, ...FEATURED_HUNGARIAN_MOVIES];
+  for (const item of allCurated) {
+    if (type && item.type && item.type !== type && type !== 'all') continue;
+    const normItem = normalize(item.name).replace(/\s+/g, '');
+    const normQ = qNorm.replace(/\s+/g, '');
+    const isHoHoMatch = normQ.includes('hoho') && normItem.includes('hoho');
+    if (normItem.includes(normQ) || normQ.includes(normItem) || isHoHoMatch || scoreItemRelevance(item.name, cleanQuery) >= 150) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        results.push(item);
+      }
+    }
+  }
 
   // If query matches any Live TV channel or mentions "elo", "live", "sport", "tv", "mediaklikk"
-  const qNorm = normalize(cleanQuery);
   const matchedChannels = LIVE_CHANNELS.filter(ch => 
     normalize(ch.name).includes(qNorm) ||
     ch.channelKey.includes(qNorm) ||
