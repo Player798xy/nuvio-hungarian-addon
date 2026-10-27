@@ -421,7 +421,7 @@ app.get('/api/provider-test', async (req, res) => {
 
   const t0 = Date.now();
   try {
-    const meta = {
+    let meta = {
       hungarianTitle: rawTitle,
       englishTitle: rawTitle,
       type: type,
@@ -429,6 +429,27 @@ app.get('/api/provider-test', async (req, res) => {
       episode: episode,
       clientIp
     };
+
+    // If query is not an IMDb ID (e.g. 'wild robot', 'The Wild Robot', 'dune'), resolve through catalog & metadata
+    if (!rawTitle.startsWith('tt')) {
+      try {
+        const candidates = await searchCatalog(type === 'series' ? 'series' : 'movie', rawTitle);
+        if (candidates && candidates.length > 0) {
+          const top = candidates[0];
+          if (top.id && top.id.startsWith('tt')) {
+            const resolvedMeta = await getMediaMeta(type, top.id);
+            if (resolvedMeta && (resolvedMeta.hungarianTitle || resolvedMeta.englishTitle)) {
+              meta = {
+                ...resolvedMeta,
+                season: season || resolvedMeta.season,
+                episode: episode || resolvedMeta.episode,
+                clientIp
+              };
+            }
+          }
+        }
+      } catch (e) {}
+    }
 
     const streams = await Promise.race([
       scraper.fn(meta),
@@ -440,7 +461,8 @@ app.get('/api/provider-test', async (req, res) => {
       ok: true,
       provider: scraper.id,
       name: scraper.name,
-      title: rawTitle,
+      title: meta.hungarianTitle || rawTitle,
+      query: rawTitle,
       count: (streams || []).length,
       durationMs,
       streams: streams || []

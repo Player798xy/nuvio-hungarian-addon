@@ -138,8 +138,13 @@ async function scrapeFilmezek(meta) {
 
   // Filmezek autocomplete search handles titles very well
   searchTerms.push(hu);
+  const strippedHu = hu.replace(/^(?:A|Az)\s+/i, '');
+  if (strippedHu !== hu) searchTerms.push(strippedHu);
+
   if (meta.englishTitle && meta.englishTitle !== hu) {
     searchTerms.push(meta.englishTitle);
+    const strippedEn = meta.englishTitle.replace(/^(?:The|A|An)\s+/i, '');
+    if (strippedEn !== meta.englishTitle) searchTerms.push(strippedEn);
   }
 
   const seenUrls = new Set();

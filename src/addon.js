@@ -18,7 +18,7 @@ const { scrapeMediaKlikk, getLiveChannelStreams, LIVE_CHANNELS } = require('./sc
 const { scrapeNetMozi } = require('./scrapers/netmozi');
 
 // Registry of all supported Hungarian sources (No caching - always fresh live scraper results)
-const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2', 'mediaklikk', 'netmozi', 'hdmozi', 'filmezek']);
+const FAST_SCRAPER_IDS = new Set(['videa', 'indavideo', 'jobbmintatv', 'filmvilag2', 'mediaklikk', 'netmozi', 'hdmozi', 'filmezek', 'onlinefilmek']);
 
 const ALL_SCRAPERS = [
   { id: 'videa', name: 'Videa', fn: scrapeVidea, fast: true },
@@ -29,9 +29,9 @@ const ALL_SCRAPERS = [
   { id: 'mediaklikk', name: 'MédiaKlikk', fn: scrapeMediaKlikk, fast: true },
   { id: 'netmozi', name: 'NetMozi', fn: scrapeNetMozi, fast: true },
   { id: 'filmezek', name: 'Filmezek', fn: scrapeFilmezek, fast: true },
+  { id: 'onlinefilmek', name: 'OnlineFilmek', fn: scrapeOnlineFilmek, fast: true },
   { id: 'dmdamedia', name: 'DMDAMedia', fn: scrapeDMDAMedia, fast: false },
-  { id: 'mesefilm', name: 'MeseFilm', fn: scrapeMeseFilm, fast: true },
-  { id: 'onlinefilmek', name: 'OnlineFilmek', fn: scrapeOnlineFilmek, fast: false }
+  { id: 'mesefilm', name: 'MeseFilm', fn: scrapeMeseFilm, fast: true }
 ];
 
 function getManifest(config = {}) {
