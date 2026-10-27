@@ -261,6 +261,30 @@ app.get('/api/episodes', async (req, res) => {
   }
 });
 
+function scoreSearchRelevance(itemTitle, query) {
+  if (!itemTitle || !query) return 0;
+  const normTitle = (itemTitle || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  if (normTitle === normQuery) return 1000;
+  if (normTitle.startsWith(normQuery)) return 500;
+  if (normTitle.includes(normQuery)) return 300;
+
+  const queryWords = normQuery.split(/\s+/).filter(w => w.length > 1);
+  if (queryWords.length === 0) return 0;
+
+  let matchedWords = 0;
+  for (const w of queryWords) {
+    if (normTitle.includes(w)) matchedWords++;
+  }
+
+  if (matchedWords === queryWords.length) {
+    return 200 + (matchedWords * 25);
+  }
+
+  return matchedWords * 10;
+}
+
 // Search API for web landing page
 app.get('/api/search', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -320,6 +344,9 @@ app.get('/api/search', async (req, res) => {
         seen.add(item.id);
         combined.push(item);
       }
+    }
+    if (query) {
+      combined.sort((a, b) => scoreSearchRelevance(b.name, query) - scoreSearchRelevance(a.name, query));
     }
     res.json({ results: combined });
   } catch (err) {

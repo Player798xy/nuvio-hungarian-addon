@@ -158,8 +158,11 @@ async function resolveHungarianQueryToEnglish(query) {
 
     const enTitles = new Set();
     const pages = lData.query?.pages || {};
-    for (const pid of Object.keys(pages)) {
-      let enTitle = pages[pid]?.langlinks?.[0]?.['*'];
+
+    // Iterate in exact topHits relevance order, NOT Object.keys(pages) which sorts by integer pageid
+    for (const hit of topHits) {
+      const page = Object.values(pages).find(p => p.title === hit.title);
+      let enTitle = page?.langlinks?.[0]?.['*'];
       if (enTitle) {
         enTitle = enTitle.replace(/\s*\([^)]+\)\s*$/g, '').trim();
         if (enTitle.length > 1) {
@@ -325,8 +328,13 @@ async function searchCatalog(type, query, catalogId = null) {
     enQueries = await resolveHungarianQueryToEnglish(cleanQuery);
   } catch (e) {}
 
-  // Prioritize resolved English queries for Cinemeta
-  const queriesToSearch = enQueries.length > 0 ? [...enQueries, cleanQuery] : [cleanQuery];
+  // Prioritize exact user query FIRST, then resolved English translations
+  const queriesToSearch = [cleanQuery];
+  if (enQueries.length > 0) {
+    for (const eq of enQueries) {
+      if (!queriesToSearch.includes(eq)) queriesToSearch.push(eq);
+    }
+  }
 
   for (const q of queriesToSearch.slice(0, 3)) {
     try {
@@ -377,7 +385,39 @@ async function searchCatalog(type, query, catalogId = null) {
     }
   } catch (e) {}
 
+  if (cleanQuery) {
+    results.sort((a, b) => {
+      const scoreB = scoreItemRelevance(b.name, cleanQuery);
+      const scoreA = scoreItemRelevance(a.name, cleanQuery);
+      return scoreB - scoreA;
+    });
+  }
+
   return results;
+}
+
+function scoreItemRelevance(itemTitle, query) {
+  if (!itemTitle || !query) return 0;
+  const normTitle = (itemTitle || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  if (normTitle === normQuery) return 1000;
+  if (normTitle.startsWith(normQuery)) return 500;
+  if (normTitle.includes(normQuery)) return 300;
+
+  const queryWords = normQuery.split(/\s+/).filter(w => w.length > 1);
+  if (queryWords.length === 0) return 0;
+
+  let matchedWords = 0;
+  for (const w of queryWords) {
+    if (normTitle.includes(w)) matchedWords++;
+  }
+
+  if (matchedWords === queryWords.length) {
+    return 200 + (matchedWords * 25);
+  }
+
+  return matchedWords * 10;
 }
 
 async function getMeta(type, id) {

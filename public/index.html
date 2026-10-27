@@ -631,7 +631,7 @@
       border-color: rgba(255, 255, 255, 0.25);
     }
 
-    /* Catalog 1 Row 6 Items Grid */
+    /* Catalog Grid - Perfectly responsive across Desktop, Tablet, and Mobile */
     .catalog-results {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -640,14 +640,26 @@
       align-items: stretch;
     }
 
+    @media (max-width: 1024px) {
+      .catalog-results {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+    }
+
     @media (max-width: 768px) {
       .catalog-results {
-        display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: minmax(135px, 1fr);
-        overflow-x: auto;
-        padding-bottom: 0.5rem;
-        scrollbar-width: thin;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin-top: 1.25rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .catalog-results {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+        margin-top: 1rem;
       }
     }
 
@@ -660,37 +672,42 @@
       display: flex;
       flex-direction: column;
       position: relative;
-      transition: transform 0.15s ease, border-color 0.15s ease;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      min-width: 0;
     }
 
     .catalog-card:hover {
       transform: translateY(-2px);
       border-color: var(--accent);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     }
 
     .catalog-card.active {
       border-color: var(--accent);
-      box-shadow: 0 0 0 1px var(--accent);
+      box-shadow: 0 0 0 2px var(--accent);
     }
 
+    /* 100% Bulletproof 2:3 Poster Aspect Ratio for all Mobile & Desktop */
     .poster-container {
       width: 100%;
-      aspect-ratio: 2/3;
+      aspect-ratio: 2 / 3;
       background: #090d16;
       overflow: hidden;
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border-radius: 6px 6px 0 0;
     }
 
     .catalog-poster {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      aspect-ratio: 2/3;
       object-fit: cover;
+      object-position: center top;
       display: block;
       background: #090d16;
+      border: 0;
     }
 
     .catalog-badge {
@@ -733,9 +750,29 @@
       font-size: 0.82rem;
       font-weight: 600;
       color: #f1f5f9;
-      white-space: nowrap;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
+      word-break: break-word;
+    }
+
+    @media (max-width: 640px) {
+      .catalog-info {
+        padding: 0.45rem;
+      }
+      .catalog-title {
+        font-size: 0.78rem;
+        line-height: 1.2;
+      }
+      .catalog-badge {
+        font-size: 0.62rem;
+        padding: 0.12rem 0.35rem;
+        top: 4px;
+        left: 4px;
+      }
     }
 
     .catalog-year {
@@ -1506,9 +1543,19 @@
     /* Provider Matrix Inspector Styles */
     .provider-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1rem;
       margin-top: 1.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .provider-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+      .provider-card {
+        padding: 0.85rem;
+      }
     }
 
     .provider-card {
