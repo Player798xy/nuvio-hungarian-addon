@@ -242,6 +242,43 @@ app.get(['/api/live/:streamId.m3u8', '/hls/live/:streamId.m3u8'], async (req, re
   }
 });
 
+// Debug endpoint to diagnose NetMozi on Vercel
+app.get('/api/debug-netmozi', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const { netmoziFetchWithRedirects, netmoziTlsRequest } = require('./src/scrapers/netmozi');
+  const cookieJar = new Map();
+  const pageUrl = 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
+  const pageRes = await netmoziFetchWithRedirects(pageUrl, {}, cookieJar);
+  
+  const attrs = {};
+  for (const m of pageRes.body.matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
+    attrs[m[1]] = m[2];
+  }
+  
+  let loadRes = null;
+  if (attrs['data-movie-id'] && attrs['data-token'] && attrs['data-csrf']) {
+    const loadUrl = `https://netmozi.com/details/loadLinks/${attrs['data-movie-id']}${attrs['data-csrf']}`;
+    loadRes = await netmoziTlsRequest(loadUrl, {
+      method: 'POST',
+      body: 'token=' + encodeURIComponent(attrs['data-token']),
+      referer: pageUrl,
+      headers: {
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }, cookieJar);
+  }
+
+  res.json({
+    pageStatus: pageRes.statusCode,
+    pageLen: pageRes.body.length,
+    attrsFound: Object.keys(attrs),
+    loadStatus: loadRes ? loadRes.statusCode : null,
+    loadBodyLen: loadRes ? loadRes.body.length : null,
+    loadBodyPreview: loadRes ? loadRes.body.slice(0, 300) : null
+  });
+});
+
 // Episodes API for Nuvio-like Season/Episode selector
 app.get('/api/episodes', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -324,122 +361,6 @@ app.get('/api/search', async (req, res) => {
     res.json({ results: combined });
   } catch (err) {
     res.status(500).json({ error: err.message, results: [] });
-  }
-});
-
-// NetMozi Scraper Live Diagnostic
-app.get('/api/debug-netmozi', async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  const clientIp = getClientIp(req);
-  const { netmoziFetchWithRedirects, netmoziTlsRequest } = require('./src/scrapers/netmozi');
-  const { unpack } = require('./src/utils/linkpayload');
-
-  const log = {};
-  const cookieJar = new Map();
-  const url = req.query.url || 'https://netmozi.com/sorozatok/42579/ingatlanvadaszok/s1/e1';
-  log.targetUrl = url;
-
-  try {
-    const redirectChain = [];
-    let curUrl = url;
-    let curRes = null;
-    for (let r = 0; r < 5; r++) {
-      curRes = await netmoziTlsRequest(curUrl, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
-      redirectChain.push({ url: curUrl, status: curRes.statusCode, location: curRes.headers['location'] });
-      if ([301, 302, 307, 308].includes(curRes.statusCode) && curRes.headers['location']) {
-        let loc = curRes.headers['location'];
-        if (!loc.startsWith('http')) {
-          loc = 'https://netmozi.com' + (loc.startsWith('/') ? '' : '/') + loc;
-        }
-        curUrl = loc;
-      } else {
-        break;
-      }
-    }
-    log.redirectChain = redirectChain;
-    const detailRes = curRes;
-    log.detailStatus = detailRes.statusCode;
-    log.detailBodyLength = detailRes.body?.length || 0;
-    log.detailCookies = Array.from(cookieJar.entries());
-
-    const attrs = {};
-    for (const mMatch of (detailRes.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
-      attrs[mMatch[1]] = mMatch[2];
-    }
-    log.attrs = attrs;
-
-    // Check for browser state handshake
-    if ((!attrs['data-token'] || !attrs['data-csrf']) && detailRes.body?.includes('id="netmozi-browser-state"')) {
-      const bStateMatch = detailRes.body.match(/<script[^>]*id="netmozi-browser-state"[^>]*>([\s\S]*?)<\/script>/);
-      if (bStateMatch) {
-        try {
-          const bState = JSON.parse(bStateMatch[1]);
-          log.browserState = bState;
-          if (bState.endpoint) {
-            const pingUrl = 'https://netmozi.com' + bState.endpoint;
-            const pingRes = await netmoziTlsRequest(pingUrl, {
-              method: 'POST',
-              body: 'mirror=' + encodeURIComponent(bState.token || ''),
-              referer: url,
-              clientIp,
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json, text/javascript, */*; q=0.01',
-                'X-Requested-With': 'XMLHttpRequest'
-              }
-            }, cookieJar);
-            log.pingStatus = pingRes.statusCode;
-            log.pingBody = pingRes.body;
-
-            // Re-fetch page with cookies
-            const page2Res = await netmoziFetchWithRedirects(url, { referer: 'https://netmozi.com/', clientIp }, cookieJar);
-            log.page2Status = page2Res.statusCode;
-            log.page2BodyLength = page2Res.body?.length || 0;
-            log.page2HasRegeljbe = page2Res.body?.includes('regeljbe') || page2Res.body?.includes('regisztr');
-            log.page2Title = page2Res.body?.match(/<title>([^<]+)<\/title>/)?.[1];
-            log.page2Buttons = [...(page2Res.body?.matchAll(/<a[^>]+class="[^"]*btn[^"]*"[^>]*>[\s\S]*?<\/a>/gi) || [])].map(m => m[0].slice(0, 150));
-            log.page2DetailsBtn = page2Res.body?.match(/class="[^"]*details_links_btn[^"]*"[^>]*href="([^"]+)"/)?.[1];
-            log.page2LinkLoader = page2Res.body?.match(/data-link-loader[^>]*>/)?.[0];
-            log.page2Sample = page2Res.body?.slice(20000, 23000);
-            for (const mMatch of (page2Res.body || '').matchAll(/(data-movie-id|data-token|data-csrf)="([^"]+)"/g)) {
-              attrs[mMatch[1]] = mMatch[2];
-            }
-            log.attrsAfterHandshake = attrs;
-          }
-        } catch (e) {
-          log.handshakeError = e.message;
-        }
-      }
-    }
-
-    if (attrs['data-movie-id'] && attrs['data-token'] && attrs['data-csrf']) {
-      const loadLinksUrl = `https://netmozi.com/details/loadLinks/${attrs['data-movie-id']}${attrs['data-csrf']}`;
-      const loadRes = await netmoziTlsRequest(loadLinksUrl, {
-        method: 'POST',
-        body: 'token=' + encodeURIComponent(attrs['data-token']),
-        referer: url,
-        clientIp,
-        headers: {
-          'Accept': 'application/json, text/javascript, */*; q=0.01',
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      }, cookieJar);
-      log.loadLinksStatus = loadRes.statusCode;
-      log.loadLinksBody = loadRes.body;
-      try {
-        const parsed = JSON.parse(loadRes.body);
-        if (parsed.success && parsed.linkPayload) {
-          const links = unpack(parsed.linkPayload.value, attrs['data-token']);
-          log.unpackedLinks = links;
-        }
-      } catch (e) {
-        log.unpackError = e.message;
-      }
-    }
-
-    res.json(log);
-  } catch (err) {
-    res.status(500).json({ error: err.message, stack: err.stack, log });
   }
 });
 
