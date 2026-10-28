@@ -54,13 +54,14 @@ function getManifest(config = {}) {
     'anidb:',
     'tvmaze:',
     'mediaklikk-live-',
+    'mediaklikk:',
     'netmozi:',
     'title:'
   ];
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.8.1',
+    version: '1.8.2',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
@@ -75,7 +76,7 @@ function getManifest(config = {}) {
       {
         name: 'meta',
         types: ['movie', 'series', 'tv', 'channel'],
-        idPrefixes: ['tt', 'tmdb:', 'mediaklikk-live-', 'netmozi:']
+        idPrefixes: ['tt', 'tmdb:', 'mediaklikk-live-', 'mediaklikk:', 'netmozi:']
       },
       {
         name: 'catalog',

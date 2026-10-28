@@ -553,6 +553,16 @@ const seriesEpisodesCache = new Map();
 async function getSeriesEpisodes(imdbId) {
   if (!imdbId) return null;
 
+  // Handle MédiaKlikk programs
+  if (imdbId.startsWith('mediaklikk:program:') || imdbId.startsWith('mediaklikk:series:')) {
+    try {
+      const { getMediaKlikkSeriesEpisodes } = require('../scrapers/mediaklikk');
+      return await getMediaKlikkSeriesEpisodes(imdbId);
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Handle NetMozi series
   if (imdbId.startsWith('netmozi:')) {
     try {

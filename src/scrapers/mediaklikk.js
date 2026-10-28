@@ -99,6 +99,220 @@ const LIVE_CHANNELS = [
 const LIVE_STREAM_CACHE = new Map();
 const LIVE_CACHE_TTL_MS = 45 * 60 * 1000; // 45 minutes
 
+// In-memory cache for MédiaKlikk programs and series episodes
+let mediaklikkProgramsCache = null;
+let lastProgramsRefresh = 0;
+const PROGRAMS_REFRESH_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const showEpisodesCache = new Map();
+
+/**
+ * Loads all MédiaKlikk programs (490+ active and archive shows, series, and films)
+ * Automatically updates from mediaklikk.hu/musoraink periodically without manual coding.
+ */
+function getMediaKlikkPrograms() {
+  if (mediaklikkProgramsCache && (Date.now() - lastProgramsRefresh < PROGRAMS_REFRESH_INTERVAL_MS)) {
+    return mediaklikkProgramsCache;
+  }
+
+  try {
+    const localData = require('../data/mediaklikk_programs.json');
+    mediaklikkProgramsCache = localData;
+    lastProgramsRefresh = Date.now();
+  } catch (err) {
+    if (!mediaklikkProgramsCache) mediaklikkProgramsCache = [];
+  }
+
+  // Asynchronous background refresh
+  refreshProgramsFromWeb().catch(() => {});
+
+  return mediaklikkProgramsCache || [];
+}
+
+async function refreshProgramsFromWeb() {
+  try {
+    const res = await fetch('https://mediaklikk.hu/musoraink', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (!res.ok) return;
+    const html = await res.text();
+    const cardRegex = /<a[^>]+href=["'](https:\/\/mediaklikk\.hu\/musor\/([^"'\/]+)\/?)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    const programs = [];
+    const seenSlugs = new Set();
+    let m;
+
+    while ((m = cardRegex.exec(html)) !== null) {
+      const fullUrl = m[1];
+      const slug = m[2];
+      const inner = m[3];
+      if (seenSlugs.has(slug)) continue;
+      seenSlugs.add(slug);
+
+      const titleMatch = inner.match(/<h[234][^>]*>([^<]+)<\/h[234]>/i) || inner.match(/class=["'][^"']*title[^"']*["'][^>]*>([^<]+)</i);
+      const name = titleMatch ? titleMatch[1].trim() : slug.replace(/-/g, ' ');
+      const imgMatch = inner.match(/src=["']([^"']+\.(?:jpg|jpeg|png|webp)[^"']*)["']/i);
+      const poster = imgMatch ? imgMatch[1] : '';
+
+      const catMatches = [...inner.matchAll(/class=["'][^"']*category[^"']*["'][^>]*>([^<]+)</gi)].map(cm => cm[1].trim());
+      const categories = catMatches.length > 0 ? catMatches : ['Kultúra'];
+      const isMovie = categories.includes('Film');
+
+      programs.push({
+        id: `mediaklikk:program:${slug}`,
+        slug,
+        name,
+        type: isMovie ? 'movie' : 'series',
+        poster,
+        url: fullUrl,
+        categories,
+        description: `MédiaKlikk (MTVA) műsor: ${name}. Kategóriák: ${categories.join(', ')}.`
+      });
+    }
+
+    if (programs.length > 50) {
+      mediaklikkProgramsCache = programs;
+      lastProgramsRefresh = Date.now();
+    }
+  } catch (e) {}
+}
+
+/**
+ * Dynamically resolves all seasons and episodes for ANY MédiaKlikk show
+ * directly from the official MTVA AJAX search backend.
+ * Zero hardcoding: works automatically for all existing and newly added shows.
+ */
+async function getMediaKlikkSeriesEpisodes(idOrSlugOrName) {
+  if (!idOrSlugOrName) return null;
+  const cleanKey = idOrSlugOrName.replace(/^mediaklikk:program:/, '').trim();
+
+  if (showEpisodesCache.has(cleanKey)) {
+    const cached = showEpisodesCache.get(cleanKey);
+    if (Date.now() - cached.timestamp < 2 * 60 * 60 * 1000) {
+      return cached.data;
+    }
+  }
+
+  const allPrograms = getMediaKlikkPrograms();
+  const program = allPrograms.find(p => 
+    p.slug === cleanKey || 
+    p.id === idOrSlugOrName || 
+    normalize(p.name) === normalize(cleanKey)
+  ) || {
+    id: `mediaklikk:program:${cleanKey}`,
+    slug: cleanKey,
+    name: cleanKey.replace(/-/g, ' '),
+    type: 'series',
+    poster: '',
+    categories: ['Sorozat', 'Retró'],
+    description: `MédiaKlikk (MTVA) sorozat: ${cleanKey}.`
+  };
+
+  try {
+    const searchUrl = 'https://mediaklikk.hu/wp-content/plugins/hms-mediaklikk/interfaces/get_results.php';
+    const body = new URLSearchParams({
+      action: 'search',
+      s_type: 'video',
+      keyword: program.name,
+      fromDate: '2013-01-01',
+      toDate: new Date().toISOString().slice(0, 10),
+      pageSize: '100',
+      pageNumber: '1',
+      getAudioPrograms: 'false'
+    });
+
+    const res = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Referer': 'https://mediaklikk.hu/'
+      },
+      body: body.toString(),
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const items = data[0]?.data?.items || [];
+
+    if (items.length === 0) return null;
+
+    const seasonsMap = {};
+    const normProgName = normalize(program.name);
+
+    items.forEach((item, idx) => {
+      const rawTitle = (item.post_title || item.source?.post_title || '').replace(/<[^>]+>/g, '').trim();
+      const token = item.token || item.source?.token;
+      if (!token) return;
+
+      const normTitle = normalize(rawTitle);
+      // Ensure the result actually pertains to this program
+      if (!normTitle.includes(normProgName) && !normProgName.includes(normTitle)) {
+        // Soft match check
+        const progWords = normProgName.split(' ').filter(w => w.length > 2);
+        const matchCount = progWords.filter(w => normTitle.includes(w)).length;
+        if (matchCount < Math.min(2, progWords.length)) return;
+      }
+
+      const parsed = parseSeasonEpisode(rawTitle);
+      const sNum = parsed.season != null ? String(parsed.season) : '1';
+      const epNum = parsed.episode != null ? parsed.episode : (idx + 1);
+
+      // Clean episode subtitle
+      let epName = rawTitle;
+      if (rawTitle.includes(',')) {
+        epName = rawTitle.split(',').slice(1).join(',').trim();
+      } else if (rawTitle.includes('-')) {
+        epName = rawTitle.split('-').slice(1).join('-').trim();
+      }
+      epName = epName.replace(/^(I{1,3}|IV|V|\d+)\.\s*(sorozat|évad|evad|rész)\s*,?\s*/i, '').trim();
+      if (!epName || epName.length < 2) {
+        epName = `${epNum}. rész`;
+      }
+
+      if (!seasonsMap[sNum]) {
+        seasonsMap[sNum] = [];
+      }
+
+      const thumb = item.featured_image_url_large || item.featured_image_url_medium || program.poster || '';
+
+      seasonsMap[sNum].push({
+        id: `mediaklikk:video:${encodeURIComponent(token)}`,
+        season: parseInt(sNum, 10),
+        episode: epNum,
+        name: epName,
+        rawTitle,
+        overview: `${program.name} - ${rawTitle}`,
+        thumbnail: thumb,
+        token
+      });
+    });
+
+    // Sort episodes inside each season
+    for (const s of Object.keys(seasonsMap)) {
+      seasonsMap[s].sort((a, b) => a.episode - b.episode);
+    }
+
+    const result = {
+      id: program.id,
+      name: program.name,
+      englishName: program.name,
+      year: program.categories?.join(' • ') || 'MédiaKlikk Archívum',
+      poster: program.poster,
+      background: program.poster,
+      description: program.description,
+      genres: program.categories || ['MTVA Archívum'],
+      seasons: seasonsMap
+    };
+
+    showEpisodesCache.set(cleanKey, { data: result, timestamp: Date.now() });
+    return result;
+  } catch (err) {
+    console.warn(`[MediaKlikk] Dynamic episode fetch error for ${program.name}:`, err.message);
+    return null;
+  }
+}
+
 function normalize(str) {
   return (str || '')
     .toLowerCase()
@@ -328,6 +542,45 @@ function parseSeasonEpisode(title) {
  * @returns {Promise<Array>} List of stream objects
  */
 async function scrapeMediaKlikk(meta) {
+  // If direct MédiaKlikk video token was requested, resolve stream immediately
+  if (meta.id && meta.id.startsWith('mediaklikk:video:')) {
+    let token = meta.id.replace('mediaklikk:video:', '').trim();
+    while (token.includes('%')) {
+      try { token = decodeURIComponent(token); } catch(e) { break; }
+    }
+    try {
+      const playerUrl = `https://player.mediaklikk.hu/playernew/player.php?video=${encodeURIComponent(token)}`;
+      const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://mediaklikk.hu/'
+      };
+      if (meta.clientIp) {
+        headers['X-Forwarded-For'] = meta.clientIp;
+        headers['X-Real-IP'] = meta.clientIp;
+        headers['Client-IP'] = meta.clientIp;
+      }
+      const plRes = await fetch(playerUrl, { headers, signal: AbortSignal.timeout(4000) });
+      if (plRes.ok) {
+        const plHtml = await plRes.text();
+        const m3u8Match = plHtml.match(/"file":\s*"([^"]+\.m3u8[^"]*)"/i);
+        if (m3u8Match) {
+          const streamUrl = m3u8Match[1].replace(/\\\//g, '/');
+          return [{
+            name: '🔴 MédiaKlikk (MTVA) 1080p FHD',
+            title: `🇭🇺 MédiaKlikk HLS Közvetlen Lejátszás • MTVA Archívum\nKözvetlen 1080p Full HD stream az MTVA szerveréről`,
+            url: streamUrl,
+            playerUrl: `https://mediaklikk.hu/`,
+            quality: '1080p',
+            height: 1080,
+            source: 'mediaklikk',
+            behaviorHints: { notWebReady: false }
+          }];
+        }
+      }
+    } catch (e) {}
+    return [];
+  }
+
   // If live channel id was requested, return live channel streams directly
   if (meta.id && (meta.id.startsWith('mediaklikk-live-') || meta.id.startsWith('m1') || meta.id.startsWith('m4') || meta.id.startsWith('duna'))) {
     return await getLiveChannelStreams(meta.id, meta.clientIp);
@@ -496,5 +749,7 @@ module.exports = {
   getLiveHlsStream,
   getReorderedMasterPlaylist,
   getLiveChannelStreams,
+  getMediaKlikkPrograms,
+  getMediaKlikkSeriesEpisodes,
   scrapeMediaKlikk
 };

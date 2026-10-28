@@ -13,20 +13,23 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <style>
     :root {
-      --bg: #080b11;
-      --card: rgba(15, 20, 32, 0.85);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-border-hover: rgba(99, 102, 241, 0.35);
-      --stremio: #6366f1;
-      --stremio-hover: #4f46e5;
-      --nuvio: #06b6d4;
-      --nuvio-hover: #0891b2;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --accent: #6366f1;
-      --success: #10b981;
+      --bg: #090a0d;
+      --bg-surface: #0f1115;
+      --card: #121419;
+      --card-surface: #16181f;
+      --card-border: rgba(255, 255, 255, 0.07);
+      --card-border-top: rgba(255, 255, 255, 0.12);
+      --card-border-hover: rgba(255, 255, 255, 0.18);
+      --text: #f0f2f5;
+      --text-muted: #8b92a0;
+      --text-dim: #555b67;
+      --accent: #ffffff;
+      --accent-bg: #1e222b;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
       --radius: 12px;
+      --radius-sm: 8px;
     }
 
     * {
@@ -38,7 +41,7 @@
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg);
-      background-image: radial-gradient(circle at 50% 0%, #151d32 0%, #080b11 65%);
+      background-image: radial-gradient(1200px 700px at 50% -10%, #171922 0%, #090a0d 75%);
       background-attachment: fixed;
       color: var(--text);
       line-height: 1.5;
@@ -62,78 +65,80 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #12141a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       padding: 0.35rem 0.85rem;
       border-radius: 9999px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #cbd5e1;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #9aa0ac;
       margin-bottom: 1.25rem;
+      letter-spacing: -0.01em;
     }
 
     .brand-pill .live-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: #10b981;
-      box-shadow: 0 0 8px #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
     }
 
     .app-logo {
-      width: 84px;
-      height: 84px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+      width: 76px;
+      height: 76px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
       margin-bottom: 1rem;
       object-fit: cover;
     }
 
     h1 {
-      font-size: 2.4rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin-bottom: 0.6rem;
+      font-size: 2.3rem;
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      margin-bottom: 0.5rem;
       color: #ffffff;
     }
 
     .subtitle {
-      color: var(--text-muted);
-      font-size: 1.05rem;
-      max-width: 640px;
+      color: #8b92a0;
+      font-size: 0.98rem;
+      max-width: 620px;
       margin: 0 auto 1.5rem auto;
       font-weight: 400;
+      line-height: 1.6;
     }
 
     .feature-tags {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 0.5rem;
+      gap: 0.45rem;
       margin-bottom: 1rem;
     }
 
     .tag-item {
-      font-size: 0.78rem;
-      color: #94a3b8;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.75rem;
+      color: #8b92a0;
+      background: #111318;
+      border: 1px solid rgba(255, 255, 255, 0.06);
       padding: 0.25rem 0.65rem;
-      border-radius: 6px;
+      border-radius: 9999px;
       font-weight: 500;
     }
 
     /* Card System */
     .card {
       background: var(--card);
-      backdrop-filter: blur(12px);
       border: 1px solid var(--card-border);
+      border-top: 1px solid var(--card-border-top);
       border-radius: var(--radius);
       padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
-      transition: border-color 0.2s ease;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 36px -8px rgba(0, 0, 0, 0.6);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .card:hover {
@@ -150,9 +155,9 @@
     }
 
     .card-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
       color: #ffffff;
       display: flex;
       align-items: center;
@@ -160,10 +165,10 @@
     }
 
     .card-desc {
-      color: var(--text-muted);
-      font-size: 0.88rem;
+      color: #8b92a0;
+      font-size: 0.86rem;
       margin-bottom: 1.25rem;
-      line-height: 1.5;
+      line-height: 1.55;
     }
 
     /* Installation Action Bar */
@@ -179,68 +184,78 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      padding: 0.75rem 1.25rem;
+      padding: 0.7rem 1.25rem;
       border-radius: 8px;
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
-      transition: all 0.15s ease;
-      border: none;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
       user-select: none;
       white-space: nowrap;
     }
 
     .btn-stremio {
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+      background: #ffffff;
+      color: #090a0d;
+      border-color: #ffffff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     .btn-stremio:hover {
-      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+      background: #e2e4e9;
+      border-color: #e2e4e9;
+      color: #000000;
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.12);
     }
 
     .btn-nuvio {
-      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+      background: #181b23;
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #f0f2f5;
     }
 
     .btn-nuvio:hover {
-      background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+      background: #212530;
+      border-color: rgba(255, 255, 255, 0.22);
+      color: #ffffff;
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(6, 182, 212, 0.4);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: #e2e8f0;
+      background: #13151b;
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #c2c7d2;
     }
 
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
+      background: #1a1d26;
+      border-color: rgba(255, 255, 255, 0.18);
       color: #ffffff;
     }
 
     .btn-primary {
-      background: #2563eb;
-      color: white;
+      background: #ffffff;
+      color: #090a0d;
+      border-color: #ffffff;
+      font-weight: 600;
     }
 
     .btn-primary:hover {
-      background: #1d4ed8;
+      background: #e2e4e9;
+      border-color: #e2e4e9;
+      color: #000000;
+      transform: translateY(-1px);
     }
 
     /* URL Box */
     .url-box {
       display: flex;
       gap: 0.5rem;
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 0.35rem 0.45rem 0.35rem 0.9rem;
@@ -251,16 +266,16 @@
       flex: 1;
       background: transparent;
       border: none;
-      color: #94a3b8;
+      color: #8b92a0;
       font-size: 0.85rem;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       outline: none;
     }
 
-    /* Preset Tabs */
+    /* Preset Tabs / Segmented Control */
     .segmented-control {
       display: flex;
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 3px;
@@ -273,12 +288,12 @@
       flex: 1;
       min-width: 130px;
       background: transparent;
-      border: none;
-      color: #94a3b8;
+      border: 1px solid transparent;
+      color: #8b92a0;
       padding: 0.45rem 0.85rem;
       border-radius: 6px;
       font-size: 0.82rem;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       transition: all 0.15s ease;
       display: inline-flex;
@@ -289,13 +304,15 @@
 
     .preset-btn:hover {
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.03);
     }
 
     .preset-btn.active {
-      background: #1e2538;
+      background: #1f232d;
       color: #ffffff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+      font-weight: 600;
     }
 
     /* Sources Grid */
@@ -307,7 +324,7 @@
     }
 
     .source-item {
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       padding: 0.75rem 0.85rem;
       border-radius: 8px;
@@ -320,19 +337,19 @@
     }
 
     .source-item:hover {
-      border-color: rgba(255, 255, 255, 0.18);
-      background: #0d1220;
+      border-color: rgba(255, 255, 255, 0.16);
+      background: #13161e;
     }
 
     .source-item.selected {
-      border-color: var(--accent);
-      background: rgba(99, 102, 241, 0.06);
+      border-color: rgba(255, 255, 255, 0.28);
+      background: #161922;
     }
 
     .source-checkbox {
       width: 1rem;
       height: 1rem;
-      accent-color: var(--accent);
+      accent-color: #ffffff;
       cursor: pointer;
       margin-top: 0.2rem;
     }
@@ -345,7 +362,7 @@
     .source-name {
       font-weight: 600;
       font-size: 0.88rem;
-      color: #e2e8f0;
+      color: #f0f2f5;
       display: flex;
       align-items: center;
       gap: 0.4rem;
@@ -353,19 +370,21 @@
 
     .source-tag {
       font-size: 0.68rem;
-      padding: 0.1rem 0.35rem;
+      padding: 0.1rem 0.4rem;
       border-radius: 4px;
       font-weight: 600;
     }
 
     .tag-fast {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.1);
       color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
     .tag-rich {
-      background: rgba(148, 163, 184, 0.15);
-      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.05);
+      color: #9aa0ac;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .source-desc {
@@ -419,7 +438,7 @@
       align-items: center;
       gap: 0.5rem;
       padding: 0.55rem 0.75rem;
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 6px;
       cursor: pointer;
@@ -428,34 +447,38 @@
     }
 
     .res-item:hover {
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.16);
+      background: #13161e;
     }
 
     .res-item.selected {
-      border-color: var(--accent);
-      background: rgba(99, 102, 241, 0.08);
+      border-color: rgba(255, 255, 255, 0.28);
+      background: #161922;
     }
 
     .badge-quality {
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 600;
       padding: 0.15rem 0.45rem;
       border-radius: 4px;
     }
 
     .badge-1080 {
-      background: rgba(16, 185, 129, 0.2);
-      color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
     .badge-720 {
-      background: rgba(59, 130, 246, 0.2);
-      color: #3b82f6;
+      background: rgba(255, 255, 255, 0.06);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .badge-480 {
-      background: rgba(148, 163, 184, 0.2);
-      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.04);
+      color: #8b92a0;
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .mini-presets-row {
@@ -466,9 +489,9 @@
     }
 
     .mini-btn {
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
-      color: #94a3b8;
+      color: #8b92a0;
       padding: 0.25rem 0.65rem;
       border-radius: 4px;
       font-size: 0.75rem;
@@ -479,17 +502,18 @@
 
     .mini-btn:hover {
       color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.18);
     }
 
     .mini-btn.active {
-      border-color: var(--accent);
-      background: rgba(99, 102, 241, 0.12);
+      border-color: rgba(255, 255, 255, 0.3);
+      background: #1f232d;
       color: #ffffff;
+      font-weight: 600;
     }
 
     .slider-box {
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 0.75rem 1rem;
@@ -498,9 +522,9 @@
 
     .custom-slider {
       width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: #1e2538;
+      height: 4px;
+      border-radius: 2px;
+      background: #1e222b;
       outline: none;
       -webkit-appearance: none;
       margin: 0.6rem 0 0.4rem 0;
@@ -510,20 +534,20 @@
     .custom-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: #6366f1;
+      background: #ffffff;
       cursor: pointer;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+      border: 2px solid #0c0e12;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
     }
 
     .slider-ticks {
       display: flex;
       justify-content: space-between;
       font-size: 0.7rem;
-      color: #64748b;
+      color: #555b67;
       font-weight: 500;
     }
 
@@ -535,19 +559,20 @@
       border-radius: 9999px;
       font-size: 0.78rem;
       font-weight: 600;
-      background: rgba(16, 185, 129, 0.12);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      background: rgba(16, 185, 129, 0.1);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
     /* How to Install Steps Accordion */
     .steps-list {
       padding-left: 1.25rem;
-      color: #cbd5e1;
+      color: #9aa0ac;
       font-size: 0.88rem;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
+      line-height: 1.6;
     }
 
     .steps-list li strong {
@@ -557,16 +582,16 @@
     /* Live Search & Catalog Section */
     .filter-tabs {
       display: flex;
-      gap: 0.4rem;
+      gap: 0.35rem;
       margin: 0.85rem 0;
       flex-wrap: wrap;
     }
 
     .filter-btn {
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
-      color: #94a3b8;
-      padding: 0.35rem 0.75rem;
+      color: #8b92a0;
+      padding: 0.38rem 0.8rem;
       border-radius: 6px;
       font-size: 0.82rem;
       font-weight: 500;
@@ -576,35 +601,79 @@
 
     .filter-btn:hover {
       color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.18);
     }
 
     .filter-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #ffffff;
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #090a0d;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     }
 
     .tester-controls {
       display: flex;
       gap: 0.5rem;
       margin-top: 0.5rem;
+      position: relative;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input-wrapper .search-icon {
+      position: absolute;
+      left: 0.95rem;
+      color: #555b67;
+      font-size: 0.9rem;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input-wrapper .input-field {
+      padding-left: 2.35rem;
+      padding-right: 4.8rem;
+    }
+
+    .search-kbd-hint {
+      position: absolute;
+      right: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      background: #161820;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.68rem;
+      color: #717886;
+      font-family: inherit;
+      user-select: none;
+      pointer-events: none;
     }
 
     .input-field {
-      flex: 1;
-      background: #090d16;
+      width: 100%;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 0.75rem 1rem;
       color: #ffffff;
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       outline: none;
-      transition: border-color 0.15s ease;
+      transition: all 0.15s ease;
     }
 
     .input-field:focus {
-      border-color: var(--accent);
+      border-color: rgba(255, 255, 255, 0.28);
+      background: #11141b;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
     }
 
     .chips-container {
@@ -615,9 +684,9 @@
     }
 
     .chip {
-      background: rgba(255, 255, 255, 0.04);
+      background: #0c0e12;
       border: 1px solid var(--card-border);
-      color: #cbd5e1;
+      color: #9aa0ac;
       padding: 0.25rem 0.65rem;
       border-radius: 9999px;
       font-size: 0.78rem;
@@ -626,12 +695,12 @@
     }
 
     .chip:hover {
-      background: #1e2538;
+      background: #181b23;
       color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
-    /* Catalog Grid - Perfectly responsive across Desktop, Tablet, and Mobile */
+    /* Catalog Grid */
     .catalog-results {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -664,7 +733,7 @@
     }
 
     .catalog-card {
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       overflow: hidden;
@@ -678,20 +747,19 @@
 
     .catalog-card:hover {
       transform: translateY(-2px);
-      border-color: var(--accent);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     }
 
     .catalog-card.active {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent);
+      border-color: #ffffff;
+      box-shadow: 0 0 0 1px #ffffff;
     }
 
-    /* 100% Bulletproof 2:3 Poster Aspect Ratio for all Mobile & Desktop */
     .poster-container {
       width: 100%;
       aspect-ratio: 2 / 3;
-      background: #090d16;
+      background: #0c0e12;
       overflow: hidden;
       position: relative;
       border-radius: 6px 6px 0 0;
@@ -706,7 +774,7 @@
       object-fit: cover;
       object-position: center top;
       display: block;
-      background: #090d16;
+      background: #0c0e12;
       border: 0;
     }
 
@@ -715,26 +783,26 @@
       top: 6px;
       left: 6px;
       font-size: 0.68rem;
-      font-weight: 700;
-      padding: 0.15rem 0.4rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
       border-radius: 4px;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(8px);
       z-index: 2;
+      background: rgba(10, 12, 16, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #ffffff;
     }
 
     .badge-film {
-      background: rgba(229, 9, 20, 0.85);
-      color: white;
+      border-left: 2px solid #ef4444;
     }
 
     .badge-sorozat {
-      background: rgba(99, 102, 241, 0.85);
-      color: white;
+      border-left: 2px solid #38bdf8;
     }
 
     .badge-tv {
-      background: rgba(220, 38, 38, 0.9);
-      color: white;
+      border-left: 2px solid #10b981;
     }
 
     .catalog-info {
@@ -790,9 +858,9 @@
     }
 
     .page-btn, .page-number-btn {
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
-      color: #94a3b8;
+      color: #8b92a0;
       padding: 0.35rem 0.65rem;
       border-radius: 6px;
       font-size: 0.78rem;
@@ -812,22 +880,21 @@
     }
 
     .page-number-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #ffffff;
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #090a0d;
+      font-weight: 600;
     }
 
-    /* ==========================================================================
-       Series View & Modern Episode Picker (Nuvio / Netflix Style)
-       ========================================================================== */
+    /* Series View & Modern Episode Picker */
     .series-view {
       margin-top: 1.5rem;
-      background: rgba(13, 18, 30, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #0d0f14;
+      border: 1px solid var(--card-border);
+      border-top: 1px solid var(--card-border-top);
       border-radius: 12px;
       padding: 1.25rem;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
 
     .series-header {
@@ -860,6 +927,7 @@
       color: #ffffff;
       line-height: 1.3;
       margin-bottom: 0.35rem;
+      letter-spacing: -0.02em;
     }
 
     .series-header-meta {
@@ -872,25 +940,25 @@
 
     .series-tag {
       font-size: 0.74rem;
-      font-weight: 600;
+      font-weight: 500;
       padding: 0.2rem 0.55rem;
       border-radius: 4px;
-      background: rgba(99, 102, 241, 0.12);
-      color: #818cf8;
-      border: 1px solid rgba(99, 102, 241, 0.25);
+      background: #161821;
+      color: #c2c7d2;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .series-header-desc {
       font-size: 0.82rem;
       color: var(--text-muted);
-      line-height: 1.45;
+      line-height: 1.5;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
 
-    /* Season Tabs & Quick Filter Bar */
+    /* Season Tabs */
     .season-bar-container {
       display: flex;
       align-items: center;
@@ -911,30 +979,30 @@
     }
 
     .season-tab-btn {
-      background: #0f172a;
+      background: #14171f;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #94a3b8;
+      color: #8b92a0;
       padding: 0.45rem 0.95rem;
       border-radius: 20px;
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       user-select: none;
     }
 
     .season-tab-btn:hover {
       color: #ffffff;
-      background: #1e293b;
+      background: #1c202a;
       border-color: rgba(255, 255, 255, 0.18);
     }
 
     .season-tab-btn.active {
-      background: #4f46e5;
-      color: #ffffff;
-      border-color: #6366f1;
-      box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
+      background: #ffffff;
+      color: #090a0d;
+      border-color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     }
 
     .series-filter-wrap {
@@ -945,19 +1013,19 @@
 
     .series-filter-input {
       width: 100%;
-      background: #0b0f19;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #f8fafc;
+      background: #0c0e12;
+      border: 1px solid var(--card-border);
+      color: #f0f2f5;
       font-size: 0.82rem;
       padding: 0.45rem 0.85rem;
       border-radius: 8px;
       outline: none;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: all 0.15s ease;
     }
 
     .series-filter-input:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+      border-color: rgba(255, 255, 255, 0.25);
+      background: #11141b;
     }
 
     /* Episodes Grid & Cards */
@@ -972,8 +1040,8 @@
     }
 
     .episode-card, .ep-card {
-      background: #090d16;
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: #11141a;
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 8px;
       padding: 0.7rem 0.85rem;
       cursor: pointer;
@@ -986,15 +1054,14 @@
     }
 
     .episode-card:hover, .ep-card:hover {
-      border-color: #6366f1;
-      background: #111827;
+      border-color: rgba(255, 255, 255, 0.18);
+      background: #161922;
       transform: translateY(-1px);
     }
 
     .episode-card.active, .ep-card.active {
-      border-color: #6366f1;
-      background: rgba(99, 102, 241, 0.14);
-      box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
+      border-color: rgba(255, 255, 255, 0.35);
+      background: #191e28;
     }
 
     .ep-left-content {
@@ -1006,9 +1073,9 @@
     }
 
     .ep-badge {
-      background: rgba(99, 102, 241, 0.12);
-      color: #818cf8;
-      border: 1px solid rgba(99, 102, 241, 0.25);
+      background: #161922;
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.09);
       border-radius: 6px;
       font-weight: 700;
       font-size: 0.76rem;
@@ -1020,9 +1087,9 @@
     }
 
     .episode-card.active .ep-badge, .ep-card.active .ep-badge {
-      background: #4f46e5;
-      color: #ffffff;
-      border-color: #6366f1;
+      background: #ffffff;
+      color: #090a0d;
+      border-color: #ffffff;
     }
 
     .ep-info {
@@ -1040,13 +1107,9 @@
       line-height: 1.3;
     }
 
-    .episode-card.active .ep-title, .ep-card.active .ep-title {
-      color: #ffffff;
-    }
-
     .ep-sub, .episode-num {
       font-size: 0.72rem;
-      color: #64748b;
+      color: #555b67;
       margin-top: 0.15rem;
     }
 
@@ -1054,29 +1117,28 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: #181b23;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #94a3b8;
+      color: #8b92a0;
       font-size: 0.75rem;
       flex-shrink: 0;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
     }
 
     .episode-card:hover .ep-play-btn, .ep-card:hover .ep-play-btn {
-      background: #4f46e5;
-      border-color: #6366f1;
-      color: #ffffff;
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #090a0d;
       transform: scale(1.08);
     }
 
     .episode-card.active .ep-play-btn, .ep-card.active .ep-play-btn {
-      background: #4f46e5;
-      border-color: #6366f1;
-      color: #ffffff;
-      box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #090a0d;
     }
 
     /* Streams List */
@@ -1088,7 +1150,7 @@
     }
 
     .stream-card {
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 0.85rem 1rem;
@@ -1101,6 +1163,11 @@
 
     .stream-card:hover {
       border-color: rgba(255, 255, 255, 0.2);
+      background: #12151c;
+    }
+
+    .stream-card-fhd {
+      border-color: rgba(255, 255, 255, 0.18);
     }
 
     .stream-name {
@@ -1114,13 +1181,13 @@
       font-size: 0.78rem;
       color: var(--text-muted);
       white-space: pre-line;
-      line-height: 1.35;
+      line-height: 1.4;
     }
 
     /* Search Progress Box */
     .progress-box {
       margin-top: 1rem;
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 0.85rem 1rem;
@@ -1136,14 +1203,14 @@
     .progress-bar-container {
       width: 100%;
       height: 4px;
-      background: #1e2538;
+      background: #1a1e26;
       border-radius: 2px;
       overflow: hidden;
     }
 
     .progress-bar-fill {
       height: 100%;
-      background: var(--accent);
+      background: #ffffff;
       width: 0%;
       transition: width 0.3s ease;
     }
@@ -1156,20 +1223,69 @@
       margin-top: 0.4rem;
     }
 
+    .source-scanning-pill {
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      background: #14171f;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #717886;
+      margin-right: 0.35rem;
+      display: inline-block;
+    }
+
+    .source-scanning-pill.highlight {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.25);
+      color: #34d399;
+    }
+
+    /* Stream Filter Bar */
+    .stream-filter-bar {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .stream-filter-btn {
+      background: #0c0e12;
+      border: 1px solid var(--card-border);
+      color: #8b92a0;
+      padding: 0.35rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .stream-filter-btn:hover {
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .stream-filter-btn.active {
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #090a0d;
+      font-weight: 600;
+    }
+
     /* Toast Notification */
     .toast-notification {
       position: fixed;
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      background: #1e2538;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #ffffff;
+      background: #181b22;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f3f4f6;
       padding: 0.65rem 1.25rem;
       border-radius: 9999px;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       font-weight: 500;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
       opacity: 0;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 1000;
@@ -1200,7 +1316,7 @@
     .modal-box {
       width: 100%;
       max-width: 900px;
-      background: #090d16;
+      background: #0d0f14;
       border: 1px solid var(--card-border);
       border-radius: 12px;
       overflow: hidden;
@@ -1218,7 +1334,7 @@
     }
 
     .modal-title {
-      font-weight: 700;
+      font-weight: 600;
       font-size: 0.95rem;
       color: #ffffff;
       overflow: hidden;
@@ -1255,7 +1371,7 @@
     }
 
     footer a {
-      color: #94a3b8;
+      color: #8b92a0;
       text-decoration: none;
       font-weight: 500;
     }
@@ -1559,7 +1675,7 @@
     }
 
     .provider-card {
-      background: #090d16;
+      background: #0c0e12;
       border: 1px solid var(--card-border);
       border-radius: 10px;
       padding: 1.1rem;
@@ -1570,13 +1686,12 @@
     }
 
     .provider-card:hover {
-      border-color: rgba(99, 102, 241, 0.4);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
     }
 
     .provider-card.card-loading {
-      border-color: rgba(59, 130, 246, 0.5);
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+      border-color: rgba(255, 255, 255, 0.25);
     }
 
     .provider-card-header {
@@ -1593,26 +1708,27 @@
     }
 
     .provider-icon {
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       width: 40px;
       height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 8px;
-      background: #1e2538;
+      background: #161921;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       flex-shrink: 0;
     }
 
     .provider-name {
-      font-weight: 700;
-      font-size: 1rem;
+      font-weight: 600;
+      font-size: 0.95rem;
       color: #ffffff;
     }
 
     .provider-desc {
       font-size: 0.76rem;
-      color: #94a3b8;
+      color: #8b92a0;
       margin-top: 0.15rem;
     }
 
@@ -1625,34 +1741,34 @@
     }
 
     .badge-idle {
-      background: rgba(148, 163, 184, 0.15);
-      color: #94a3b8;
-      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(255, 255, 255, 0.04);
+      color: #8b92a0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .badge-loading {
-      background: rgba(59, 130, 246, 0.15);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
       animation: pulse 1.5s infinite;
     }
 
     .badge-success {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.1);
       color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.35);
+      border: 1px solid rgba(16, 185, 129, 0.25);
     }
 
     .badge-empty {
-      background: rgba(234, 179, 8, 0.15);
-      color: #facc15;
-      border: 1px solid rgba(234, 179, 8, 0.3);
+      background: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.25);
     }
 
     .badge-blocked {
-      background: rgba(239, 68, 68, 0.15);
+      background: rgba(248, 113, 113, 0.1);
       color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      border: 1px solid rgba(248, 113, 113, 0.25);
     }
 
     .provider-streams-list {
@@ -1666,7 +1782,7 @@
     }
 
     .provider-stream-item {
-      background: #131b2e;
+      background: #12151b;
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 6px;
       padding: 0.5rem 0.65rem;
@@ -1712,27 +1828,30 @@
     }
 
     .provider-btn-play {
-      background: #2563eb;
-      color: #ffffff;
+      background: #ffffff;
+      color: #090a0d;
+      font-weight: 600;
     }
     .provider-btn-play:hover {
-      background: #1d4ed8;
+      background: #e2e4e9;
     }
 
     .provider-btn-copy {
-      background: #1e293b;
-      color: #cbd5e1;
-      border-color: rgba(255, 255, 255, 0.1);
+      background: #181b22;
+      color: #c2c7d2;
+      border-color: rgba(255, 255, 255, 0.08);
     }
     .provider-btn-copy:hover {
-      background: #334155;
+      background: #222630;
       color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.16);
     }
 
     .provider-diagnostic-text {
       font-size: 0.76rem;
-      color: #94a3b8;
-      background: rgba(0, 0, 0, 0.3);
+      color: #8b92a0;
+      background: #101217;
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 6px;
       padding: 0.55rem 0.75rem;
       margin-top: 0.5rem;
@@ -1740,19 +1859,21 @@
     }
 
     .provider-retry-btn {
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #94a3b8;
+      background: #14171f;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #8b92a0;
       font-size: 0.72rem;
-      padding: 0.2rem 0.5rem;
+      padding: 0.25rem 0.6rem;
       border-radius: 4px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
     .provider-retry-btn:hover {
       color: #ffffff;
-      border-color: #6366f1;
+      border-color: rgba(255, 255, 255, 0.2);
+      background: #1c202a;
     }
+
   </style>
 </head>
 <body>
@@ -1868,7 +1989,7 @@
       <div class="config-section">
         <div class="config-header-row">
           <div class="config-title">Keresési időkorlát</div>
-          <div class="speed-badge" id="timeoutBadge" style="background: rgba(99, 102, 241, 0.12); color: #818cf8; border-color: rgba(99, 102, 241, 0.25);">
+          <div class="speed-badge" id="timeoutBadge" style="background: #161922; color: #f0f2f5; border: 1px solid rgba(255, 255, 255, 0.1);">
             <strong id="timeoutValText">10</strong>&nbsp;másodperc
           </div>
         </div>
@@ -1924,7 +2045,11 @@
       </div>
 
       <div class="tester-controls">
-        <input type="text" id="testId" class="input-field" placeholder="Pl. M4 Sport, Duna TV, Jégkorszak, Magyar népmesék, Bosszúállók..." value="" onkeydown="if(event.key==='Enter') runSearch()">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="testId" class="input-field" placeholder="Keresés filmekre, sorozatokra vagy TV adásokra..." value="" onkeydown="if(event.key==='Enter') runSearch()">
+          <span class="search-kbd-hint">↵ Enter</span>
+        </div>
         <button class="btn btn-primary" id="testBtn" onclick="runSearch()">Keresés</button>
       </div>
 
@@ -1941,7 +2066,7 @@
         <span class="chip" onclick="quickSearch('Indul a bakterház')">Indul a bakterház</span>
       </div>
 
-      <div id="loadingIndicator" style="display: none; margin-top: 1rem; color: #818cf8; font-size: 0.88rem; font-weight: 500;">
+      <div id="loadingIndicator" style="display: none; margin-top: 1rem; color: #9aa0ac; font-size: 0.88rem; font-weight: 500;">
         Keresés folyamatban a katalógusban...
       </div>
 
@@ -1985,7 +2110,7 @@
           <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
             <span>🔬</span>
             <span>Szolgáltató Diagnosztika &amp; Forrás Tesztelő</span>
-            <span style="font-size: 0.72rem; font-weight: 700; background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 0.2rem 0.55rem; border-radius: 9999px;">ÉLŐ MÁTRIX</span>
+            <span style="font-size: 0.72rem; font-weight: 600; background: #181b22; color: #ededed; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.2rem 0.55rem; border-radius: 9999px;">ÉLŐ MÁTRIX</span>
           </div>
         </div>
       </div>
@@ -1995,8 +2120,8 @@
       </p>
 
       <!-- Local vs Vercel Info Notice -->
-      <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 0.85rem 1rem; margin: 1rem 0; font-size: 0.84rem; line-height: 1.55; color: #cbd5e1;">
-        <div style="font-weight: 700; color: #818cf8; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
+      <div style="background: #0d0f14; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.85rem 1rem; margin: 1rem 0; font-size: 0.84rem; line-height: 1.55; color: #9aa0ac;">
+        <div style="font-weight: 600; color: #ffffff; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
           <span>💡</span> <span>Miért térhet el a Felhő (Vercel) és a Helyi gép / Kodi találati listája?</span>
         </div>
         <div>
@@ -2012,7 +2137,7 @@
           <option value="movie" selected>🎬 Film</option>
           <option value="series">📺 Sorozat (1x1)</option>
         </select>
-        <button class="btn btn-primary" id="runAllProvidersBtn" onclick="runAllProvidersTest()" style="flex: 1.2; min-width: 200px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 700; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
+        <button class="btn btn-primary" id="runAllProvidersBtn" onclick="runAllProvidersTest()" style="flex: 1.2; min-width: 200px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600;">
           <span>🚀</span>
           <span>Összes Forrás Tesztelése</span>
         </button>
@@ -2046,7 +2171,7 @@
         <div class="video-viewport" style="position: relative; width: 100%; min-height: 380px; max-height: 75vh; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
           <video id="modalVideoPlayer" controls playsinline style="width: 100%; height: 100%; max-height: 75vh; background: #000; outline: none;"></video>
           <iframe id="modalIframePlayer" src="about:blank" style="display: none; width: 100%; height: 60vh; min-height: 400px; max-height: 75vh; border: 0; background: #000;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-          <div id="modalExternalCard" style="display: none; width: 100%; text-align: center; padding: 3rem 1.5rem; background: linear-gradient(180deg, #0f172a 0%, #020617 100%);">
+          <div id="modalExternalCard" style="display: none; width: 100%; text-align: center; padding: 3rem 1.5rem; background: #0d0f14;">
             <div style="font-size: 3.5rem; margin-bottom: 1rem; filter: drop-shadow(0 0 16px rgba(56,189,248,0.4));">🎬</div>
             <h3 id="modalExternalCardTitle" style="color: #f8fafc; font-size: 1.35rem; font-weight: 700; margin-bottom: 0.75rem;">Hivatalos Mozi Lejátszó</h3>
             <p style="color: #94a3b8; font-size: 0.95rem; max-width: 520px; margin: 0 auto 1.75rem auto; line-height: 1.6;">
@@ -2222,13 +2347,13 @@
         badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
         badge.style.background = 'rgba(16, 185, 129, 0.15)';
       } else if (selectedTimeoutSec <= 12) {
-        badge.style.color = '#38bdf8';
-        badge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
-        badge.style.background = 'rgba(56, 189, 248, 0.15)';
+        badge.style.color = '#ededed';
+        badge.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+        badge.style.background = '#181b22';
       } else {
-        badge.style.color = '#a78bfa';
-        badge.style.borderColor = 'rgba(167, 139, 250, 0.3)';
-        badge.style.background = 'rgba(167, 139, 250, 0.15)';
+        badge.style.color = '#fbbf24';
+        badge.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+        badge.style.background = 'rgba(251, 191, 36, 0.1)';
       }
 
       [5, 10, 15, 20].forEach(sec => {
@@ -3260,7 +3385,7 @@
                 <div class="provider-stream-item">
                   <div class="provider-stream-meta">
                     <span class="provider-stream-title" title="${s.title || s.name}">${s.name || s.title}</span>
-                    <span style="font-size: 0.7rem; color: #818cf8; font-weight: 600;">${qBadge}</span>
+                    <span style="font-size: 0.7rem; color: #34d399; font-weight: 600;">${qBadge}</span>
                   </div>
                   <div class="provider-stream-actions">
                     <button type="button" class="provider-btn-action provider-btn-play" onclick="playInModal('${safeUrl}', '${safeTitle}', '${safePlayerUrl}')">▶️ Lejátszás</button>
@@ -3583,6 +3708,25 @@
       }
       showToast('📋 <strong>Közvetlen stream link kimásolva!</strong><br>Beillesztheted VLC, PotPlayer vagy Nuvio lejátszóba.');
     }
+
+    
+    // Keyboard shortcuts (Cmd+K / Ctrl+K or / to focus search)
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('testId');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      } else if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const searchInput = document.getElementById('testId');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+    });
 
     // Close on Escape key
     document.addEventListener('keydown', (e) => {

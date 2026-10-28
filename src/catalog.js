@@ -4,7 +4,7 @@
  */
 
 const { getMediaMeta } = require('./utils/meta');
-const { LIVE_CHANNELS } = require('./scrapers/mediaklikk');
+const { LIVE_CHANNELS, getMediaKlikkPrograms, getMediaKlikkSeriesEpisodes } = require('./scrapers/mediaklikk');
 const { searchNetMozi, getNetMoziSeriesEpisodes } = require('./scrapers/netmozi');
 
 function normalize(str) {
@@ -207,11 +207,19 @@ async function resolveHungarianQueryToEnglish(query) {
 async function searchCatalog(type, query, catalogId = null) {
   // If MédiaKlikk classics catalog requested
   if (catalogId === 'hu-mediaklikk-classics') {
-    if (!query) return FEATURED_MEDIAKLIKK_CLASSICS;
+    const allPrograms = getMediaKlikkPrograms();
+    const classicPrograms = allPrograms.filter(p => {
+      const cats = p.categories || [];
+      return cats.some(c => ['Retró', 'Sorozat', 'Gyerekeknek', 'Film', 'Kultúra', 'Ismeretterjesztő'].includes(c));
+    });
+
+    const list = classicPrograms.length > 0 ? classicPrograms : FEATURED_MEDIAKLIKK_CLASSICS;
+    if (!query) return list;
     const qNorm = normalize(query);
-    return FEATURED_MEDIAKLIKK_CLASSICS.filter(item => 
+    return list.filter(item => 
       normalize(item.name).includes(qNorm) || 
-      normalize(item.description).includes(qNorm)
+      normalize(item.description || '').includes(qNorm) ||
+      (item.categories && item.categories.some(c => normalize(c).includes(qNorm)))
     );
   }
 
@@ -270,6 +278,21 @@ async function searchCatalog(type, query, catalogId = null) {
       }
     }
   }
+
+  // Match across all 490+ MédiaKlikk shows, series, and archive programs
+  try {
+    const allPrograms = getMediaKlikkPrograms();
+    for (const prog of allPrograms) {
+      if (type && prog.type && prog.type !== type && type !== 'all') continue;
+      const normProg = normalize(prog.name);
+      if (normProg.includes(qNorm) || qNorm.includes(normProg) || scoreItemRelevance(prog.name, cleanQuery) >= 150) {
+        if (!seenIds.has(prog.id)) {
+          seenIds.add(prog.id);
+          results.push(prog);
+        }
+      }
+    }
+  } catch (e) {}
 
   // Check if query is an actor name (e.g. Bud Spencer, Terence Hill)
   if (!type || type === 'movie') {
@@ -498,6 +521,36 @@ async function getMeta(type, id) {
             defaultVideoId: channel.id,
             isLive: true
           }
+        }
+      };
+    }
+  }
+
+  // Handle MédiaKlikk programs (Dynamic Series & Episodes)
+  if (id.startsWith('mediaklikk:program:')) {
+    const progData = await getMediaKlikkSeriesEpisodes(id);
+    if (progData) {
+      const allVideos = Object.values(progData.seasons || {}).flat().map(e => ({
+        id: e.id,
+        title: e.name,
+        name: e.name,
+        season: e.season,
+        episode: e.episode,
+        overview: e.overview,
+        thumbnail: e.thumbnail
+      }));
+
+      return {
+        meta: {
+          id: progData.id,
+          type: 'series',
+          name: progData.name,
+          poster: progData.poster,
+          background: progData.background,
+          description: progData.description,
+          releaseInfo: progData.year,
+          genres: progData.genres,
+          videos: allVideos
         }
       };
     }
