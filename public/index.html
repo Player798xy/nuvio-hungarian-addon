@@ -3395,37 +3395,47 @@
               `;
             }).join('');
           }
-        } else {
-          // Zero streams
-          const isCloudflareSuspect = (providerId === 'netmozi' || providerId === 'hdmozi');
+        } else if (data.ok && data.count === 0) {
+          // Zero streams without error
           if (badge) {
-            if (isCloudflareSuspect) {
-              badge.className = 'provider-badge badge-blocked';
-              badge.textContent = `🔴 Felhő IP korlát`;
-            } else {
-              badge.className = 'provider-badge badge-empty';
-              badge.textContent = `🟡 0 találat`;
-            }
+            badge.className = 'provider-badge badge-empty';
+            badge.textContent = `🟡 0 találat`;
           }
           if (diagEl) {
             diagEl.style.display = 'block';
-            if (isCloudflareSuspect) {
-              diagEl.innerHTML = `⚠️ A távoli oldal Cloudflare védelme blokkolja a nyilvános felhőszervert (Vercel). <strong>Helyi gépen (node server.js vagy Kodi) futtatva azonnal működik!</strong>`;
+            diagEl.textContent = `Nem található stream erre a címre ezen a forráson.`;
+          }
+        } else {
+          // An actual error or Cloudflare block occurred
+          const isCf = data.error && (data.error.includes('403') || data.error.includes('Cloudflare') || data.error.includes('challenge'));
+          if (badge) {
+            badge.className = 'provider-badge badge-blocked';
+            badge.textContent = isCf ? `🔴 Felhő IP korlát` : `🔴 Hiba`;
+          }
+          if (diagEl) {
+            diagEl.style.display = 'block';
+            if (isCf) {
+              diagEl.innerHTML = `⚠️ A távoli oldal Cloudflare védelme blokkolta a felhőszervert. <strong>Helyi gépen (node server.js vagy Kodi) azonnal működik!</strong>`;
             } else {
-              diagEl.textContent = `Nem található stream erre a címre ezen a forráson.`;
+              diagEl.textContent = data.error || 'Nem található stream erre a címre.';
             }
           }
         }
       } catch (err) {
         if (card) card.classList.remove('card-loading');
         if (timeEl) timeEl.textContent = `${Date.now() - t0} ms`;
+        const isCf = err.message && (err.message.includes('403') || err.message.includes('Cloudflare') || err.message.includes('challenge'));
         if (badge) {
           badge.className = 'provider-badge badge-blocked';
-          badge.textContent = `🔴 Hiba`;
+          badge.textContent = isCf ? `🔴 Felhő IP korlát` : `🔴 Hiba`;
         }
         if (diagEl) {
           diagEl.style.display = 'block';
-          diagEl.textContent = `Hiba történt: ${err.message}`;
+          if (isCf) {
+            diagEl.innerHTML = `⚠️ A távoli oldal Cloudflare védelme blokkolja ezt a kérést. <strong>Helyi gépen (node server.js) azonnal működik!</strong>`;
+          } else {
+            diagEl.textContent = `Hiba történt: ${err.message}`;
+          }
         }
       }
     }
