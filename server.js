@@ -578,57 +578,6 @@ app.get('/api/provider-test', async (req, res) => {
   }
 });
 
-// Diagnostic debug endpoint to test remote site connectivity from Vercel
-app.get('/api/debug-dmda', async (req, res) => {
-  const { netmoziTlsRequest } = require('./src/scrapers/netmozi');
-  const results = {};
-
-  try {
-    const dmda = await netmoziTlsRequest('https://dmdamedia.hu/', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } });
-    results.dmda = {
-      statusCode: dmda.statusCode,
-      headers: dmda.headers,
-      bodySnippet: (dmda.body || '').slice(0, 300)
-    };
-  } catch (e) {
-    results.dmda = { error: e.message };
-  }
-
-  try {
-    const nm = await netmoziTlsRequest('https://netmozi.com/', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } });
-    results.netmozi = {
-      statusCode: nm.statusCode,
-      headers: nm.headers,
-      bodySnippet: (nm.body || '').slice(0, 300)
-    };
-  } catch (e) {
-    results.netmozi = { error: e.message };
-  }
-
-  try {
-    const { searchNetMozi, scrapeNetMozi } = require('./src/scrapers/netmozi');
-    const nmSearch = await searchNetMozi('Wild Wild West');
-    results.netmoziSearch = {
-      count: nmSearch.length,
-      first: nmSearch[0] || null
-    };
-
-    const nmStreams = await scrapeNetMozi({
-      id: nmSearch[0]?.id || 'netmozi:movie:678',
-      hungarianTitle: 'Wild Wild West - Vadiúj vadnyugat',
-      englishTitle: 'Wild Wild West'
-    });
-    results.netmoziStreams = {
-      count: nmStreams.length,
-      streams: nmStreams
-    };
-  } catch (e) {
-    results.netmoziSearch = { error: e.message };
-  }
-
-  res.json(results);
-});
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
