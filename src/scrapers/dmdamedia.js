@@ -6,6 +6,7 @@
 
 const { extractVideaStreams } = require('./videa');
 const { extractIndavideoStreams } = require('./indavideo');
+const { netmoziTlsRequest } = require('./netmozi');
 
 function normalize(str) {
   return (str || '')
@@ -118,10 +119,39 @@ const EXCLUDED_PATHS = new Set([
   '/rolunk', '/kategoria', '/szineszek', '/cdn-cgi'
 ]);
 
+/**
+ * Cloudflare-bypassing request for DMDAMedia using TLS session ticket suppression
+ */
+async function dmdaRequest(targetUrl, options = {}, clientIp = null) {
+  try {
+    const res = await netmoziTlsRequest(targetUrl, { ...options, clientIp });
+    if (res && res.statusCode === 200 && res.body && res.body.length > 50) {
+      return res.body;
+    }
+  } catch (e) {}
+
+  // Standard fetch fallback
+  try {
+    const fRes = await fetch(targetUrl, {
+      method: options.method || 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        ...(options.headers || {})
+      },
+      body: options.body,
+      signal: AbortSignal.timeout(5000)
+    });
+    if (fRes.ok) return await fRes.text();
+  } catch (e) {}
+
+  return null;
+}
+
 async function scrapeDMDAMedia(meta) {
   const streams = [];
   const hu = meta.hungarianTitle || meta.englishTitle;
   if (!hu) return streams;
+  const clientIp = meta.clientIp || null;
 
   const searchQueries = new Set();
   searchQueries.add(hu.trim());
@@ -141,18 +171,16 @@ async function scrapeDMDAMedia(meta) {
   for (const q of searchQueries) {
     try {
       const body = new URLSearchParams({ search: q }).toString();
-      const sRes = await fetch('https://dmdamedia.hu/search', {
+      const html = await dmdaRequest('https://dmdamedia.hu/search', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body,
-        signal: AbortSignal.timeout(4500)
-      });
-      if (!sRes.ok) continue;
+        body
+      }, clientIp);
 
-      const html = await sRes.text();
+      if (!html) continue;
+
       const links = [...html.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)]
         .map(m => ({
           url: m[1].split('?')[0],
@@ -197,13 +225,9 @@ async function scrapeDMDAMedia(meta) {
         }
 
         try {
-          const pageRes = await fetch(targetUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-            signal: AbortSignal.timeout(5000)
-          });
-          if (!pageRes.ok) return;
+          const pageHtml = await dmdaRequest(targetUrl, {}, clientIp);
+          if (!pageHtml) return;
 
-          const pageHtml = await pageRes.text();
           const iframes = [...pageHtml.matchAll(/<iframe[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
 
           // Also check server tabs (?a=filemoon#lejatszo, ?a=inda#lejatszo, ?a=videa#lejatszo, etc.)
@@ -214,12 +238,8 @@ async function scrapeDMDAMedia(meta) {
             await Promise.all(uniqueTabs.map(async (tab) => {
               try {
                 const tabUrl = targetUrl + tab;
-                const tRes = await fetch(tabUrl, {
-                  headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-                  signal: AbortSignal.timeout(3000)
-                });
-                if (tRes.ok) {
-                  const tHtml = await tRes.text();
+                const tHtml = await dmdaRequest(tabUrl, {}, clientIp);
+                if (tHtml) {
                   const tIframes = [...tHtml.matchAll(/<iframe[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
                   for (const ti of tIframes) {
                     if (!iframes.includes(ti)) iframes.push(ti);
