@@ -182,6 +182,41 @@ async function resolveTmdbToImdb(tmdbId, isSeries = false) {
 
 async function resolveTvdbToImdb(tvdbId) {
   if (!tvdbId) return null;
+
+  // 1. First try TheTVDB dereferrer (Fast redirect ~200ms directly to show slug / page)
+  try {
+    const derefUrl = `https://thetvdb.com/dereferrer/series/${tvdbId}`;
+    const res = await fetch(derefUrl, {
+      redirect: 'manual',
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      signal: AbortSignal.timeout(3000)
+    });
+    const location = res.headers.get('location');
+    if (location) {
+      const pageRes = await fetch(location, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        signal: AbortSignal.timeout(3500)
+      });
+      if (pageRes.ok) {
+        const html = await pageRes.text();
+        const titleMatch = html.match(/<title>([^<]+)\s*-\s*TheTVDB\.com<\/title>/i);
+        const imdbMatch = html.match(/imdb\.com\/title\/(tt\d+)/i);
+        let showTitle = titleMatch ? titleMatch[1].trim() : '';
+        showTitle = showTitle
+          .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í')
+          .replace(/&oacute;/g, 'ó').replace(/&ouml;/g, 'ö').replace(/&uacute;/g, 'ú')
+          .replace(/&uuml;/g, 'ü').replace(/&Aacute;/g, 'Á').replace(/&Eacute;/g, 'É')
+          .replace(/&Iacute;/g, 'Í').replace(/&Oacute;/g, 'Ó').replace(/&Ouml;/g, 'Ö')
+          .replace(/&Uacute;/g, 'Ú').replace(/&Uuml;/g, 'Ü').replace(/&#039;/g, "'").replace(/&amp;/g, '&');
+        const imdbId = imdbMatch ? imdbMatch[1] : null;
+        if (showTitle) {
+          return { imdbId, huTitle: showTitle, enTitle: showTitle };
+        }
+      }
+    }
+  } catch (err) {}
+
+  // 2. Fallback to Wikidata SPARQL
   try {
     const sparql = `SELECT ?imdb ?label WHERE {
       ?item wdt:P4835 "${tvdbId}" .
@@ -198,7 +233,7 @@ async function resolveTvdbToImdb(tvdbId) {
       const binding = data?.results?.bindings?.[0];
       const imdbId = binding?.imdb?.value || null;
       const huTitle = binding?.label?.value || null;
-      return { imdbId, huTitle };
+      return { imdbId, huTitle, enTitle: huTitle };
     }
   } catch (e) {}
 
