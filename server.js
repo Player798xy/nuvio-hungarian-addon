@@ -605,6 +605,17 @@ app.get('/api/debug-dmda', async (req, res) => {
     results.netmozi = { error: e.message };
   }
 
+  try {
+    const { searchNetMozi } = require('./src/scrapers/netmozi');
+    const nmSearch = await searchNetMozi('Wild Wild West');
+    results.netmoziSearch = {
+      count: nmSearch.length,
+      first: nmSearch[0] || null
+    };
+  } catch (e) {
+    results.netmoziSearch = { error: e.message };
+  }
+
   res.json(results);
 });
 
