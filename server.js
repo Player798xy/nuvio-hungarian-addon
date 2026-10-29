@@ -606,11 +606,21 @@ app.get('/api/debug-dmda', async (req, res) => {
   }
 
   try {
-    const { searchNetMozi } = require('./src/scrapers/netmozi');
+    const { searchNetMozi, scrapeNetMozi } = require('./src/scrapers/netmozi');
     const nmSearch = await searchNetMozi('Wild Wild West');
     results.netmoziSearch = {
       count: nmSearch.length,
       first: nmSearch[0] || null
+    };
+
+    const nmStreams = await scrapeNetMozi({
+      id: nmSearch[0]?.id || 'netmozi:movie:678',
+      hungarianTitle: 'Wild Wild West - Vadiúj vadnyugat',
+      englishTitle: 'Wild Wild West'
+    });
+    results.netmoziStreams = {
+      count: nmStreams.length,
+      streams: nmStreams
     };
   } catch (e) {
     results.netmoziSearch = { error: e.message };
