@@ -61,7 +61,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.8.3',
+    version: '1.8.4',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
@@ -148,6 +148,15 @@ async function getStreams(type, id, config = {}) {
 
   if (!id) {
     return { streams: [] };
+  }
+
+  // Handle direct MédiaKlikk video tokens & program episode IDs immediately (fast-path MTVA 1080p stream)
+  if (id && (id.startsWith('mediaklikk:video:') || id.startsWith('mediaklikk:program:'))) {
+    console.log(`[Addon] Fast-path MédiaKlikk stream resolution for ${id}`);
+    const streams = await scrapeMediaKlikk({ id, clientIp: config.clientIp });
+    if (streams && streams.length > 0) {
+      return { streams };
+    }
   }
 
   const configSourcesKey = config.sources ? [...config.sources].sort().join(',') : 'all';

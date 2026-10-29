@@ -213,7 +213,30 @@ async function searchCatalog(type, query, catalogId = null) {
       return cats.some(c => ['Retró', 'Sorozat', 'Gyerekeknek', 'Film', 'Kultúra', 'Ismeretterjesztő'].includes(c));
     });
 
-    const list = classicPrograms.length > 0 ? classicPrograms : FEATURED_MEDIAKLIKK_CLASSICS;
+    // Ensure all items strictly have type: 'series' (Stremio TV requirement for series catalogs)
+    const featuredSeries = FEATURED_MEDIAKLIKK_CLASSICS
+      .filter(item => item.type === 'series')
+      .map(item => ({ ...item, type: 'series' }));
+
+    const mappedClassics = classicPrograms.map(p => ({
+      ...p,
+      type: 'series'
+    }));
+
+    // Deduplicate by name/id with featured series placed first
+    const seenMap = new Set();
+    const combinedList = [];
+
+    for (const item of [...featuredSeries, ...mappedClassics]) {
+      const normKey = normalize(item.name);
+      if (!seenMap.has(normKey) && !seenMap.has(item.id)) {
+        seenMap.add(normKey);
+        seenMap.add(item.id);
+        combinedList.push(item);
+      }
+    }
+
+    const list = combinedList.length > 0 ? combinedList : featuredSeries;
     if (!query) return list;
     const qNorm = normalize(query);
     return list.filter(item => 
@@ -528,8 +551,12 @@ async function getMeta(type, id) {
 
   // Handle MédiaKlikk programs (Dynamic Series & Episodes)
   if (id.startsWith('mediaklikk:program:')) {
-    const progData = await getMediaKlikkSeriesEpisodes(id);
-    if (progData) {
+    let progData = null;
+    try {
+      progData = await getMediaKlikkSeriesEpisodes(id);
+    } catch (e) {}
+
+    if (progData && progData.seasons && Object.keys(progData.seasons).length > 0) {
       const allVideos = Object.values(progData.seasons || {}).flat().map(e => ({
         id: e.id,
         title: e.name,
@@ -540,20 +567,56 @@ async function getMeta(type, id) {
         thumbnail: e.thumbnail
       }));
 
-      return {
-        meta: {
-          id: progData.id,
-          type: 'series',
-          name: progData.name,
-          poster: progData.poster,
-          background: progData.background,
-          description: progData.description,
-          releaseInfo: progData.year,
-          genres: progData.genres,
-          videos: allVideos
-        }
-      };
+      if (allVideos.length > 0) {
+        return {
+          meta: {
+            id: progData.id || id,
+            type: 'series',
+            name: progData.name,
+            poster: progData.poster,
+            background: progData.background,
+            description: progData.description,
+            releaseInfo: progData.year,
+            genres: progData.genres,
+            videos: allVideos
+          }
+        };
+      }
     }
+
+    // Robust Fallback: NEVER return null for mediaklikk:program:!
+    // Returning null causes "Series error" on Stremio Android TV / Smart TV.
+    const allPrograms = getMediaKlikkPrograms();
+    const cleanKey = id.replace(/^mediaklikk:program:/, '').trim();
+    const prog = allPrograms.find(p => p.id === id || p.slug === cleanKey || normalize(p.name) === normalize(cleanKey));
+    const progName = prog ? prog.name : cleanKey.replace(/-/g, ' ');
+    const poster = prog?.poster || '';
+    const desc = prog?.description || `MédiaKlikk (MTVA) műsor: ${progName}.`;
+    const genres = prog?.categories || ['MTVA Archívum'];
+
+    return {
+      meta: {
+        id,
+        type: 'series',
+        name: progName,
+        poster,
+        background: poster,
+        description: desc,
+        releaseInfo: genres.join(' • '),
+        genres,
+        videos: [
+          {
+            id: `${id}:1:1`,
+            title: `${progName} (1. Adás)`,
+            name: `${progName} (1. Adás)`,
+            season: 1,
+            episode: 1,
+            overview: desc,
+            thumbnail: poster
+          }
+        ]
+      }
+    };
   }
 
   // Handle NetMozi items
@@ -618,8 +681,38 @@ async function getMeta(type, id) {
         }
       }
     } catch (err) {
-      // Fallback
+      // Fallback to local series metadata if Cinemeta timed out
     }
+
+    // Fallback: If Cinemeta failed/timed out, check getSeriesEpisodes
+    try {
+      const { getSeriesEpisodes } = require('./utils/meta');
+      const seriesData = await getSeriesEpisodes(id);
+      if (seriesData) {
+        const allVids = Object.values(seriesData.seasons || {}).flat().map(e => ({
+          id: e.id,
+          title: e.name,
+          name: e.name,
+          season: e.season,
+          episode: e.episode,
+          overview: e.overview,
+          thumbnail: e.thumbnail
+        }));
+        return {
+          meta: {
+            id: seriesData.id,
+            type: 'series',
+            name: seriesData.name,
+            poster: seriesData.poster,
+            background: seriesData.background,
+            description: seriesData.description,
+            releaseInfo: seriesData.year,
+            genres: seriesData.genres,
+            videos: allVids
+          }
+        };
+      }
+    } catch (e) {}
   }
 
   return null;

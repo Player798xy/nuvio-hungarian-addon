@@ -276,15 +276,20 @@ async function getMediaKlikkSeriesEpisodes(idOrSlugOrName) {
 
       const thumb = item.featured_image_url_large || item.featured_image_url_medium || program.poster || '';
 
+      let cleanToken = token;
+      while (cleanToken.includes('%')) {
+        try { cleanToken = decodeURIComponent(cleanToken); } catch(e) { break; }
+      }
+
       seasonsMap[sNum].push({
-        id: `mediaklikk:video:${encodeURIComponent(token)}`,
+        id: `mediaklikk:video:${encodeURIComponent(cleanToken)}`,
         season: parseInt(sNum, 10),
         episode: epNum,
         name: epName,
         rawTitle,
         overview: `${program.name} - ${rawTitle}`,
         thumbnail: thumb,
-        token
+        token: cleanToken
       });
     });
 
@@ -543,8 +548,8 @@ function parseSeasonEpisode(title) {
  */
 async function scrapeMediaKlikk(meta) {
   // If direct MédiaKlikk video token was requested, resolve stream immediately
-  if (meta.id && meta.id.startsWith('mediaklikk:video:')) {
-    let token = meta.id.replace('mediaklikk:video:', '').trim();
+  if ((meta.id && meta.id.startsWith('mediaklikk:video:')) || meta.token) {
+    let token = meta.token || (meta.id ? meta.id.replace('mediaklikk:video:', '').trim() : '');
     while (token.includes('%')) {
       try { token = decodeURIComponent(token); } catch(e) { break; }
     }
@@ -579,6 +584,24 @@ async function scrapeMediaKlikk(meta) {
       }
     } catch (e) {}
     return [];
+  }
+
+  // If program episode requested e.g. mediaklikk:program:slug:season:episode
+  if (meta.id && meta.id.startsWith('mediaklikk:program:')) {
+    try {
+      const parts = meta.id.split(':');
+      const slug = parts[2] || '';
+      const seasonNum = parts[3] ? parseInt(parts[3], 10) : (meta.season || 1);
+      const epNum = parts[4] ? parseInt(parts[4], 10) : (meta.episode || 1);
+      const progData = await getMediaKlikkSeriesEpisodes(`mediaklikk:program:${slug}`);
+      if (progData && progData.seasons) {
+        const sList = progData.seasons[String(seasonNum)] || Object.values(progData.seasons)[0] || [];
+        const matchedEp = sList.find(e => e.episode === epNum) || sList[0];
+        if (matchedEp && matchedEp.token) {
+          return await scrapeMediaKlikk({ token: matchedEp.token, clientIp: meta.clientIp });
+        }
+      }
+    } catch(e) {}
   }
 
   // If live channel id was requested, return live channel streams directly

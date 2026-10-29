@@ -324,6 +324,59 @@ async function getMediaMeta(type, rawId) {
     return result;
   }
 
+  // Handle MédiaKlikk direct video token IDs
+  if (id.startsWith('mediaklikk:video:')) {
+    let token = id.replace('mediaklikk:video:', '').trim();
+    while (token.includes('%')) {
+      try { token = decodeURIComponent(token); } catch(e) { break; }
+    }
+    const result = {
+      id,
+      imdbId: id,
+      token,
+      type: type || 'series',
+      englishTitle: 'MédiaKlikk Videó',
+      hungarianTitle: 'MédiaKlikk Videó',
+      year: '',
+      season: 1,
+      episode: 1,
+      episodeTitle: '1. Rész'
+    };
+    metaCache.set(cacheKey, result);
+    return result;
+  }
+
+  // Handle MédiaKlikk program episode IDs: mediaklikk:program:slug:season:episode
+  if (id.startsWith('mediaklikk:program:')) {
+    const parts = id.split(':');
+    const slug = parts[2] || '';
+    season = parts[3] && /^\d+$/.test(parts[3]) ? parseInt(parts[3], 10) : 1;
+    episode = parts[4] && /^\d+$/.test(parts[4]) ? parseInt(parts[4], 10) : 1;
+    
+    let progName = slug.replace(/-/g, ' ');
+    try {
+      const { getMediaKlikkPrograms } = require('../scrapers/mediaklikk');
+      const allP = getMediaKlikkPrograms();
+      const p = allP.find(item => item.slug === slug || item.id === `mediaklikk:program:${slug}`);
+      if (p) progName = p.name;
+    } catch(e) {}
+
+    const result = {
+      id,
+      imdbId: id,
+      slug,
+      type: 'series',
+      englishTitle: progName,
+      hungarianTitle: progName,
+      year: '',
+      season,
+      episode,
+      episodeTitle: `${episode}. Rész`
+    };
+    metaCache.set(cacheKey, result);
+    return result;
+  }
+
   // Handle synthetic title IDs: title:Some+Title:season:episode or title:Some+Title
   if (id.startsWith('title:')) {
     const parts = id.split(':');
