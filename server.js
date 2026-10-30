@@ -39,6 +39,9 @@ function parseConfig(configStr, query = {}) {
     const t = parseInt(query.timeout, 10);
     config.timeoutMs = t <= 60 ? t * 1000 : t; // support both seconds and ms
   }
+  if (query.catalogs) {
+    config.catalogs = query.catalogs.split(',').map(c => c.trim()).filter(Boolean);
+  }
 
   if (!configStr) return config;
 
@@ -50,6 +53,7 @@ function parseConfig(configStr, query = {}) {
       if (Array.isArray(obj.sources)) config.sources = obj.sources;
       if (obj.onlyHD) config.onlyHD = true;
       if (Array.isArray(obj.resolutions)) config.resolutions = obj.resolutions;
+      if (Array.isArray(obj.catalogs)) config.catalogs = obj.catalogs;
       if (obj.timeout) {
         const t = parseInt(obj.timeout, 10);
         config.timeoutMs = t <= 60 ? t * 1000 : t;
@@ -67,6 +71,8 @@ function parseConfig(configStr, query = {}) {
     const val = rawVal.trim();
     if (key === 'sources') {
       config.sources = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else if (key === 'catalogs' || key === 'cat') {
+      config.catalogs = val.split(',').map(c => c.trim()).filter(Boolean);
     } else if (key === 'onlyhd' || key === 'hd') {
       config.onlyHD = val === 'true' || val === '1';
     } else if (key === 'resolutions' || key === 'res') {
@@ -152,7 +158,7 @@ app.get([
   }
 
   try {
-    const metas = await searchCatalog(type, search, id);
+    const metas = await searchCatalog(type, search, id, { skip });
     res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
     res.json({ metas: metas || [] });
   } catch (err) {

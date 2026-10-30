@@ -6,6 +6,7 @@
 const { getMediaMeta } = require('./utils/meta');
 const { LIVE_CHANNELS, getMediaKlikkPrograms, getMediaKlikkSeriesEpisodes } = require('./scrapers/mediaklikk');
 const { searchNetMozi, getNetMoziSeriesEpisodes } = require('./scrapers/netmozi');
+const { fetchCatalogItems } = require('./catalogs');
 
 function normalize(str) {
   return (str || '')
@@ -204,7 +205,18 @@ async function resolveHungarianQueryToEnglish(query) {
   }
 }
 
-async function searchCatalog(type, query, catalogId = null) {
+async function searchCatalog(type, query, catalogId = null, extra = {}) {
+  // If dynamic toplist or streaming catalog requested (TMDB / Mafab)
+  if (catalogId && (
+    catalogId.startsWith('hu-trending-') ||
+    catalogId.startsWith('hu-cinema-') ||
+    catalogId.startsWith('hu-hungarian-') ||
+    catalogId.startsWith('hu-top-rated-') ||
+    catalogId.startsWith('hu-stream-')
+  )) {
+    return await fetchCatalogItems(catalogId, type, { search: query, skip: extra.skip || 0 });
+  }
+
   // If MédiaKlikk classics catalog requested
   if (catalogId === 'hu-mediaklikk-classics') {
     const allPrograms = getMediaKlikkPrograms();
@@ -664,6 +676,37 @@ async function getMeta(type, id) {
         }
       };
     }
+  }
+
+  // If TMDB id format: tmdb:12345
+  if (id.startsWith('tmdb:')) {
+    try {
+      const parts = id.split(':');
+      const tmdbId = parts[1];
+      const isSeries = type === 'series';
+      const endpoint = isSeries ? `tv/${tmdbId}` : `movie/${tmdbId}`;
+      const url = `https://api.themoviedb.org/3/${endpoint}?api_key=ffe7ef8916c61835264d2df68276ddc2&language=hu-HU&append_to_response=external_ids`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        const data = await res.json();
+        const year = (data.release_date || data.first_air_date || '').slice(0, 4);
+        const poster = data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : '';
+        const background = data.backdrop_path ? `https://image.tmdb.org/t/p/original${data.backdrop_path}` : poster;
+        return {
+          meta: {
+            id,
+            type: isSeries ? 'series' : 'movie',
+            name: data.title || data.name,
+            poster,
+            background,
+            description: data.overview || '',
+            releaseInfo: year,
+            genres: (data.genres || []).map(g => g.name),
+            imdbRating: data.vote_average ? String(Math.round(data.vote_average * 10) / 10) : undefined
+          }
+        };
+      }
+    } catch (e) {}
   }
 
   // If standard IMDb id, fetch from Cinemeta and decorate with Hungarian title

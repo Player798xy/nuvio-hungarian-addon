@@ -2011,6 +2011,28 @@
           <button type="button" class="mini-btn" id="btnTimeout20" onclick="setTimeoutPreset(20)">20 mp (Mély pásztázás)</button>
         </div>
       </div>
+
+      <!-- 📚 Katalógusok & Ajánlások (Stremio & Nuvio Polcok) -->
+      <div class="config-section" style="margin-top: 1.5rem; border-top: 1px solid var(--card-border); padding-top: 1.25rem;">
+        <div class="config-header-row">
+          <div>
+            <div class="config-title">📚 Katalógusok &amp; Ajánlások (Polcok)</div>
+            <div class="config-subtitle" id="catalogsSummary">7 polc bekapcsolva a kezdőlapon</div>
+          </div>
+          <div class="speed-badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">
+            Flix-Catalogs &amp; Mafab
+          </div>
+        </div>
+
+        <!-- Catalog Presets -->
+        <div class="mini-presets-row" style="margin-bottom: 0.75rem;">
+          <button type="button" class="mini-btn active" id="btnCatDefault" onclick="applyCatalogPreset('default')">Alapértelmezett (Ajánlott)</button>
+          <button type="button" class="mini-btn" id="btnCatAll" onclick="applyCatalogPreset('all')">Minden polc (+Netflix, Max, Disney+)</button>
+          <button type="button" class="mini-btn" id="btnCatTvOnly" onclick="applyCatalogPreset('tvonly')">Csak Élő TV &amp; MTVA</button>
+        </div>
+
+        <div class="sources-grid" id="catalogsGrid"></div>
+      </div>
     </div>
 
     <!-- 3. Útmutató (Nuvio & Stremio telepítés) -->
@@ -2229,6 +2251,32 @@
     let selectedSources = ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2', 'hdmozi'];
     let selectedResolutions = ['1080p', '720p', '480p'];
     let selectedTimeoutSec = 10;
+
+    // Catalogs & Shelves (Flix-Catalogs & Mafab / TMDB)
+    const AVAILABLE_CATALOGS = [
+      // Élő TV & MTVA
+      { id: 'hu-live-tv', name: '🔴 Magyar Élő TV', desc: 'M4 Sport, M1, Duna, TV2, RTL és 25+ élő csatorna', group: 'tv', default: true },
+      { id: 'hu-mediaklikk-classics', name: '🏛️ MédiaKlikk Klasszikusok (MTVA)', desc: '1080p felújított magyar sorozatok és archívum', group: 'tv', default: true },
+
+      // Toplisták & Ajánlások (Mafab / TMDB)
+      { id: 'hu-trending-movies', name: '🔥 Heti legnézettebb filmek', desc: 'Magyarországi heti népszerűségi toplista', group: 'top', default: true },
+      { id: 'hu-trending-series', name: '🔥 Heti legnézettebb sorozatok', desc: 'Magyarországi heti legnépszerűbb sorozatok', group: 'top', default: true },
+      { id: 'hu-cinema-movies', name: '🍿 Jelenleg a mozikban', desc: 'Friss mozibemutatók és premierek', group: 'top', default: true },
+      { id: 'hu-hungarian-movies', name: '🇭🇺 Magyar filmek toplistája', desc: 'A legnépszerűbb és legjobb magyar filmek', group: 'top', default: true },
+      { id: 'hu-hungarian-series', name: '🇭🇺 Magyar sorozatok toplistája', desc: 'Hazai sorozatok (A mi kis falunk, Aranyélet, stb.)', group: 'top', default: true },
+      { id: 'hu-top-rated-movies', name: '⭐ Legjobbra értékelt filmek', desc: 'Minden idők legmagasabb nézői értékelésű filmjei', group: 'top', default: false },
+
+      // Streaming Szolgáltatók (Flix-Catalogs stílus)
+      { id: 'hu-stream-netflix', name: '🔴 Netflix Magyarország', desc: 'Népszerű szinkronos filmek a Netflixről', group: 'stream', default: false },
+      { id: 'hu-stream-max', name: '🟣 Max (HBO Max)', desc: 'Max Magyarország népszerű kínálata', group: 'stream', default: false },
+      { id: 'hu-stream-disney', name: '🔵 Disney+ Magyarország', desc: 'Disney, Marvel, Star Wars és NatGeo', group: 'stream', default: false },
+      { id: 'hu-stream-skyshowtime', name: '🟡 SkyShowtime', desc: 'Universal, Paramount és Showtime sikerfilmek', group: 'stream', default: false },
+      { id: 'hu-stream-appletv', name: '⚪ Apple TV+', desc: 'Apple Original filmek és sorozatok magyar szinkronnal', group: 'stream', default: false },
+      { id: 'hu-stream-prime', name: '🔷 Amazon Prime Video', desc: 'Prime Video magyarországi kínálata', group: 'stream', default: false }
+    ];
+
+    let selectedCatalogs = AVAILABLE_CATALOGS.filter(c => c.default).map(c => c.id);
+
     let currentStreamQualityFilter = 'all';
     let activeFilter = 'all';
     let currentSeriesMeta = null;
@@ -2455,14 +2503,103 @@
       }
     }
 
+    function renderCatalogsGrid() {
+      const grid = document.getElementById('catalogsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      AVAILABLE_CATALOGS.forEach(cat => {
+        const isChecked = selectedCatalogs.includes(cat.id);
+        const item = document.createElement('div');
+        item.className = 'source-item' + (isChecked ? ' selected' : '');
+        item.onclick = (e) => {
+          if (e.target.tagName !== 'INPUT') {
+            toggleCatalog(cat.id);
+          }
+        };
+
+        let tagClass = 'tag-fast';
+        let tagText = 'Élő adás';
+        if (cat.group === 'top') {
+          tagClass = 'tag-rich';
+          tagText = 'Toplista';
+        } else if (cat.group === 'stream') {
+          tagClass = 'tag-rich';
+          tagText = 'Streaming';
+        }
+
+        item.innerHTML = `
+          <input type="checkbox" id="cat_${cat.id}" class="source-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCatalog('${cat.id}')">
+          <div class="source-details">
+            <div class="source-name">
+              ${cat.name}
+              <span class="source-tag ${tagClass}">${tagText}</span>
+            </div>
+            <div class="source-desc">${cat.desc}</div>
+          </div>
+        `;
+        grid.appendChild(item);
+      });
+
+      const summary = document.getElementById('catalogsSummary');
+      if (summary) {
+        summary.textContent = `${selectedCatalogs.length} polc bekapcsolva a kezdőlapon`;
+      }
+    }
+
+    function toggleCatalog(id) {
+      if (selectedCatalogs.includes(id)) {
+        if (selectedCatalogs.length === 1) {
+          showToast('⚠️ Legalább egy katalógus polcot bekapcsolva kell hagyni!');
+          return;
+        }
+        selectedCatalogs = selectedCatalogs.filter(c => c !== id);
+      } else {
+        selectedCatalogs.push(id);
+      }
+      renderCatalogsGrid();
+      updateManifestUrl();
+      highlightActiveCatalogPreset();
+    }
+
+    function applyCatalogPreset(preset) {
+      if (preset === 'default') {
+        selectedCatalogs = AVAILABLE_CATALOGS.filter(c => c.default).map(c => c.id);
+      } else if (preset === 'all') {
+        selectedCatalogs = AVAILABLE_CATALOGS.map(c => c.id);
+      } else if (preset === 'tvonly') {
+        selectedCatalogs = ['hu-live-tv', 'hu-mediaklikk-classics'];
+      }
+      renderCatalogsGrid();
+      updateManifestUrl();
+      highlightActiveCatalogPreset();
+    }
+
+    function highlightActiveCatalogPreset() {
+      const defaultIds = AVAILABLE_CATALOGS.filter(c => c.default).map(c => c.id);
+      const isDefault = selectedCatalogs.length === defaultIds.length && defaultIds.every(id => selectedCatalogs.includes(id));
+      const isAll = selectedCatalogs.length === AVAILABLE_CATALOGS.length;
+      const isTvOnly = selectedCatalogs.length === 2 && ['hu-live-tv', 'hu-mediaklikk-classics'].every(id => selectedCatalogs.includes(id));
+
+      const btnDefault = document.getElementById('btnCatDefault');
+      const btnAll = document.getElementById('btnCatAll');
+      const btnTv = document.getElementById('btnCatTvOnly');
+
+      if (btnDefault) btnDefault.className = 'mini-btn' + (isDefault ? ' active' : '');
+      if (btnAll) btnAll.className = 'mini-btn' + (isAll ? ' active' : '');
+      if (btnTv) btnTv.className = 'mini-btn' + (isTvOnly ? ' active' : '');
+    }
+
     function updateManifestUrl() {
       const origin = window.location.origin;
       const isAllSources = selectedSources.length === AVAILABLE_SOURCES.length;
       const isDefaultRes = selectedResolutions.length === 3 && ['1080p', '720p', '480p'].every(r => selectedResolutions.includes(r));
       const isDefaultTimeout = selectedTimeoutSec === 10;
+      const defaultCatalogIds = AVAILABLE_CATALOGS.filter(c => c.default).map(c => c.id);
+      const isDefaultCatalogs = selectedCatalogs.length === defaultCatalogIds.length && defaultCatalogIds.every(id => selectedCatalogs.includes(id));
 
       let configPath = '';
-      if (!isAllSources || !isDefaultRes || !isDefaultTimeout) {
+      if (!isAllSources || !isDefaultRes || !isDefaultTimeout || !isDefaultCatalogs) {
         const parts = [];
         if (!isAllSources) {
           parts.push(`sources=${selectedSources.join(',')}`);
@@ -2472,6 +2609,9 @@
         }
         if (!isDefaultTimeout) {
           parts.push(`timeout=${selectedTimeoutSec}`);
+        }
+        if (!isDefaultCatalogs) {
+          parts.push(`cat=${selectedCatalogs.join(',')}`);
         }
         configPath = '/' + parts.join('|');
       }
@@ -3474,13 +3614,60 @@
       });
     }
 
+    function parseInitialUrlConfig() {
+      const path = window.location.pathname;
+      let configStr = '';
+      const m = path.match(/^\/([^/]+)\/configure/);
+      if (m && m[1]) {
+        configStr = m[1];
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('sources')) {
+        selectedSources = params.get('sources').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      }
+      if (params.get('cat') || params.get('catalogs')) {
+        const cats = (params.get('cat') || params.get('catalogs')).split(',').map(c => c.trim()).filter(Boolean);
+        if (cats.length > 0) selectedCatalogs = cats;
+      }
+      if (params.get('res')) {
+        selectedResolutions = params.get('res').split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
+      }
+      if (params.get('timeout')) {
+        selectedTimeoutSec = parseInt(params.get('timeout'), 10) || 10;
+      }
+
+      if (configStr) {
+        const parts = decodeURIComponent(configStr).split(/[|&;]/);
+        for (const part of parts) {
+          const [k, v] = part.split(/[=:]/);
+          if (!k || !v) continue;
+          const key = k.trim().toLowerCase();
+          const val = v.trim();
+          if (key === 'sources') {
+            selectedSources = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+          } else if (key === 'cat' || key === 'catalogs') {
+            const cats = val.split(',').map(c => c.trim()).filter(Boolean);
+            if (cats.length > 0) selectedCatalogs = cats;
+          } else if (key === 'res') {
+            selectedResolutions = val.split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
+          } else if (key === 'timeout') {
+            selectedTimeoutSec = parseInt(val, 10) || 10;
+          }
+        }
+      }
+    }
+
     // Init on load
+    parseInitialUrlConfig();
     renderSourcesGrid();
+    renderCatalogsGrid();
     renderProviderGrid();
     updateResolutionUI();
-    onTimeoutChange(10);
-    updateManifestUrl();
+    onTimeoutChange(selectedTimeoutSec);
     highlightActivePreset();
+    highlightActiveCatalogPreset();
+    updateManifestUrl();
     loadDefaultCatalog('all');
 
     // Built-in In-Page Cinema Video Player with Hls.js and Iframe Embed Support

@@ -5,6 +5,7 @@
 
 const { getMediaMeta } = require('./utils/meta');
 const { searchCatalog, getMeta } = require('./catalog');
+const { getEnabledManifestCatalogs } = require('./catalogs');
 const { scrapeVidea } = require('./scrapers/videa');
 const { scrapeIndavideo } = require('./scrapers/indavideo');
 const { scrapeJobbMintATV } = require('./scrapers/jobbmintatv');
@@ -61,7 +62,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.8.5',
+    version: '1.8.6',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
@@ -85,53 +86,7 @@ function getManifest(config = {}) {
     ],
     types: ['movie', 'series', 'tv', 'channel'],
     idPrefixes: supportedIdPrefixes,
-    catalogs: [
-      {
-        type: 'movie',
-        id: 'hu-live-tv',
-        name: '🔴 Magyar Élő TV (M4 Sport, M1, Duna)',
-        extra: [
-          { name: 'search', isRequired: false },
-          { name: 'skip', isRequired: false }
-        ]
-      },
-      {
-        type: 'series',
-        id: 'hu-mediaklikk-classics',
-        name: '🏛️ MédiaKlikk Klasszikusok (MTVA)',
-        extra: [
-          { name: 'search', isRequired: false },
-          { name: 'skip', isRequired: false }
-        ]
-      },
-      {
-        type: 'series',
-        id: 'hu-series',
-        name: 'Magyar Sorozatok & Mesék',
-        extra: [
-          { name: 'search', isRequired: false },
-          { name: 'skip', isRequired: false }
-        ]
-      },
-      {
-        type: 'movie',
-        id: 'hu-movies',
-        name: 'Magyar Filmek',
-        extra: [
-          { name: 'search', isRequired: false },
-          { name: 'skip', isRequired: false }
-        ]
-      },
-      {
-        type: 'tv',
-        id: 'hu-live-tv-channel',
-        name: '🔴 Magyar Élő TV (IPTV)',
-        extra: [
-          { name: 'search', isRequired: false },
-          { name: 'skip', isRequired: false }
-        ]
-      }
-    ],
+    catalogs: getEnabledManifestCatalogs(config.catalogs),
     behaviorHints: {
       configurable: true,
       configurationRequired: false
