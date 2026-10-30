@@ -147,6 +147,52 @@ function normalize(str) {
     .trim();
 }
 
+// Mafab.hu catalog URL mapping
+const MAFAB_URLS = {
+  'hu-trending-movies': 'https://www.mafab.hu/vod/top-streaming',
+  'hu-cinema-movies': 'https://www.mafab.hu/cinema/premier/jelenleg-a-mozikban',
+  'hu-hungarian-movies': 'https://www.mafab.hu/filmek/listak/legjobb-magyar-filmek',
+  'hu-stream-netflix': 'https://www.mafab.hu/vod/top-streaming/netflix',
+  'hu-stream-max': 'https://www.mafab.hu/vod/top-streaming/hbo',
+  'hu-stream-disney': 'https://www.mafab.hu/vod/top-streaming/disney',
+  'hu-stream-skyshowtime': 'https://www.mafab.hu/vod/top-streaming/skyshowtime',
+  'hu-stream-appletv': 'https://www.mafab.hu/vod/top-streaming/appletv',
+  'hu-stream-prime': 'https://www.mafab.hu/vod/top-streaming/amazon'
+};
+
+/**
+ * Attempts to fetch live ranked titles directly from Mafab.hu
+ * If Mafab has active Cloudflare Turnstile protection, gracefully returns null to trigger TMDB fallback.
+ */
+async function tryFetchMafabList(catalogId) {
+  const url = MAFAB_URLS[catalogId];
+  if (!url) return null;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'hu-HU,hu;q=0.9,en;q=0.8'
+      },
+      signal: AbortSignal.timeout(2000)
+    });
+
+    if (res.ok) {
+      const html = await res.text();
+      if (!html.includes('cf-mitigated') && !html.includes('Just a moment')) {
+        const matches = [...html.matchAll(/class=["'][^"']*text-bold[^"']*["'][^>]*>([^<]+)<\/a>/gi)];
+        const titles = matches.map(m => m[1].trim()).filter(Boolean);
+        if (titles.length >= 5) {
+          return titles.slice(0, 20);
+        }
+      }
+    }
+  } catch (e) {}
+
+  return null;
+}
+
 /**
  * Resolves TMDB item ID to IMDb ID (tt...) for 100% Cinemeta and scraper compatibility.
  */
@@ -217,8 +263,33 @@ async function fetchCatalogItems(catalogId, type, { search = '', skip = 0 } = {}
 
   let items = [];
 
-  try {
-    switch (catalogId) {
+  // 1. If page 1 and no search query, attempt to fetch live rankings from Mafab.hu
+  if (page === 1 && !search) {
+    try {
+      const mafabTitles = await tryFetchMafabList(catalogId);
+      if (Array.isArray(mafabTitles) && mafabTitles.length >= 5) {
+        const candidateItems = [];
+        for (const title of mafabTitles) {
+          try {
+            const sRes = await fetch(`${TMDB_BASE_URL}/search/${isSeries ? 'tv' : 'movie'}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=hu-HU`, {
+              signal: AbortSignal.timeout(1500)
+            }).then(r => r.json());
+            if (sRes.results && sRes.results.length > 0) {
+              candidateItems.push(sRes.results[0]);
+            }
+          } catch (e) {}
+        }
+        if (candidateItems.length >= 5) {
+          items = await enrichTmdbItems(candidateItems, isSeries);
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. If Mafab is blocked by Cloudflare Turnstile or page > 1, use official TMDB catalog
+  if (items.length === 0) {
+    try {
+      switch (catalogId) {
       case 'hu-trending-movies': {
         const url = `${TMDB_BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}&language=hu-HU&page=${page}`;
         const res = await fetch(url, { signal: AbortSignal.timeout(4500) }).then(r => r.json());
@@ -305,9 +376,10 @@ async function fetchCatalogItems(catalogId, type, { search = '', skip = 0 } = {}
 
       default:
         items = [];
+      }
+    } catch (err) {
+      console.warn(`[Catalogs] Error fetching catalog ${catalogId}:`, err.message);
     }
-  } catch (err) {
-    console.warn(`[Catalogs] Error fetching catalog ${catalogId}:`, err.message);
   }
 
   // Filter by search query if present
