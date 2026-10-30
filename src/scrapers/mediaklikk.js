@@ -590,9 +590,18 @@ async function scrapeMediaKlikk(meta) {
   if (meta.id && meta.id.startsWith('mediaklikk:program:')) {
     try {
       const parts = meta.id.split(':');
-      const slug = parts[2] || '';
-      const seasonNum = parts[3] ? parseInt(parts[3], 10) : (meta.season || 1);
-      const epNum = parts[4] ? parseInt(parts[4], 10) : (meta.episode || 1);
+      let slug = '';
+      let seasonNum = meta.season || 1;
+      let epNum = meta.episode || 1;
+
+      if (parts.length >= 5) {
+        epNum = parseInt(parts[parts.length - 1], 10) || 1;
+        seasonNum = parseInt(parts[parts.length - 2], 10) || 1;
+        slug = parts.slice(2, parts.length - 2).join(':');
+      } else if (parts.length >= 3) {
+        slug = parts.slice(2).join(':');
+      }
+
       const progData = await getMediaKlikkSeriesEpisodes(`mediaklikk:program:${slug}`);
       if (progData && progData.seasons) {
         const sList = progData.seasons[String(seasonNum)] || Object.values(progData.seasons)[0] || [];

@@ -3,6 +3,8 @@
  * Extracts direct MP4 streams with authenticated CDN tokens from Indavideo.
  */
 
+const { isTitleMatch } = require('./videa');
+
 function normalize(str) {
   return (str || '')
     .toLowerCase()
@@ -147,22 +149,9 @@ async function scrapeIndavideo(meta) {
           if (!vData || !vData.streams || vData.streams.length === 0) return;
 
           // Check title match
-          const normCand = normalize(vData.title);
-          const normHu = normalize(hu);
-          if (!normCand.includes(normHu) && !normHu.includes(normCand)) {
-            // Check word overlap
-            const words = normHu.split(' ').filter(w => w.length > 2);
-            const matches = words.filter(w => normCand.includes(w));
-            if (matches.length < Math.max(1, Math.ceil(words.length * 0.6))) {
-              return;
-            }
-          }
-
-          // If looking for movie, reject sequel numbers if not in query
-          if (!meta.season) {
-            const targetHasNum = /\b([2-9]|ii|iii|iv|v|vi)\b/i.test(normHu);
-            const candHasNum = /\b([2-9]|ii|iii|iv|v|vi)\b/i.test(normCand);
-            if (!targetHasNum && candHasNum) return;
+          const isSeries = Boolean(meta.season);
+          if (!isTitleMatch(hu, vData.title, meta.year, isSeries)) {
+            return;
           }
 
           for (const s of vData.streams) {

@@ -3,7 +3,7 @@
  * Extracts direct Videa, OK.ru, and third-party hoster streams from filmezek.com movies & series.
  */
 
-const { extractVideaStreams, extractVideaFCodeStreams } = require('./videa');
+const { extractVideaStreams, extractVideaFCodeStreams, isTitleMatch } = require('./videa');
 
 async function extractOkRuStreams(embedUrl, srcName = 'Filmezek') {
   try {
@@ -162,16 +162,19 @@ async function scrapeFilmezek(meta) {
       if (!Array.isArray(items) || items.length === 0) continue;
 
       // Filter matching item by IMDb ID or title similarity
+      const isSeries = Boolean(meta.season);
       let matchingItem = items.find(it => it.MovieCover && meta.imdbId && it.MovieCover.includes(meta.imdbId));
       if (!matchingItem) {
-        if (meta.season) {
-          matchingItem = items.find(it => it.type === 'online-sorozatok' && it.MovieTitle?.includes(`${meta.season}.`));
-        } else {
-          matchingItem = items.find(it => it.type === 'online-filmek');
-        }
-      }
-      if (!matchingItem && items.length > 0) {
-        matchingItem = items[0];
+        matchingItem = items.find(it => {
+          const title = it.MovieTitle || it.value || it.label || '';
+          if (isSeries && it.type === 'online-sorozatok') {
+            return isTitleMatch(hu, title, meta.year, true) && (!meta.season || title.includes(`${meta.season}.`));
+          }
+          if (!isSeries && it.type === 'online-filmek') {
+            return isTitleMatch(hu, title, meta.year, false);
+          }
+          return false;
+        });
       }
 
       if (!matchingItem) continue;

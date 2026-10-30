@@ -301,40 +301,52 @@ const JUNK_TITLE_REGEX = /\b(filmzene|zene|soundtrack|ost|paródia|parodia|főc�
 function isTitleMatch(targetTitle, candidateTitle, targetYear, isSeries = false) {
   if (!targetTitle || !candidateTitle) return false;
   const norm = (s) => s.toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents for robust comparison
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 
-  const normTarget = norm(targetTitle);
+  let cleanTarget = targetTitle.replace(/\s*[-–:]\s*(a film|the movie|film|sorozat)\s*$/i, "").trim();
+  if (!cleanTarget) cleanTarget = targetTitle;
+
+  const normTarget = norm(cleanTarget);
   const normCand = norm(candidateTitle);
 
-  // For movies only: If candidate contains a sequel number (e.g. "2", "3", "4", "5") but target doesn't, reject
   if (!isSeries) {
     const targetHasNumber = /\b([2-9]|ii|iii|iv|v|vi)\b/i.test(normTarget);
     const candHasNumber = /\b([2-9]|ii|iii|iv|v|vi)\b/i.test(normCand);
-    if (!targetHasNumber && candHasNumber) {
-      return false;
-    }
+    if (!targetHasNumber && candHasNumber) return false;
 
-    // If candidate has a 4-digit year, compare with targetYear if available
     if (targetYear) {
       const candYearMatch = normCand.match(/\b(19\d\d|20\d\d)\b/);
       if (candYearMatch) {
         const candYear = parseInt(candYearMatch[1], 10);
         const tYear = parseInt(targetYear, 10);
-        if (Math.abs(candYear - tYear) > 2) {
-          return false;
-        }
+        if (Math.abs(candYear - tYear) > 2) return false;
       }
     }
   }
 
-  const stopWords = ['egy', 'nem', 'mint', 'hogy', 'the', 'and', 'film', 'teljes', 'magyarul'];
-  const targetWords = normTarget.split(' ').filter(w => w.length >= 3 && !stopWords.includes(w));
-  if (targetWords.length === 0) return true;
+  const stopWords = ["egy", "nem", "mint", "hogy", "the", "and", "film", "teljes", "magyarul", "online", "szinkronos"];
+  const targetWords = normTarget.split(" ").filter(w => w.length >= 2 && !stopWords.includes(w));
 
-  const matched = targetWords.filter(w => normCand.includes(w));
+  if (targetWords.length === 0) {
+    const rawWords = normTarget.split(" ").filter(w => w.length >= 2);
+    if (rawWords.length === 0) {
+      return new RegExp("\\b" + normTarget + "\\b", "i").test(normCand);
+    }
+    return rawWords.every(w => new RegExp("\\b" + w + "\\b", "i").test(normCand));
+  }
+
+  if (targetWords.length === 1 && targetWords[0].length <= 3) {
+    return new RegExp("\\b" + targetWords[0] + "\\b", "i").test(normCand);
+  }
+
+  const matched = targetWords.filter(w => {
+    if (w.length <= 3) return new RegExp("\\b" + w + "\\b", "i").test(normCand);
+    return normCand.includes(w);
+  });
+
   if (targetWords.length <= 2) {
     return matched.length === targetWords.length;
   }
@@ -520,5 +532,6 @@ async function scrapeVidea(meta) {
 module.exports = {
   scrapeVidea,
   extractVideaStreams,
-  extractVideaFCodeStreams
+  extractVideaFCodeStreams,
+  isTitleMatch
 };

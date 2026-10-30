@@ -471,8 +471,16 @@ async function searchCatalog(type, query, catalogId = null) {
     const netmoziItems = await searchNetMozi(cleanQuery, type);
     for (const item of netmoziItems) {
       if (!seenIds.has(item.id)) {
-        seenIds.add(item.id);
-        results.push(item);
+        // Prevent duplicate cards if item already exists from Cinemeta (e.g. F1 vs F1: The Movie)
+        const normItemName = normalize(item.name);
+        const alreadyExists = results.some(r => {
+          const normR = normalize(r.name);
+          return normR === normItemName || normR.startsWith(normItemName + ' ') || normItemName.startsWith(normR + ' ');
+        });
+        if (!alreadyExists) {
+          seenIds.add(item.id);
+          results.push(item);
+        }
       }
     }
   } catch (e) {}
@@ -558,7 +566,7 @@ async function getMeta(type, id) {
 
     if (progData && progData.seasons && Object.keys(progData.seasons).length > 0) {
       const allVideos = Object.values(progData.seasons || {}).flat().map(e => ({
-        id: e.id,
+        id: `${id}:${e.season}:${e.episode}`,
         title: e.name,
         name: e.name,
         season: e.season,
@@ -570,7 +578,7 @@ async function getMeta(type, id) {
       if (allVideos.length > 0) {
         return {
           meta: {
-            id: progData.id || id,
+            id,
             type: 'series',
             name: progData.name,
             poster: progData.poster,

@@ -250,7 +250,10 @@ function parseCandidatesFromHtml(html, isSeries, normTarget, targetYear) {
       const itemDesc = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : '';
 
       const normItem = normalize(itemTitle);
-      const matchScore = normItem === normTarget ? 100 : (normItem.includes(normTarget) || normTarget.includes(normItem) ? 75 : 0);
+      const isWordMatch = normTarget.length <= 3 
+        ? new RegExp(`\\b${normTarget}\\b`, 'i').test(normItem) 
+        : (normItem.includes(normTarget) || normTarget.includes(normItem));
+      const matchScore = normItem === normTarget ? 100 : (isWordMatch ? 75 : 0);
       const yearScore = (targetYear && itemYear && String(targetYear) === String(itemYear)) ? 20 : 0;
       let typeScore = 0;
       if (isSeries === true) {
@@ -301,7 +304,10 @@ function parseCandidatesFromHtml(html, isSeries, normTarget, targetYear) {
       const itemDesc = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : '';
 
       const normItem = normalize(itemTitle);
-      const matchScore = normItem === normTarget ? 100 : (normItem.includes(normTarget) || normTarget.includes(normItem) ? 75 : 0);
+      const isWordMatch = normTarget.length <= 3 
+        ? new RegExp(`\\b${normTarget}\\b`, 'i').test(normItem) 
+        : (normItem.includes(normTarget) || normTarget.includes(normItem));
+      const matchScore = normItem === normTarget ? 100 : (isWordMatch ? 75 : 0);
       const yearScore = (targetYear && itemYear && String(targetYear) === String(itemYear)) ? 20 : 0;
       let typeScore = 0;
       if (isSeries === true) {
@@ -759,13 +765,20 @@ async function scrapeNetMozi(metaOrTitle, year = null, season = null, episode = 
 
   const isSeries = Boolean(targetSeason && targetEpisode);
 
-  // Search Hungarian title first
-  let streams = await searchAndScrapeNetMozi(cleanTitle, targetYear, isSeries, targetSeason, targetEpisode, clientIp);
+  // Generate candidate query titles (strip suffixes like "- A film", ": The Movie", etc.)
+  const strippedHu = cleanTitle.replace(/\s*[-–:]\s*(a film|the movie|film|sorozat)\s*$/i, '').trim();
+  const strippedEn = (englishTitle || '').replace(/\s*[-–:]\s*(a film|the movie|film|sorozat)\s*$/i, '').trim();
 
-  // If no streams found and englishTitle is different, try searching English title
-  if (streams.length === 0 && englishTitle && normalize(englishTitle) !== normalize(cleanTitle)) {
-    console.log(`[NetMozi] Fallback search with English title: "${englishTitle}"`);
-    streams = await searchAndScrapeNetMozi(englishTitle, targetYear, isSeries, targetSeason, targetEpisode, clientIp);
+  const queryList = [];
+  if (strippedHu) queryList.push(strippedHu);
+  if (cleanTitle && !queryList.includes(cleanTitle)) queryList.push(cleanTitle);
+  if (strippedEn && !queryList.includes(strippedEn)) queryList.push(strippedEn);
+  if (englishTitle && !queryList.includes(englishTitle)) queryList.push(englishTitle);
+
+  let streams = [];
+  for (const q of queryList) {
+    streams = await searchAndScrapeNetMozi(q, targetYear, isSeries, targetSeason, targetEpisode, clientIp);
+    if (streams.length > 0) break;
   }
 
   return streams;

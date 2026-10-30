@@ -3,7 +3,7 @@
  * Extracts 1080p and 720p direct streams from Filmvilag2 articles (Videa, Indavideo, OK.ru).
  */
 
-const { extractVideaStreams } = require('./videa');
+const { extractVideaStreams, isTitleMatch } = require('./videa');
 const { extractIndavideoStreams } = require('./indavideo');
 
 function normalize(str) {
@@ -55,11 +55,9 @@ async function scrapeFilmvilag(meta) {
 
       if (links.length === 0) continue;
 
-      const normTarget = normalize(hu);
+      const isSeries = Boolean(meta.season);
       const candidates = links.slice(0, 3).filter(item => {
-        const normItemTitle = normalize(item.title);
-        const targetWords = normTarget.split(' ').filter(w => w.length > 2);
-        return targetWords.some(w => normItemTitle.includes(w) || item.url.toLowerCase().includes(w));
+        return isTitleMatch(hu, item.title, meta.year, isSeries);
       });
 
       await Promise.all(candidates.map(async (item) => {
