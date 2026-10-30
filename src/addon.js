@@ -62,7 +62,7 @@ function getManifest(config = {}) {
 
   return {
     id: 'community.nuvio.hungarian.streams',
-    version: '1.8.6',
+    version: '1.8.7',
     name,
     description: desc,
     logo: `${hostUrl}/logo.png`,
@@ -123,7 +123,7 @@ async function getStreams(type, id, config = {}) {
 
   // 2. Filter active scrapers based on user configuration and stage
   let candidateScrapers = ALL_SCRAPERS;
-  let timeoutMs = config.timeoutMs || 9500; // Search up to user-selected duration
+  let timeoutMs = config.timeoutMs || 20000; // Search up to user-selected duration (default: 20s)
 
   if (config.stage === 'fast') {
     candidateScrapers = ALL_SCRAPERS.filter(s => FAST_SCRAPER_IDS.has(s.id));

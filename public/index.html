@@ -1940,11 +1940,11 @@
 
       <!-- Presets Segmented Control -->
       <div class="segmented-control">
-        <button class="preset-btn active" id="btnPresetFast" onclick="applyPreset('fast')">
-          Gyors (Ajánlott: 5 forrás)
+        <button class="preset-btn" id="btnPresetFast" onclick="applyPreset('fast')">
+          Gyors (7 forrás)
         </button>
-        <button class="preset-btn" id="btnPresetAll" onclick="applyPreset('all')">
-          Minden forrás (10 megosztó)
+        <button class="preset-btn active" id="btnPresetAll" onclick="applyPreset('all')">
+          Minden forrás (11 megosztó - Alapértelmezett)
         </button>
         <button class="preset-btn" id="btnPresetKids" onclick="applyPreset('kids')">
           Mesék &amp; Gyerekek
@@ -1990,25 +1990,25 @@
         <div class="config-header-row">
           <div class="config-title">Keresési időkorlát</div>
           <div class="speed-badge" id="timeoutBadge" style="background: #161922; color: #f0f2f5; border: 1px solid rgba(255, 255, 255, 0.1);">
-            <strong id="timeoutValText">10</strong>&nbsp;másodperc
+            <strong id="timeoutValText">20</strong>&nbsp;másodperc
           </div>
         </div>
         <div class="slider-box">
-          <input type="range" id="timeoutSlider" min="3" max="25" value="10" step="1" oninput="onTimeoutChange(this.value)" class="custom-slider">
+          <input type="range" id="timeoutSlider" min="3" max="25" value="20" step="1" oninput="onTimeoutChange(this.value)" class="custom-slider">
           <div class="slider-ticks">
             <span>3 mp (Villám)</span>
             <span>5 mp</span>
-            <span>10 mp (Optimális)</span>
+            <span>10 mp</span>
             <span>15 mp</span>
-            <span>20 mp</span>
+            <span>20 mp (Alapértelmezett)</span>
             <span>25 mp (Mély)</span>
           </div>
         </div>
         <div class="mini-presets-row">
           <button type="button" class="mini-btn" id="btnTimeout5" onclick="setTimeoutPreset(5)">5 mp (Gyors)</button>
-          <button type="button" class="mini-btn active" id="btnTimeout10" onclick="setTimeoutPreset(10)">10 mp (Alapértelmezett)</button>
+          <button type="button" class="mini-btn" id="btnTimeout10" onclick="setTimeoutPreset(10)">10 mp (Közepes)</button>
           <button type="button" class="mini-btn" id="btnTimeout15" onclick="setTimeoutPreset(15)">15 mp (Több 1080p)</button>
-          <button type="button" class="mini-btn" id="btnTimeout20" onclick="setTimeoutPreset(20)">20 mp (Mély pásztázás)</button>
+          <button type="button" class="mini-btn active" id="btnTimeout20" onclick="setTimeoutPreset(20)">20 mp (Alapértelmezett)</button>
         </div>
       </div>
 
@@ -2247,10 +2247,10 @@
       { id: 'hdmozi', name: 'HDMozi.hu', desc: 'HDMozi / RPM közvetlen 1080p HLS', fast: true }
     ];
 
-    // State
-    let selectedSources = ['videa', 'mediaklikk', 'netmozi', 'indavideo', 'jobbmintatv', 'filmvilag2', 'hdmozi'];
+    // State (Default: minden forrás és 20 mp)
+    let selectedSources = AVAILABLE_SOURCES.map(s => s.id);
     let selectedResolutions = ['1080p', '720p', '480p'];
-    let selectedTimeoutSec = 10;
+    let selectedTimeoutSec = 20;
 
     // Catalogs & Shelves (Flix-Catalogs & Mafab / TMDB)
     const AVAILABLE_CATALOGS = [
@@ -2594,7 +2594,7 @@
       const origin = window.location.origin;
       const isAllSources = selectedSources.length === AVAILABLE_SOURCES.length;
       const isDefaultRes = selectedResolutions.length === 3 && ['1080p', '720p', '480p'].every(r => selectedResolutions.includes(r));
-      const isDefaultTimeout = selectedTimeoutSec === 10;
+      const isDefaultTimeout = selectedTimeoutSec === 20;
       const defaultCatalogIds = AVAILABLE_CATALOGS.filter(c => c.default).map(c => c.id);
       const isDefaultCatalogs = selectedCatalogs.length === defaultCatalogIds.length && defaultCatalogIds.every(id => selectedCatalogs.includes(id));
 
@@ -3652,7 +3652,7 @@
           } else if (key === 'res') {
             selectedResolutions = val.split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
           } else if (key === 'timeout') {
-            selectedTimeoutSec = parseInt(val, 10) || 10;
+            selectedTimeoutSec = parseInt(val, 10) || 20;
           }
         }
       }

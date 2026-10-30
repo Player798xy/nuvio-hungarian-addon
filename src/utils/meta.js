@@ -2,6 +2,7 @@
  * Metadata resolver: fetches Cinemeta info and resolves localized Hungarian titles via Wikipedia / Wikidata.
  */
 
+const TMDB_API_KEY = process.env.TMDB_API_KEY || 'ffe7ef8916c61835264d2df68276ddc2';
 const metaCache = new Map();
 let magyarNepmesekData = null;
 try {
@@ -9,11 +10,40 @@ try {
 } catch (e) {}
 
 async function resolveHungarianTitle(englishTitle, imdbId) {
-  if (!englishTitle) return '';
+  // 1. Primary: Query TMDB (Official Hungarian database, 100% accurate, ~100ms)
+  if (imdbId && imdbId.startsWith('tt')) {
+    try {
+      const tmdbUrl = `https://api.themoviedb.org/3/find/${imdbId}?api_key=${TMDB_API_KEY}&external_source=imdb_id&language=hu-HU`;
+      const res = await fetch(tmdbUrl, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        const item = data.movie_results?.[0] || data.tv_results?.[0];
+        const title = item?.title || item?.name;
+        if (title && title.trim()) {
+          return title.replace(/\s*\([^)]+\)\s*$/g, '').trim();
+        }
+      }
+    } catch (e) {}
+  }
 
-  // 1. Try Wikipedia langlinks (extremely fast & reliable, ~100ms)
+  if (englishTitle && englishTitle.trim()) {
+    try {
+      const searchUrl = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(englishTitle.trim())}&language=hu-HU`;
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        const item = data.results?.[0];
+        const title = item?.title || item?.name;
+        if (title && title.trim()) {
+          return title.replace(/\s*\([^)]+\)\s*$/g, '').trim();
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Secondary fallback: Wikipedia langlinks
   try {
-    const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${encodeURIComponent(englishTitle.trim().replace(/ /g, '_'))}&lllang=hu&format=json`;
+    const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${encodeURIComponent((englishTitle || '').trim().replace(/ /g, '_'))}&lllang=hu&format=json`;
     const res = await fetch(wikiUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
       signal: AbortSignal.timeout(3000)
@@ -140,20 +170,18 @@ const PRELOADED_HUNGARIAN_TITLES = {
 async function resolveTmdbToImdb(tmdbId, isSeries = false) {
   if (!tmdbId) return null;
 
-  // 1. Try environment TMDB_API_KEY if configured
-  if (process.env.TMDB_API_KEY) {
-    try {
-      const endpoint = isSeries ? `tv/${tmdbId}` : `movie/${tmdbId}`;
-      const url = `https://api.themoviedb.org/3/${endpoint}/external_ids?api_key=${process.env.TMDB_API_KEY}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.imdb_id) {
-          return { imdbId: data.imdb_id };
-        }
-      }
-    } catch (e) {}
-  }
+  // 1. Direct TMDB external_ids lookup (Fast, accurate)
+  try {
+    const endpoint = isSeries ? `tv/${tmdbId}` : `movie/${tmdbId}`;
+    const url = `https://api.themoviedb.org/3/${endpoint}?api_key=${TMDB_API_KEY}&language=hu-HU&append_to_response=external_ids`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json();
+      const imdbId = data.external_ids?.imdb_id || data.imdb_id || null;
+      const huTitle = data.title || data.name || null;
+      return { imdbId, huTitle, enTitle: data.original_title || data.original_name || huTitle };
+    }
+  } catch (e) {}
 
   // 2. Query Wikidata SPARQL (Fast, unauthenticated, maps TMDB -> IMDb & Hungarian title)
   try {

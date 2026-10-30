@@ -20,7 +20,8 @@ function parseConfig(configStr, query = {}) {
   const config = {
     sources: [],
     onlyHD: false,
-    resolutions: []
+    resolutions: [],
+    timeoutMs: 20000
   };
 
   if (query.sources) {
